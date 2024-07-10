@@ -121,13 +121,17 @@ export class Pool extends TokenContract {
 
         tokenIn.equals(addressA).or(tokenIn.equals(addressB)).assertTrue("Incorrect token in");
 
-        let tokenContractIn = new TokenStandard(tokenIn);
-        let tokenHolderIn = new TokenHolder(this.address, tokenContractIn.deriveTokenId());
+        // we request token out because this is the token holder who update his balance to transfer out
+        let tokenOut = Provable.if(tokenIn.equals(addressA), addressB, addressA);
+        let tokenContractOut = new TokenStandard(tokenOut);
+        let tokenHolderOut = new TokenHolder(this.address, tokenContractOut.deriveTokenId());
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getUnconstrained();
 
-        await tokenHolderIn.swap(sender, amountIn, amountOutMin);
+        // will transfer token in to this pool and calculate correct amount out to transfer the token out
+        const amountOut = await tokenHolderOut.swap(this.address, sender, amountIn, amountOutMin);
+        await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
     }
 
 }
