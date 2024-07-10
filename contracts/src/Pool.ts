@@ -32,30 +32,17 @@ export class Pool extends TokenContract {
         amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
         amountB.assertGreaterThan(UInt64.zero, "No amount B supplied");
 
-        let tokenContractA = new TokenStandard(addressA);
-        let tokenContractB = new TokenStandard(addressB);
-
-        const holderA = AccountUpdate.create(this.address, tokenContractA.deriveTokenId());
-        const holderB = AccountUpdate.create(this.address, tokenContractB.deriveTokenId());
-        const balanceA = holderA.account.balance.getAndRequireEquals();
-        const balanceB = holderB.account.balance.getAndRequireEquals();
-
-        balanceA.equals(UInt64.zero).assertTrue("First liquidity already supplied");
-        balanceB.equals(UInt64.zero).assertTrue("First liquidity already supplied");
+        let tokenContractA = new TokenStandard(tokenA);
+        let tokenContractB = new TokenStandard(tokenB);
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getUnconstrained();
 
-        tokenContractA.transfer(sender, this.address, amountA);
-        tokenContractB.transfer(sender, this.address, amountB);
-
-
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
         amountA.add(amountB).assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
-        tokenContractA.transfer(sender, this.address, amountA);
-        tokenContractB.transfer(sender, this.address, amountB);
-
+        await tokenContractA.transfer(sender, this.address, amountA);
+        await tokenContractB.transfer(sender, this.address, amountB);
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
         // => maintains ratio a/l, b/l
@@ -106,8 +93,8 @@ export class Pool extends TokenContract {
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getUnconstrained();
 
-        tokenContractX.transfer(sender, this.address, amountX);
-        tokenContractY.transfer(sender, this.address, amountY);
+        await tokenContractX.transfer(sender, this.address, amountX);
+        await tokenContractY.transfer(sender, this.address, amountY);
 
         const actualSupply = this.liquiditySupply.getAndRequireEquals();
 
