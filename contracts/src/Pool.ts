@@ -1,5 +1,6 @@
 import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate } from 'o1js';
 import { TokenStandard } from './TokenStandard';
+import { TokenHolder } from './TokenHolder';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -153,6 +154,28 @@ export class Pool extends TokenContract {
 
         // set new supply
         this.liquiditySupply.set(actualSupply.add(liquidityAmount));
+    }
+
+    @method async swapExactAmountIn(tokenIn: PublicKey, amountIn: UInt64, amountOutMin: UInt64) {
+        amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
+        amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
+
+        const addressA = this.tokenA.getAndRequireEquals();
+        const addressB = this.tokenB.getAndRequireEquals();
+
+        // todo manage mina native token
+        addressA.isEmpty().assertFalse("Pool not initialised");
+        addressB.isEmpty().assertFalse("Pool not initialised");
+
+        tokenIn.equals(addressA).or(tokenIn.equals(addressB)).assertTrue("Incorrect token in");
+
+        let tokenContractIn = new TokenStandard(tokenIn);
+        let tokenHolderIn = new TokenHolder(this.address, tokenContractIn.deriveTokenId());
+
+        // require signature on transfer, so don't need to request it now
+        let sender = this.sender.getUnconstrained();
+
+        await tokenHolderIn.swap(sender, amountIn, amountOutMin);
     }
 
 }
