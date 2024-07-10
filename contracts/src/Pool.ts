@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate } from 'o1js';
+import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
 import { TokenStandard } from './TokenStandard';
 import { TokenHolder } from './TokenHolder';
 
@@ -69,8 +69,8 @@ export class Pool extends TokenContract {
         this.liquiditySupply.set(liquidityAmount.add(minimunLiquidity));
     }
 
-    @method async supplyLiquidityFromA(amountA: UInt64, maxAmountB: UInt64) {
-        amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
+    @method async supplyLiquidityFromToken(tokenX: PublicKey, amountX: UInt64, maxAmountY: UInt64) {
+        amountX.assertGreaterThan(UInt64.zero, "No amount A supplied");
 
         const addressA = this.tokenA.getAndRequireEquals();
         const addressB = this.tokenB.getAndRequireEquals();
@@ -78,6 +78,8 @@ export class Pool extends TokenContract {
         // todo manage mina native token
         addressA.isEmpty().assertFalse("Pool not initialised");
         addressB.isEmpty().assertFalse("Pool not initialised");
+
+        tokenX.equals(addressA).or(tokenX.equals(addressB)).assertTrue("Incorrect token x");
 
         let tokenContractA = new TokenStandard(addressA);
         let tokenContractB = new TokenStandard(addressB);
@@ -88,67 +90,30 @@ export class Pool extends TokenContract {
         const balanceA = holderA.account.balance.getAndRequireEquals();
         const balanceB = holderB.account.balance.getAndRequireEquals();
 
-        // amount B to supply
-        const amountB = amountA.mul(balanceB).div(balanceA);
+        const balanceX = Provable.if(tokenX.equals(addressA), balanceA, balanceB);
+        const balanceY = Provable.if(tokenX.equals(addressA), balanceB, balanceA);
+        const addressY = Provable.if(tokenX.equals(addressA), addressB, addressA);
 
-        amountB.assertGreaterThan(UInt64.zero, "No amount B to supply");
-        amountB.assertLessThanOrEqual(maxAmountB, "Amount B greater than desired amount");
+        let tokenContractX = new TokenStandard(tokenX);
+        let tokenContractY = new TokenStandard(addressY);
+
+        // amount Y to supply
+        const amountY = amountX.mul(balanceY).div(balanceX);
+
+        amountY.assertGreaterThan(UInt64.zero, "No amount Y to supply");
+        amountY.assertLessThanOrEqual(maxAmountY, "Amount Y greater than desired amount");
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getUnconstrained();
 
-        tokenContractA.transfer(sender, this.address, amountA);
-        tokenContractB.transfer(sender, this.address, amountB);
+        tokenContractX.transfer(sender, this.address, amountX);
+        tokenContractY.transfer(sender, this.address, amountY);
 
         const actualSupply = this.liquiditySupply.getAndRequireEquals();
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
         // => maintains ratio a/l, b/l
-        let liquidityAmount = amountA.add(amountB);
-        // mint token
-        this.internal.mint({ address: sender, amount: liquidityAmount });
-
-        // set new supply
-        this.liquiditySupply.set(actualSupply.add(liquidityAmount));
-    }
-
-
-    @method async supplyLiquidityFromB(amountB: UInt64, maxAmountA: UInt64) {
-        amountB.assertGreaterThan(UInt64.zero, "No amount B supplied");
-
-        const addressA = this.tokenA.getAndRequireEquals();
-        const addressB = this.tokenB.getAndRequireEquals();
-
-        // todo manage mina native token
-        addressA.isEmpty().assertFalse("Pool not initialised");
-        addressB.isEmpty().assertFalse("Pool not initialised");
-
-        let tokenContractA = new TokenStandard(addressA);
-        let tokenContractB = new TokenStandard(addressB);
-
-        const holderA = AccountUpdate.create(this.address, tokenContractA.deriveTokenId());
-        const holderB = AccountUpdate.create(this.address, tokenContractB.deriveTokenId());
-
-        const balanceA = holderA.account.balance.getAndRequireEquals();
-        const balanceB = holderB.account.balance.getAndRequireEquals();
-
-        // amount B to supply
-        const amountA = amountB.mul(balanceA).div(balanceB);
-
-        amountA.assertGreaterThan(UInt64.zero, "No amount A to supply");
-        amountA.assertLessThanOrEqual(maxAmountA, "Amount A greater than desired amount");
-
-        // require signature on transfer, so don't need to request it now
-        let sender = this.sender.getUnconstrained();
-
-        tokenContractA.transfer(sender, this.address, amountA);
-        tokenContractB.transfer(sender, this.address, amountB);
-
-        const actualSupply = this.liquiditySupply.getAndRequireEquals();
-
-        // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
-        // => maintains ratio a/l, b/l
-        let liquidityAmount = amountA.add(amountB);
+        let liquidityAmount = amountX.add(amountY);
         // mint token
         this.internal.mint({ address: sender, amount: liquidityAmount });
 
