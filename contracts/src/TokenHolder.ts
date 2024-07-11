@@ -55,4 +55,38 @@ export class TokenHolder extends SmartContract {
 
         return amountOut;
     }
+
+    // check if they are no exploit possible
+    @method.returns(UInt64)
+    async withdrawLiquidity(
+        poolAddress: PublicKey,
+        liquidityAmount: UInt64
+    ) {
+        let pm = new Pool(poolAddress);
+        const addressA = pm.tokenA.getAndRequireEquals();
+        const addressB = pm.tokenB.getAndRequireEquals();
+        const totalSupply = pm.liquiditySupply.getAndRequireEquals();
+
+        const tokenA = new TokenStandard(addressA);
+        const tokenB = new TokenStandard(addressB);
+
+        const holderA = new TokenHolder(poolAddress, tokenA.deriveTokenId());
+        const holderB = new TokenHolder(poolAddress, tokenB.deriveTokenId());
+
+        // prevent from swap from bad pool, one of the 2 tokens of the pool need to match this address
+        this.address.equals(holderA.address).or(this.address.equals(holderB.address)).assertTrue("Incorrect token address");
+
+        const balanceA = holderA.account.balance.getAndRequireEquals();
+        const balanceB = holderB.account.balance.getAndRequireEquals();
+
+        let reserve = Provable.if(tokenA.deriveTokenId().equals(this.tokenId), balanceA, balanceB);
+        // todo overflow check
+        const amountOut = liquidityAmount.mul(reserve).div(totalSupply);
+
+        // send token to the user
+        this.balance.subInPlace(amountOut);
+        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+
+        return amountOut;
+    }
 }

@@ -134,4 +134,41 @@ export class Pool extends TokenContract {
         await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
     }
 
+    @method async withdrawLiquidity(liquidityAmount: UInt64) {
+        liquidityAmount.assertGreaterThan(UInt64.zero, "No amount supplied");
+
+        const addressA = this.tokenA.getAndRequireEquals();
+        const addressB = this.tokenB.getAndRequireEquals();
+
+        // todo manage mina native token
+        addressA.isEmpty().assertFalse("Pool not initialised");
+        addressB.isEmpty().assertFalse("Pool not initialised");
+
+
+        // require signature to burn from the correct user
+        let sender = this.sender.getAndRequireSignature();
+
+        const liquidityUser = new TokenStandard(sender, this.deriveTokenId());
+        const balanceUser = liquidityUser.account.balance.getAndRequireEquals();
+        balanceUser.assertGreaterThanOrEqual(liquidityAmount, "Insufficient liquidity balance");
+
+        let tokenContractA = new TokenStandard(addressA);
+        let tokenContractB = new TokenStandard(addressB);
+
+        const holderA = new TokenHolder(this.address, tokenContractA.deriveTokenId());
+        const holderB = new TokenHolder(this.address, tokenContractB.deriveTokenId());
+
+        const amountA = await holderA.withdrawLiquidity(this.address, liquidityAmount);
+        const amountB = await holderB.withdrawLiquidity(this.address, liquidityAmount);
+
+        await this.internal.burn({ address: sender, amount: liquidityAmount });
+
+        await tokenContractA.transfer(holderA.self, sender, amountA);
+        await tokenContractB.transfer(holderB.self, sender, amountB);
+
+        const actualSupply = this.liquiditySupply.getAndRequireEquals();
+        // set new supply
+        this.liquiditySupply.set(actualSupply.sub(liquidityAmount));
+    }
+
 }
