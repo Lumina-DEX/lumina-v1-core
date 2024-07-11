@@ -23,7 +23,7 @@ describe('Pool', () => {
     tokenHolder0: TokenHolder,
     tokenHolder1: TokenHolder;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });
     Mina.setActiveInstance(Local);
     [deployerAccount, senderAccount] = Local.testAccounts;
@@ -78,36 +78,33 @@ describe('Pool', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn2.sign([deployerKey, zkAppPrivateKey]).send();
 
-  });
-
-  // it('create pool', async () => {
-  //   // mint token to user
-  //   await mintToken();
-
-  //   showBalanceToken0();
-  //   showBalanceToken1();
-
-  //   let amt = UInt64.from(10 * 10 ** 9);
-  //   const txn = await Mina.transaction(senderAccount, async () => {
-  //     AccountUpdate.fundNewAccount(senderAccount, 3);
-  //     await zkApp.createPool(zkToken0Address, zkToken1Address, amt, amt);
-  //   });
-  //   await txn.prove();
-  //   await txn.sign([senderKey]).send();
-
-  //   showBalanceToken0();
-  //   showBalanceToken1();
-
-  //   const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-  //   const expected = amt.value.add(amt.value).sub(minimunLiquidity.value);
-  //   console.log("liquidity user", liquidityUser.toString());
-  //   expect(liquidityUser.value).toEqual(expected);
-  // });
-
-  it('swap tokens', async () => {
     // mint token to user
     await mintToken();
 
+  });
+
+  it('create pool', async () => {
+    showBalanceToken0();
+    showBalanceToken1();
+
+    let amt = UInt64.from(10 * 10 ** 9);
+    const txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.createPool(zkToken0Address, zkToken1Address, amt, amt);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    showBalanceToken0();
+    showBalanceToken1();
+
+    const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
+    const expected = amt.value.add(amt.value).sub(minimunLiquidity.value);
+    console.log("liquidity user", liquidityUser.toString());
+    expect(liquidityUser.value).toEqual(expected);
+  });
+
+  it('swap tokens', async () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
