@@ -56,7 +56,7 @@ export class Pool extends TokenContract {
         this.liquiditySupply.set(liquidityAmount.add(minimunLiquidity));
     }
 
-    @method async supplyLiquidityFromToken(tokenX: PublicKey, amountX: UInt64, maxAmountY: UInt64) {
+    @method async supplyLiquidity(tokenX: PublicKey, amountX: UInt64, maxAmountY: UInt64) {
         amountX.assertGreaterThan(UInt64.zero, "No amount A supplied");
 
         const addressA = this.tokenA.getAndRequireEquals();
@@ -71,8 +71,8 @@ export class Pool extends TokenContract {
         let tokenContractA = new TokenStandard(addressA);
         let tokenContractB = new TokenStandard(addressB);
 
-        const holderA = AccountUpdate.create(this.address, tokenContractA.deriveTokenId());
-        const holderB = AccountUpdate.create(this.address, tokenContractB.deriveTokenId());
+        const holderA = new TokenHolder(this.address, tokenContractA.deriveTokenId());
+        const holderB = new TokenHolder(this.address, tokenContractB.deriveTokenId());
 
         const balanceA = holderA.account.balance.getAndRequireEquals();
         const balanceB = holderB.account.balance.getAndRequireEquals();
