@@ -1,6 +1,7 @@
 import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
 import { TokenStandard } from './TokenStandard';
 import { TokenHolder } from './TokenHolder';
+import { mulDiv } from './MathLibrary';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -85,7 +86,7 @@ export class Pool extends TokenContract {
         let tokenContractY = new TokenStandard(addressY);
 
         // amount Y to supply
-        const amountY = amountX.mul(balanceY).div(balanceX);
+        const amountY = mulDiv(amountX, balanceY, balanceX);
 
         amountY.assertGreaterThan(UInt64.zero, "No amount Y to supply");
         amountY.assertLessThanOrEqual(maxAmountY, "Amount Y greater than desired amount");

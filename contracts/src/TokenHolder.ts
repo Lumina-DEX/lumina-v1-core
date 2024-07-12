@@ -1,6 +1,7 @@
 import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate } from 'o1js';
 import { Pool } from './Pool';
 import { TokenStandard } from './TokenStandard';
+import { mulDiv } from './MathLibrary';
 
 /**
  * A minimal fungible token
@@ -46,7 +47,7 @@ export class TokenHolder extends SmartContract {
         await tokenIn.transfer(user, poolAddress, amountIn);
 
         // No tax for the moment (probably in a next version), todo check overflow     
-        let amountOut = reserveOut.mul(amountIn).div(reserveIn.add(amountIn));
+        let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
         // send token to the user
@@ -81,7 +82,7 @@ export class TokenHolder extends SmartContract {
 
         let reserve = Provable.if(tokenA.deriveTokenId().equals(this.tokenId), balanceA, balanceB);
         // todo overflow check
-        const amountOut = liquidityAmount.mul(reserve).div(totalSupply);
+        const amountOut = mulDiv(liquidityAmount, reserve, totalSupply);
 
         // send token to the user
         this.balance.subInPlace(amountOut);

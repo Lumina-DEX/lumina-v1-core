@@ -162,6 +162,42 @@ describe('Pool', () => {
     console.log("liquidity bob", liquidityUser.toString());
   });
 
+  it('burn liquidity', async () => {
+    showBalanceToken0();
+    showBalanceToken1();
+
+    let amt = UInt64.from(10 * 10 ** 9);
+    const txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.createPool(zkToken0Address, zkToken1Address, amt, amt);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    showBalanceToken0();
+    showBalanceToken1();
+
+    const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
+    const expected = amt.value.add(amt.value).sub(minimunLiquidity.value);
+    console.log("liquidity user to burn", liquidityUser.toBigInt());
+    expect(liquidityUser.value).toEqual(expected);
+
+    const amountToWithdraw = UInt64.from(liquidityUser.toBigInt());
+    const txn2 = await Mina.transaction(senderAccount, async () => {
+      await zkApp.withdrawLiquidity(amountToWithdraw);
+    });
+    await txn2.prove();
+    await txn2.sign([senderKey]).send();
+
+    const liquidityUser2 = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
+    console.log("liquidity user", liquidityUser2.toString());
+    expect(liquidityUser2.toBigInt()).toEqual(0n);
+
+    showBalanceToken0();
+    showBalanceToken1();
+  });
+
+
 
   function showBalanceToken0() {
     let bal = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
