@@ -1,10 +1,8 @@
 import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate } from 'o1js';
-import { Pool } from './Pool';
-import { TokenStandard } from './TokenStandard';
-import { mulDiv } from './MathLibrary';
+import { Pool, TokenStandard, mulDiv } from './index.js';
 
 /**
- * A minimal fungible token
+ * Token holder contract, manage swap and liquidity remove functions
  */
 export class TokenHolder extends SmartContract {
     init() {

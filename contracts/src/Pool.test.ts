@@ -1,7 +1,6 @@
 import { Account, AccountUpdate, Bool, Field, Mina, PrivateKey, PublicKey, TokenContract, UInt64 } from 'o1js';
 
 import { Pool, minimunLiquidity } from './Pool';
-import { TestToken } from './TestToken';
 import { TokenHolder } from './TokenHolder';
 import { TokenA } from './TokenA';
 import { TokenB } from './TokenB';
@@ -44,15 +43,16 @@ describe('Pool', () => {
 
     zkToken0PrivateKey = PrivateKey.random();
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
-    zkToken0 = new TestToken(zkToken0Address);
+    zkToken0 = new TokenA(zkToken0Address);
 
     zkToken1PrivateKey = PrivateKey.random();
     zkToken1Address = zkToken1PrivateKey.toPublicKey();
-    zkToken1 = new TestToken(zkToken1Address);
+    zkToken1 = new TokenB(zkToken1Address);
 
     if (proofsEnabled) {
       console.time('compile token');
-      const tokenKey = await TestToken.compile();
+      const tokenKey = await TokenA.compile();
+      const tokenKey2 = await TokenB.compile();
       console.timeEnd('compile token');
       console.time('compile pool');
       const key = await Pool.compile();

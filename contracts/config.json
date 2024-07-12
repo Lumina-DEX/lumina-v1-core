@@ -1,4 +1,30 @@
 {
   "version": 1,
-  "deployAliases": {}
+  "deployAliases": {
+    "lightnet1": {
+      "networkId": "testnet",
+      "url": "http://127.0.0.1:8080/graphql",
+      "keyPath": "keys/lightnet1.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet1.json",
+      "feepayerAlias": "lightnet1",
+      "fee": "0.01",
+      "smartContract": "TokenHolder"
+    },
+    "lightnet2": {
+      "networkId": "testnet",
+      "url": "http://127.0.0.1:8080/graphql",
+      "keyPath": "keys/lightnet2.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet2.json",
+      "feepayerAlias": "lightnet2",
+      "fee": "0.01"
+    },
+    "lightnet3": {
+      "networkId": "testnet",
+      "url": "http://127.0.0.1:8080/graphql",
+      "keyPath": "keys/lightnet3.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet3.json",
+      "feepayerAlias": "lightnet3",
+      "fee": "0.01"
+    }
+  }
 }
