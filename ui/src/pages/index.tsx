@@ -11,19 +11,19 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       const { Mina, PublicKey } = await import('o1js');
-      const { Add } = await import('../../../contracts/build/src/');
+      const { Pool, TokenA, TokenB } = await import('../../../contracts/build/src/');
 
       // Update this to use the address (public key) for your zkApp account.
       // To try it out, you can try this address for an example "Add" smart contract that we've deployed to
       // Testnet B62qkwohsqTBPsvhYE8cPZSpzJMgoKn4i1LQRuBAtVXWpaT4dgH6WoA.
-      const zkAppAddress = '';
+      const zkAppAddress = 'B62qjMfeNmu9KfbsmZfDJvNrBtteJAx9GcJ3B2mgtjLrzqarZiA43fF';
       // This should be removed once the zkAppAddress is updated.
       if (!zkAppAddress) {
         console.error(
           'The following error is caused because the zkAppAddress has an empty string as the public key. Update the zkAppAddress with the public key for your zkApp account, or try this address for an example "Add" smart contract that we deployed to Testnet: B62qkwohsqTBPsvhYE8cPZSpzJMgoKn4i1LQRuBAtVXWpaT4dgH6WoA'
         );
       }
-      //const zkApp = new Add(PublicKey.fromBase58(zkAppAddress))
+      const zkApp = new Pool(PublicKey.fromBase58(zkAppAddress))
     })();
   }, []);
 

@@ -8,7 +8,7 @@
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet1.json",
       "feepayerAlias": "lightnet1",
       "fee": "0.01",
-      "smartContract": "TokenHolder"
+      "smartContract": "Pool"
     },
     "lightnet2": {
       "networkId": "testnet",
@@ -16,7 +16,8 @@
       "keyPath": "keys/lightnet2.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet2.json",
       "feepayerAlias": "lightnet2",
-      "fee": "0.01"
+      "fee": "0.01",
+      "smartContract": "TokenA"
     },
     "lightnet3": {
       "networkId": "testnet",
@@ -24,7 +25,8 @@
       "keyPath": "keys/lightnet3.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet3.json",
       "feepayerAlias": "lightnet3",
-      "fee": "0.01"
+      "fee": "0.01",
+      "smartContract": "TokenB"
     }
   }
 }
