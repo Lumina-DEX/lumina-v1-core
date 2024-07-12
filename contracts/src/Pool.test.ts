@@ -3,6 +3,8 @@ import { Account, AccountUpdate, Bool, Field, Mina, PrivateKey, PublicKey, Token
 import { Pool, minimunLiquidity } from './Pool';
 import { TestToken } from './TestToken';
 import { TokenHolder } from './TokenHolder';
+import { TokenA } from './TokenA';
+import { TokenB } from './TokenB';
 
 let proofsEnabled = false;
 
@@ -20,10 +22,10 @@ describe('Pool', () => {
     zkApp: Pool,
     zkToken0Address: PublicKey,
     zkToken0PrivateKey: PrivateKey,
-    zkToken0: TestToken,
+    zkToken0: TokenA,
     zkToken1Address: PublicKey,
     zkToken1PrivateKey: PrivateKey,
-    zkToken1: TestToken,
+    zkToken1: TokenB,
     tokenHolder0: TokenHolder,
     tokenHolder1: TokenHolder;
 
