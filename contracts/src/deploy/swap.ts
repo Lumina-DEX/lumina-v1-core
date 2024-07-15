@@ -14,10 +14,10 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
-import { TokenA, TokenB, Pool } from '../index.js';
+import { TokenA, TokenB, Pool, TokenHolder } from '../index.js';
 
 // check command line arg
-let deployAlias = "pool-manager";
+let deployAlias = "pool";
 if (!deployAlias)
     throw Error(`Missing <deployAlias> argument.
 
@@ -87,13 +87,18 @@ let zkToken1 = new TokenB(zkToken1Address);
 console.log('compile the contract...');
 await TokenA.compile();
 await TokenB.compile();
+await TokenHolder.compile();
 await Pool.compile();
 
 try {
 
+    let balA = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    let balB = Mina.getBalance(zkAppAddress, zkToken1.deriveTokenId());
+    console.log("balance token A", balA.toBigInt());
+    console.log("balance token B", balB.toBigInt());
 
-    let amtIn = UInt64.from(2 * 10 ** 9);
-    let amtOutMin = UInt64.from(1 * 10 ** 8);
+    let amtIn = UInt64.from(2000);
+    let amtOutMin = UInt64.from(1000);
     const txn = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
         await zkApp.swapExactAmountIn(zkToken0Address, amtIn, amtOutMin);
     });

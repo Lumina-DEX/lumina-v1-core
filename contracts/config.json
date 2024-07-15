@@ -1,30 +1,30 @@
 {
   "version": 1,
   "deployAliases": {
-    "lightnet1": {
+    "pool": {
       "networkId": "testnet",
-      "url": "http://127.0.0.1:8080/graphql",
-      "keyPath": "keys/lightnet1.json",
-      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet1.json",
-      "feepayerAlias": "lightnet1",
+      "url": "https://devnet.zeko.io/graphql",
+      "keyPath": "keys/pool.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1",
       "fee": "0.01",
       "smartContract": "Pool"
     },
-    "lightnet2": {
+    "tokena": {
       "networkId": "testnet",
-      "url": "http://127.0.0.1:8080/graphql",
-      "keyPath": "keys/lightnet2.json",
-      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet2.json",
-      "feepayerAlias": "lightnet2",
+      "url": "https://devnet.zeko.io/graphql",
+      "keyPath": "keys/tokenA.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1",
       "fee": "0.01",
       "smartContract": "TokenA"
     },
-    "lightnet3": {
+    "tokenb": {
       "networkId": "testnet",
-      "url": "http://127.0.0.1:8080/graphql",
-      "keyPath": "keys/lightnet3.json",
-      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/lightnet3.json",
-      "feepayerAlias": "lightnet3",
+      "url": "https://devnet.zeko.io/graphql",
+      "keyPath": "keys/tokenB.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1",
       "fee": "0.01",
       "smartContract": "TokenB"
     }

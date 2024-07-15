@@ -14,10 +14,10 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
-import { TokenA, TokenB, Pool, TokenHolder } from '../index.js';
+import { TokenA, TokenB, Pool, TokenHolder, TokenStandard } from '../index.js';
 
 // check command line arg
-let deployAlias = "pool-manager";
+let deployAlias = "pool";
 if (!deployAlias)
     throw Error(`Missing <deployAlias> argument.
 
@@ -86,6 +86,11 @@ let dexTokenHolder1 = new TokenHolder(zkAppAddress, zkToken1.deriveTokenId());
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
+
+await TokenStandard.compile();
+await TokenA.compile();
+await TokenB.compile();
+await Pool.compile();
 await TokenHolder.compile();
 
 try {
@@ -99,7 +104,8 @@ try {
             AccountUpdate.fundNewAccount(feepayerAddress, 2);
             await dexTokenHolder0.deploy();
             await dexTokenHolder1.deploy();
-
+            await zkToken0.approveAccountUpdate(dexTokenHolder0.self);
+            await zkToken1.approveAccountUpdate(dexTokenHolder1.self);
         }
     );
     await tx.prove();

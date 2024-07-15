@@ -17,12 +17,12 @@ import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } 
 import { TokenA, TokenB, Pool } from '../index.js';
 
 // check command line arg
-let deployAlias = "pool-manager";
+let deployAlias = "pool";
 if (!deployAlias)
     throw Error(`Missing <deployAlias> argument.
 
 Usage:
-node build/src/addLiquidity.js
+node build/src/deploy/mint.js
 `);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'zeko';
