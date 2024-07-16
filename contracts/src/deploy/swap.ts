@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
+import { AccountUpdate, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
 import { TokenA, TokenB, Pool, TokenHolder } from '../index.js';
 
 // check command line arg
@@ -68,8 +68,7 @@ const Network = Mina.Network({
     // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
     // This is to ensure the backward compatibility.
     networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-    mina: config.url,
-    archive: "https://api.minascan.io/archive/devnet/v1/graphql"
+    mina: config.url
 });
 console.log("network", config.url);
 // const Network = Mina.Network(config.url);
@@ -91,7 +90,8 @@ await TokenHolder.compile();
 await Pool.compile();
 
 try {
-
+    await fetchAccount({ publicKey: zkAppAddress, tokenId: zkToken0.deriveTokenId() });
+    await fetchAccount({ publicKey: zkAppAddress, tokenId: zkToken1.deriveTokenId() });
     let balA = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
     let balB = Mina.getBalance(zkAppAddress, zkToken1.deriveTokenId());
     console.log("balance token A", balA.toBigInt());
