@@ -16,7 +16,7 @@ export class Balancer extends SmartContract {
         super.init();
     }
 
-    @method async depositToken(tokenA: PublicKey, amountA: UInt64) {
+    @method async create(tokenA: PublicKey, amountA: UInt64) {
         const addressA = this.tokenA.getAndRequireEquals();
         const amountReserve = this.reserveA.getAndRequireEquals();
 
@@ -32,6 +32,20 @@ export class Balancer extends SmartContract {
         await tokenContractA.transfer(sender, this.address, amountA);
 
         this.reserveA.set(amountA);
+    }
+
+    @method async depositToken(amount: UInt64) {
+        const addressA = this.tokenA.getAndRequireEquals();
+
+        addressA.isEmpty().assertFalse("Not initialised");
+        let tokenContractA = new TokenStandard(addressA);
+
+        // require signature on transfer, so don't need to request it now
+        let sender = this.sender.getUnconstrained();
+
+        await tokenContractA.transfer(sender, this.address, amount);
+        let reserveA = this.reserveA.getAndRequireEquals();
+        this.reserveA.set(reserveA.add(amount));
     }
 
     @method.returns(UInt64) async getBalance() {

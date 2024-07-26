@@ -21,6 +21,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "testw": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "testpool": "node --experimental-vm-modules node_modules/jest/bin/jest.js pool.test",
+    "testbalancer": "node --experimental-vm-modules node_modules/jest/bin/jest.js balancer.test",
     "lint": "npx eslint src/* --fix",
     "patch": "node patch.js"
   },
