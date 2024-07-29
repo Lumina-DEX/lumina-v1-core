@@ -31,6 +31,7 @@ export class Balancer extends SmartContract {
 
         await tokenContractA.transfer(sender, this.address, amountA);
 
+        this.tokenA.set(tokenA);
         this.reserveA.set(amountA);
     }
 

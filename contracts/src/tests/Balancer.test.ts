@@ -102,6 +102,65 @@ describe('Balancer', () => {
     expect(balanceToken.value).toEqual(amt.value);
   });
 
+  it('widraw from balance', async () => {
+
+    let amt = UInt64.from(10 * 10 ** 9);
+    const txn = await Mina.transaction(senderAccount, async () => {
+      //AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.create(zkToken0Address, amt);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    let amtWithdraw = UInt64.from(1 * 10 ** 9);
+    const txn2 = await Mina.transaction(senderAccount, async () => {
+      //AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.withdrawFromBalance(amtWithdraw);
+    });
+    await txn2.prove();
+    await txn2.sign([senderKey]).send();
+
+    const expected = amt.sub(amtWithdraw);
+    const amountBalance = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    console.log("amountBalance user", amountBalance.toBigInt());
+    expect(amountBalance.value).toEqual(expected.value);
+
+    const reserveToken = await zkApp.reserveA.fetch();
+    expect(reserveToken?.value).toEqual(expected.value);
+
+    const balanceToken = await zkApp.getBalance();
+    expect(balanceToken.value).toEqual(expected.value);
+  });
+
+  it('widraw from reserve', async () => {
+
+    let amt = UInt64.from(10 * 10 ** 9);
+    const txn = await Mina.transaction(senderAccount, async () => {
+      //AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.create(zkToken0Address, amt);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    let amtWithdraw = UInt64.from(1 * 10 ** 9);
+    const txn2 = await Mina.transaction(senderAccount, async () => {
+      await zkApp.withdrawFromReserve(amtWithdraw);
+    });
+    await txn2.prove();
+    await txn2.sign([senderKey]).send();
+
+    const expected = amt.sub(amtWithdraw);
+    const amountBalance = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    console.log("amountBalance user", amountBalance.toBigInt());
+    expect(amountBalance.value).toEqual(expected.value);
+
+    const reserveToken = await zkApp.reserveA.fetch();
+    expect(reserveToken?.value).toEqual(expected.value);
+
+    const balanceToken = await zkApp.getBalance();
+    expect(balanceToken.value).toEqual(expected.value);
+  });
+
   async function mintToken(user: PublicKey) {
     // update transaction
     const txn = await Mina.transaction(senderAccount, async () => {
