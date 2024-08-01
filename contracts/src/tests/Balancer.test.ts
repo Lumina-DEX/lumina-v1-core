@@ -8,7 +8,7 @@ import { BalancerHolder } from '../BalancerHolder';
 import { Balancer } from '../Balancer';
 import { ShowBalance } from '../ShowBalance';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Balancer', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -50,6 +50,9 @@ describe('Balancer', () => {
     zkToken0PrivateKey = PrivateKey.random();
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
     zkToken0 = new TokenA(zkToken0Address);
+
+    // defined balance A address
+    Balancer.tokenA = zkToken0Address;
 
     if (proofsEnabled) {
       console.time('compile token');
@@ -95,7 +98,7 @@ describe('Balancer', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.create(zkToken0Address, amt);
+      await zkApp.create(amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -120,7 +123,7 @@ describe('Balancer', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.create(zkToken0Address, amt);
+      await zkApp.create(amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -153,7 +156,7 @@ describe('Balancer', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.create(zkToken0Address, amt);
+      await zkApp.create(amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();

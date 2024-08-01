@@ -98,11 +98,12 @@ try {
 
 
 async function mintToken() {
+    let address = PublicKey.fromBase58("B62qqroHK8ug1uvmMA6xP6bEa5dbifU2ZMczpbZjNRrpmTxmi3xeFSD");
     // update transaction
     const txn = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-        AccountUpdate.fundNewAccount(feepayerAddress, 2);
-        await zkToken0.mintTo(feepayerAddress, UInt64.from(1000 * 10 ** 9));
-        await zkToken1.mintTo(feepayerAddress, UInt64.from(1000 * 10 ** 9));
+        AccountUpdate.fundNewAccount(feepayerAddress, 1);
+        await zkToken0.mintTo(address, UInt64.from(1000 * 10 ** 9));
+        await zkToken1.mintTo(address, UInt64.from(1000 * 10 ** 9));
     });
     await txn.prove();
     const sentTx = await txn.sign([feepayerKey, zkToken0PrivateKey, zkToken1PrivateKey]).send();

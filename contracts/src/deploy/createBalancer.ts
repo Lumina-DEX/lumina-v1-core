@@ -80,17 +80,18 @@ let zkToken0 = new TokenA(zkToken0Address);
 console.log('compile the contract...');
 await Balancer.compile();
 await TokenStandard.compile();
+await TokenA.compile();
 await BalancerHolder.compile();
 
 try {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn0 = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-        await zkApp.create(zkToken0Address, amt);
+        await zkToken0.transfer(feepayerAddress, zkAppAddress, amt);
     });
     console.log("send create balancer");
     await txn0.prove();
     console.log(txn0.toPretty());
-    const sentTx = await txn0.sign([feepayerKey, zkAppKey]).send();
+    const sentTx = await txn0.sign([feepayerKey, zkAppKey, zkToken0PrivateKey]).send();
     console.log("sent create balancer");
     if (sentTx.status === 'pending') {
         console.log(

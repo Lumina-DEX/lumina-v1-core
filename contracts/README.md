@@ -6,12 +6,20 @@ This template uses TypeScript.
 Pool B62qjMfeNmu9KfbsmZfDJvNrBtteJAx9GcJ3B2mgtjLrzqarZiA43fF
 TokenA B62qjZ1W2ybx2AYLYUyjPMoBT6Kn6CPPjAN2WWSRKH46uGgn2SgeNtK  (Zeko and mina testnet)
 TokenB B62qkSPqDx2TazHm6PxdqXSb7DiVfvt7UM17ykK3xb3VSPjKLPbYWdb
-Balancer B62qrNVGHggn7e4k6cVueucB78hq4MEnsMRjZJ7SQiTzuX1VdUAQziL (Zeko and mina testnet)
+Balancer B62qqroHK8ug1uvmMA6xP6bEa5dbifU2ZMczpbZjNRrpmTxmi3xeFSD (Zeko and mina testnet)
+ShowBalance B62qram7TfkH5r99zsWtd2wgj55fHM9fU7yZCE9G94h3knUvzxU3Q6Y (Zeko and mina testnet)
 
 ### GraphQL
 https://api.minascan.io/node/devnet/v1/graphql
 https://devnet.zeko.io/graphql
 
+### Get Balance
+Update graphql, account and token in src/deploy/getBalance.ts 
+
+```
+npm run build
+node build/src/deploy/getBalance.js
+```
 
 ## How to build
 

@@ -30,12 +30,21 @@
     },
     "balancer": {
       "networkId": "testnet",
-      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "url": "https://devnet.zeko.io/graphql",
       "keyPath": "keys/balancer.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "deployer",
       "fee": "0.01",
       "smartContract": "Balancer"
+    },
+    "showbalance": {
+      "networkId": "testnet",
+      "url": "https://devnet.zeko.io/graphql",
+      "keyPath": "keys/showbalance.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.01",
+      "smartContract": "ShowBalance"
     }
   }
 }

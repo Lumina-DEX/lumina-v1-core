@@ -16,7 +16,7 @@ export class BalancerHolder extends SmartContract {
         amount: UInt64
     ) {
         let pm = new Balancer(balancerAddress);
-        const addressA = pm.tokenA.getAndRequireEquals();
+        const addressA = Balancer.tokenA;
         const tokenA = new TokenStandard(addressA);
 
         const holderA = new BalancerHolder(balancerAddress, tokenA.deriveTokenId());
