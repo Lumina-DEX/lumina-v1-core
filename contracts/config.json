@@ -12,7 +12,7 @@
     },
     "tokena": {
       "networkId": "testnet",
-      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "url": "https://devnet.zeko.io/graphq",
       "keyPath": "keys/tokenA.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1",
@@ -30,7 +30,7 @@
     },
     "balancer": {
       "networkId": "testnet",
-      "url": "https://devnet.zeko.io/graphql",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/balancer.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "deployer",

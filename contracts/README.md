@@ -8,6 +8,10 @@ TokenA B62qjZ1W2ybx2AYLYUyjPMoBT6Kn6CPPjAN2WWSRKH46uGgn2SgeNtK  (Zeko and mina t
 TokenB B62qkSPqDx2TazHm6PxdqXSb7DiVfvt7UM17ykK3xb3VSPjKLPbYWdb
 Balancer B62qrNVGHggn7e4k6cVueucB78hq4MEnsMRjZJ7SQiTzuX1VdUAQziL (Zeko and mina testnet)
 
+### GraphQL
+https://api.minascan.io/node/devnet/v1/graphql
+https://devnet.zeko.io/graphql
+
 
 ## How to build
 

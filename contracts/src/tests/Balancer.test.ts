@@ -6,6 +6,7 @@ import { TokenA } from '../TokenA';
 import { TokenB } from '../TokenB';
 import { BalancerHolder } from '../BalancerHolder';
 import { Balancer } from '../Balancer';
+import { ShowBalance } from '../ShowBalance';
 
 let proofsEnabled = false;
 
@@ -21,6 +22,9 @@ describe('Balancer', () => {
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: Balancer,
+    zkAppAddress2: PublicKey,
+    zkAppPrivateKey2: PrivateKey,
+    zkApp2: ShowBalance,
     zkToken0Address: PublicKey,
     zkToken0PrivateKey: PrivateKey,
     zkToken0: TokenA,
@@ -39,6 +43,10 @@ describe('Balancer', () => {
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new Balancer(zkAppAddress);
 
+    zkAppPrivateKey2 = PrivateKey.random();
+    zkAppAddress2 = zkAppPrivateKey2.toPublicKey();
+    zkApp2 = new ShowBalance(zkAppAddress2);
+
     zkToken0PrivateKey = PrivateKey.random();
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
     zkToken0 = new TokenA(zkToken0Address);
@@ -52,17 +60,19 @@ describe('Balancer', () => {
       console.timeEnd('compile balancer');
       console.log("key pool", key.verificationKey.data);
       console.log("key pool hash", key.verificationKey.hash.toBigInt());
+      await ShowBalance.compile();
     }
 
 
     const txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 2);
+      AccountUpdate.fundNewAccount(deployerAccount, 3);
       await zkApp.deploy();
       await zkToken0.deploy();
+      await zkApp2.deploy();
     });
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn.sign([deployerKey, zkAppPrivateKey, zkToken0PrivateKey]).send();
+    await txn.sign([deployerKey, zkAppPrivateKey, zkToken0PrivateKey, zkAppPrivateKey2]).send();
 
     tokenHolder0 = new BalancerHolder(zkAppAddress, zkToken0.deriveTokenId());
 
@@ -100,6 +110,9 @@ describe('Balancer', () => {
 
     const balanceToken = await zkApp.getBalance();
     expect(balanceToken.value).toEqual(amt.value);
+
+    const balanceToken2 = await zkApp2.getBalance(zkAppAddress, zkToken0Address);
+    expect(balanceToken2.value).toEqual(amt.value);
   });
 
   it('widraw from balance', async () => {
@@ -130,6 +143,9 @@ describe('Balancer', () => {
 
     const balanceToken = await zkApp.getBalance();
     expect(balanceToken.value).toEqual(expected.value);
+
+    const balanceToken2 = await zkApp2.getBalance(zkAppAddress, zkToken0Address);
+    expect(balanceToken2.value).toEqual(expected.value);
   });
 
   it('widraw from reserve', async () => {
@@ -159,6 +175,9 @@ describe('Balancer', () => {
 
     const balanceToken = await zkApp.getBalance();
     expect(balanceToken.value).toEqual(expected.value);
+
+    const balanceToken2 = await zkApp2.getBalance(zkAppAddress, zkToken0Address);
+    expect(balanceToken2.value).toEqual(expected.value);
   });
 
   async function mintToken(user: PublicKey) {
