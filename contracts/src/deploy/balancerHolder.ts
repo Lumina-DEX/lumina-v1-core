@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
+import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64, TokenContractV2 } from 'o1js';
 import { TokenA, Balancer, TokenStandard, BalancerHolder } from '../index.js';
 
 // check command line arg

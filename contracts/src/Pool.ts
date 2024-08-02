@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
+import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, TokenContractV2 } from 'o1js';
 import { TokenStandard, TokenHolder, mulDiv } from './index.js';
 
 // minimum liquidity permanently locked in the pool
@@ -7,7 +7,7 @@ export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
 /**
  * Pool contract for Lumina dex
  */
-export class Pool extends TokenContract {
+export class Pool extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) tokenA = State<PublicKey>();
     @state(PublicKey) tokenB = State<PublicKey>();

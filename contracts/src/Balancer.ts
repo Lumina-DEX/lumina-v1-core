@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
 import { TokenStandard, TokenHolder, mulDiv, BalancerHolder } from './index.js';
 
 // minimum liquidity permanently locked in the pool
@@ -14,23 +14,14 @@ export class Balancer extends SmartContract {
 
     init() {
         super.init();
-    }
-
-    @method async create(amountA: UInt64) {
-        const addressA = Balancer.tokenA;
-        const amountReserve = this.reserveA.getAndRequireEquals();
-
-        amountReserve.assertEquals(UInt64.zero);
-        amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
-
-        let tokenContractA = new TokenStandard(addressA);
-
-        // require signature on transfer, so don't need to request it now
-        let sender = this.sender.getUnconstrained();
-
-        await tokenContractA.transfer(sender, this.address, amountA);
-
-        this.reserveA.set(amountA);
+        let proof = Permissions.proof();
+        this.account.permissions.set({
+            ...Permissions.default(),
+            access: proof,
+            editState: proof,
+            editActionState: proof,
+            send: proof,
+        });
     }
 
     @method async depositToken(amount: UInt64) {

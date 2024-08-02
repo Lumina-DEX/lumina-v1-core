@@ -1,5 +1,5 @@
-import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
-import { TokenStandard, TokenHolder } from './index.js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
+import { TokenStandard, MinaTokenHolder } from './index.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -7,13 +7,22 @@ export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class PoolMina extends TokenContract {
+export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) tokenA = State<PublicKey>();
     @state(UInt64) liquiditySupply = State<UInt64>();
 
     init() {
         super.init();
+
+        // this.account.permissions.set({
+        //     ...Permissions.default(),
+        //     editState: Permissions.proofOrSignature(),
+        //     editActionState: Permissions.proofOrSignature(),
+        //     send: Permissions.proofOrSignature(),
+        //     access: Permissions.proofOrSignature()
+        // });
+
     }
 
     @method async approveBase(forest: AccountUpdateForest) {
@@ -37,8 +46,9 @@ export class PoolMina extends TokenContract {
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
         amountA.add(amountMina).assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
-        await tokenContractA.transfer(sender, this.address, amountA);
-        await senderUpdate.send({ to: this.address, amount: amountMina });
+
+        // await tokenContractA.transfer(senderUpdate1, dexXUpdate, amountA);
+        await senderUpdate.send({ to: this, amount: amountMina });
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
         // => maintains ratio a/l, b/l
@@ -61,8 +71,8 @@ export class PoolMina extends TokenContract {
 
         let tokenContractA = new TokenStandard(addressA);
 
-        const holderA = new TokenHolder(this.address, tokenContractA.deriveTokenId());
-        const holderB = new TokenHolder(this.address);
+        const holderA = new MinaTokenHolder(this.address, tokenContractA.deriveTokenId());
+        const holderB = new MinaTokenHolder(this.address);
 
         const balanceA = holderA.account.balance.getAndRequireEquals();
         const balanceB = holderB.account.balance.getAndRequireEquals();
@@ -102,8 +112,8 @@ export class PoolMina extends TokenContract {
 
         let tokenContractA = new TokenStandard(addressA);
 
-        const holderA = new TokenHolder(this.address, tokenContractA.deriveTokenId());
-        const holderB = new TokenHolder(this.address);
+        const holderA = new MinaTokenHolder(this.address, tokenContractA.deriveTokenId());
+        const holderB = new MinaTokenHolder(this.address);
 
         const balanceA = holderA.account.balance.getAndRequireEquals();
         const balanceB = holderB.account.balance.getAndRequireEquals();
@@ -133,26 +143,26 @@ export class PoolMina extends TokenContract {
         this.liquiditySupply.set(actualSupply.add(liquidityAmount));
     }
 
-    // @method async swapExactAmountIn(amountIn: UInt64, amountOutMin: UInt64) {
-    //     amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
-    //     amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
+    @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64) {
+        amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
+        amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
-    //     const addressA = this.tokenA.getAndRequireEquals();
+        const addressA = this.tokenA.getAndRequireEquals();
 
-    //     // todo manage mina native token
-    //     addressA.isEmpty().assertFalse("Pool not initialised");
+        // todo manage mina native token
+        addressA.isEmpty().assertFalse("Pool not initialised");
 
-    //     // we request token out because this is the token holder who update his balance to transfer out
-    //     let tokenOut = Provable.if(tokenIn.equals(addressA), addressB, addressA);
-    //     let tokenContractOut = new TokenStandard(tokenOut);
-    //     let tokenHolderOut = new TokenHolder(this.address, tokenContractOut.deriveTokenId());
+        let sender = this.sender.getUnconstrained();
+        let accountUser = AccountUpdate.createSigned(sender);
+        await accountUser.send({ to: this, amount: amountIn });
 
-    //     // require signature on transfer, so don't need to request it now
-    //     let sender = this.sender.getUnconstrained();
+        // we request token out because this is the token holder who update his balance to transfer out
+        let tokenContractOut = new TokenStandard(addressA);
+        let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
 
-    //     // will transfer token in to this pool and calculate correct amount out to transfer the token out
-    //     const amountOut = await tokenHolderOut.swap(this.address, sender, amountIn, amountOutMin);
-    //     await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
-    // }
+        // will transfer token in to this pool and calculate correct amount out to transfer the token out
+        const amountOut = await tokenHolderOut.swap(this.address, sender, amountIn, amountOutMin);
+        await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
+    }
 
 }

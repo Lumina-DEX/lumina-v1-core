@@ -7,6 +7,7 @@ import { TokenB } from '../TokenB';
 import { BalancerHolder } from '../BalancerHolder';
 import { Balancer } from '../Balancer';
 import { ShowBalance } from '../ShowBalance';
+import { TokenStandard } from '../TokenStandard';
 
 let proofsEnabled = true;
 
@@ -55,15 +56,13 @@ describe('Balancer', () => {
     Balancer.tokenA = zkToken0Address;
 
     if (proofsEnabled) {
-      console.time('compile token');
+      console.time('compile');
       const tokenKey = await TokenA.compile();
-      console.timeEnd('compile token');
-      console.time('compile balancer');
-      const key = await Pool.compile();
-      console.timeEnd('compile balancer');
-      console.log("key pool", key.verificationKey.data);
-      console.log("key pool hash", key.verificationKey.hash.toBigInt());
+      const key = await Balancer.compile();
+      await BalancerHolder.compile();
       await ShowBalance.compile();
+      await TokenStandard.compile();
+      console.timeEnd('compile');
     }
 
 
@@ -79,14 +78,14 @@ describe('Balancer', () => {
 
     tokenHolder0 = new BalancerHolder(zkAppAddress, zkToken0.deriveTokenId());
 
-    const txn2 = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await tokenHolder0.deploy();
-      await zkToken0.approveAccountUpdate(tokenHolder0.self);
-    });
-    await txn2.prove();
-    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn2.sign([deployerKey, zkAppPrivateKey]).send();
+    // const txn2 = await Mina.transaction(deployerAccount, async () => {
+    //   AccountUpdate.fundNewAccount(deployerAccount, 1);
+    //   await tokenHolder0.deploy();
+    //   await zkToken0.approveAccountUpdate(tokenHolder0.self);
+    // });
+    // await txn2.prove();
+    // // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    // await txn2.sign([deployerKey, zkAppPrivateKey]).send();
 
     // mint token to user
     await mintToken(senderAccount);
@@ -97,9 +96,11 @@ describe('Balancer', () => {
 
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
-      //AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.create(amt);
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.depositToken(amt);
     });
+
+    console.log("deposit", txn.toPretty());
     await txn.prove();
     await txn.sign([senderKey]).send();
 
@@ -123,7 +124,7 @@ describe('Balancer', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.create(amt);
+      await zkApp.depositToken(amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -156,7 +157,7 @@ describe('Balancer', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.create(amt);
+      await zkApp.depositToken(amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();

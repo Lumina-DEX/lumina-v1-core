@@ -1,9 +1,9 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64 } from 'o1js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, TokenContractV2 } from 'o1js';
 
 /**
  * Token created for tests
  */
-export class TokenA extends TokenContract {
+export class TokenA extends TokenContractV2 {
 
     async deploy(args?: DeployArgs) {
         await super.deploy(args);
@@ -21,6 +21,10 @@ export class TokenA extends TokenContract {
 
     @method async init() {
         super.init();
+    }
+
+    @method async approveSend(amount: UInt64) {
+        this.balance.subInPlace(amount);
     }
 
     @method async approveBase(forest: AccountUpdateForest) {

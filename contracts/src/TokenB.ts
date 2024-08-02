@@ -1,9 +1,9 @@
-import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64 } from 'o1js';
+import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, TokenContractV2 } from 'o1js';
 
 /**
  * Token created for tests
  */
-export class TokenB extends TokenContract {
+export class TokenB extends TokenContractV2 {
 
     init() {
         super.init();

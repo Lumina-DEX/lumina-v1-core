@@ -22,6 +22,7 @@
     "testw": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "testpool": "node --experimental-vm-modules node_modules/jest/bin/jest.js pool.test",
     "testbalancer": "node --experimental-vm-modules node_modules/jest/bin/jest.js balancer.test",
+    "testmina": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolmina.test",
     "lint": "npx eslint src/* --fix",
     "patch": "node patch.js"
   },
@@ -39,7 +40,7 @@
     "typescript": "^5.1"
   },
   "peerDependencies": {
-    "o1js": "^1.*"
+    "o1js": "^1.6.0"
   },
   "engines": {
     "node": ">=18.14.0"
