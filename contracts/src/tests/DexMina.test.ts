@@ -1,11 +1,10 @@
 import { Account, AccountUpdate, Bool, Field, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 
-import { createDex, TokenContract, addresses, keys } from '../DexMina';
+import { Dex, DexTokenHolder, TokenContract, addresses, keys } from '../DexMina';
 
 let proofsEnabled = true;
 
 
-let { Dex, DexTokenHolder, getTokenBalances } = createDex();
 
 describe('Dex Proof', () => {
 
