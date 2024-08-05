@@ -47,7 +47,7 @@ export class PoolMina extends TokenContractV2 {
         amountA.add(amountMina).assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
 
-        // await tokenContractA.transfer(senderUpdate1, dexXUpdate, amountA);
+        await tokenContractA.transfer(sender, this.address, amountA);
         await senderUpdate.send({ to: this, amount: amountMina });
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  

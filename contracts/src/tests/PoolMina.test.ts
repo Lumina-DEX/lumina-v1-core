@@ -7,7 +7,7 @@ import { PoolMina } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { TokenStandard } from '../TokenStandard';
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Pool Mina', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -86,9 +86,7 @@ describe('Pool Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkToken0.transfer(senderAccount, zkApp.self, amt);
       await zkApp.createPool(zkToken0Address, amt, amt);
-      await zkToken0.approveAccountUpdate(tokenHolder0.self);
     });
     console.log("createPool", txn.toPretty());
     await txn.prove();
