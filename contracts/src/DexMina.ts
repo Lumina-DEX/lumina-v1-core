@@ -402,7 +402,7 @@ function createDex({
 /**
  * Simple token with API flexible enough to handle all our use cases
  */
-class TokenContract extends BaseTokenContract {
+class TokenContract extends TokenContractV2 {
   @method async init() {
     super.init();
     // mint the entire supply to the token account with the same address as this contract

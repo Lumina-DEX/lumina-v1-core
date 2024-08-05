@@ -1,6 +1,6 @@
 import { Account, AccountUpdate, Bool, Field, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 
-import { createDex, TokenContract, addresses, keys } from '../dex/dex';
+import { createDex, TokenContract, addresses, keys } from '../DexMina';
 
 let proofsEnabled = true;
 
@@ -116,6 +116,10 @@ describe('Dex Proof', () => {
         const expected = USER_DX + USER_DX;
         console.log("liquidity user", liquidityUser.toString());
         expect(liquidityUser.toBigInt()).toEqual(expected);
+
+        const balanceApp = Mina.getBalance(zkAppAddress);
+        expect(balanceApp.toBigInt()).toEqual(USER_DX);
+
     });
 
 
