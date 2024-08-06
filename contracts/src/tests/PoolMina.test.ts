@@ -7,7 +7,7 @@ import { PoolMina } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { TokenStandard } from '../TokenStandard';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Pool Mina', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -23,14 +23,13 @@ describe('Pool Mina', () => {
     zkApp: PoolMina,
     zkToken0Address: PublicKey,
     zkToken0PrivateKey: PrivateKey,
-    zkToken0: TokenA,
+    zkToken0: TokenStandard,
     tokenHolder0: MinaTokenHolder;
 
   beforeAll(async () => {
     if (proofsEnabled) {
       console.time('compile pool');
       await TokenStandard.compile();
-      const tokenKey = await TokenA.compile();
       const key = await PoolMina.compile();
       await MinaTokenHolder.compile();
       console.timeEnd('compile pool');
@@ -52,10 +51,10 @@ describe('Pool Mina', () => {
 
     zkToken0PrivateKey = PrivateKey.random();
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
-    zkToken0 = new TokenA(zkToken0Address);
+    zkToken0 = new TokenStandard(zkToken0Address);
 
     const txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 2);
+      AccountUpdate.fundNewAccount(deployerAccount, 3);
       await zkApp.deploy();
       await zkToken0.deploy();
     });
@@ -167,13 +166,13 @@ describe('Pool Mina', () => {
   }
 
   async function mintToken(user: PublicKey) {
-    // update transaction
-    const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkToken0.mintTo(user, UInt64.from(1000 * 10 ** 9));
+    // token are minted to original deployer, so just transfer it for test
+    const txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await zkToken0.transfer(deployerAccount, user, UInt64.from(1000 * 10 ** 9));
     });
     await txn.prove();
-    await txn.sign([senderKey, zkToken0PrivateKey]).send();
+    await txn.sign([deployerKey, zkToken0PrivateKey]).send();
 
   }
 

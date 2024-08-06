@@ -15,6 +15,14 @@ export class TokenStandard extends TokenContractV2 {
             setPermissions: Permissions.impossible(),
             access: Permissions.proofOrSignature(),
         });
+
+        const sender = this.sender.getUnconstrained();
+
+        // mint to deployer
+        this.internal.mint({
+            address: sender,
+            amount: UInt64.MAXINT(),
+        });
     }
 
     @method async approveBase(forest: AccountUpdateForest) {
