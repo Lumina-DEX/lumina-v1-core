@@ -27,7 +27,6 @@ class UInt64x2 extends Struct([UInt64, UInt64]) { }
 class DexMina extends TokenContractV2 {
   // addresses of token contracts are constants
   tokenX = addresses.tokenX;
-  tokenY = addresses.tokenY;
 
   // Approvable API
 
@@ -106,8 +105,7 @@ class DexMina extends TokenContractV2 {
       TokenId.derive(this.tokenX)
     ).balance;
     let y = Mina.getAccount(
-      this.address,
-      TokenId.derive(this.tokenY)
+      this.address
     ).balance;
     if (x.value.isConstant() && x.value.equals(0).toBoolean()) {
       throw Error(
@@ -133,7 +131,7 @@ class DexMina extends TokenContractV2 {
     let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
     let tokenX = new TokenDex(this.tokenX);
     let dexX = new DexMinaHolder(this.address, tokenX.deriveTokenId());
-    let dxdy = await dexX.redeemLiquidity(sender, dl, this.tokenY);
+    let dxdy = await dexX.redeemLiquidity(sender, dl, this.address);
     let dx = dxdy[0];
     await tokenX.transfer(dexX.self, sender, dx);
     return dxdy;
@@ -149,9 +147,10 @@ class DexMina extends TokenContractV2 {
   @method.returns(UInt64)
   async swapX(dx: UInt64) {
     let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
-    let tokenY = new TokenDex(this.tokenY);
+    let tokenY = new TokenDex(this.address);
     let dexY = new DexMinaHolder(this.address, tokenY.deriveTokenId());
     let dy = await dexY.swap(sender, dx, this.tokenX);
+    this.send({ to: sender, amount: dy });
     await tokenY.transfer(dexY.self, sender, dy);
     return dy;
   }
@@ -168,7 +167,7 @@ class DexMina extends TokenContractV2 {
     let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
     let tokenX = new TokenDex(this.tokenX);
     let dexX = new DexMinaHolder(this.address, tokenX.deriveTokenId());
-    let dx = await dexX.swap(sender, dy, this.tokenY);
+    let dx = await dexX.swap(sender, dy, this.address);
     await tokenX.transfer(dexX.self, sender, dx);
     return dx;
   }
