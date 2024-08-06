@@ -17,14 +17,13 @@ import {
   TokenContractV2,
   AccountUpdateForest,
 } from 'o1js';
-import { TokenDex } from './TokenDex';
 
-export { addresses, TokenDex, DexMina, DexMinaHolder, keys, randomAccounts, tokenIds };
+export { TokenContract, addresses, DexToken, DexTokenHolder, keys, randomAccounts, tokenIds };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) { }
 
 
-class DexMina extends TokenContractV2 {
+class DexToken extends TokenContractV2 {
   // addresses of token contracts are constants
   tokenX = addresses.tokenX;
   tokenY = addresses.tokenY;
@@ -56,8 +55,8 @@ class DexMina extends TokenContractV2 {
   @method.returns(UInt64)
   async supplyLiquidityBase(dx: UInt64, dy: UInt64) {
     let user = this.sender.getUnconstrained(); // unconstrained because transfer() requires the signature anyway
-    let tokenX = new TokenDex(this.tokenX);
-
+    let tokenX = new TokenContract(this.tokenX);
+    let tokenY = new TokenContract(this.tokenY);
 
     // get balances of X and Y token
     let dexXUpdate = AccountUpdate.create(
@@ -66,8 +65,11 @@ class DexMina extends TokenContractV2 {
     );
     let dexXBalance = dexXUpdate.account.balance.getAndRequireEquals();
 
-    let senderUpdate = AccountUpdate.createSigned(user);
-    let dexYBalance = this.account.balance.getAndRequireEquals();
+    let dexYUpdate = AccountUpdate.create(
+      this.address,
+      tokenY.deriveTokenId()
+    );
+    let dexYBalance = dexYUpdate.account.balance.getAndRequireEquals();
 
     // assert dy === [dx * y/x], or x === 0
     let isXZero = dexXBalance.equals(UInt64.zero);
@@ -76,12 +78,33 @@ class DexMina extends TokenContractV2 {
     isDyCorrect.or(isXZero).assertTrue();
 
     await tokenX.transfer(user, dexXUpdate, dx);
-    await senderUpdate.send({ to: this, amount: dy });
+    await tokenY.transfer(user, dexYUpdate, dy);
 
     // calculate liquidity token output simply as dl = dx + dy
     // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
     let userUpdate = this.internal.mint({ address: user, amount: dl });
+    if (lockedLiquiditySlots !== undefined) {
+      /**
+       * exercise the "timing" (vesting) feature to lock the received liquidity tokens.
+       *
+       * THIS IS HERE FOR TESTING!
+       *
+       * In reality, the timing feature is a bit awkward to use for time-locking liquidity tokens.
+       * That's because, if there is currently a vesting schedule on an account, we can't modify it.
+       * Thus, a liquidity provider would need to wait for their current tokens to unlock before being able to
+       * supply liquidity again (or, create another account to supply liquidity from).
+       */
+      let amountLocked = dl;
+      userUpdate.account.timing.set({
+        initialMinimumBalance: amountLocked,
+        cliffAmount: amountLocked,
+        cliffTime: UInt32.from(lockedLiquiditySlots),
+        vestingIncrement: UInt64.zero,
+        vestingPeriod: UInt32.one,
+      });
+      userUpdate.requireSignature();
+    }
 
     // update l supply
     let l = this.totalSupply.get();
@@ -131,8 +154,8 @@ class DexMina extends TokenContractV2 {
   async redeemLiquidity(dl: UInt64) {
     // call the token X holder inside a token X-approved callback
     let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
-    let tokenX = new TokenDex(this.tokenX);
-    let dexX = new DexMinaHolder(this.address, tokenX.deriveTokenId());
+    let tokenX = new TokenContract(this.tokenX);
+    let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
     let dxdy = await dexX.redeemLiquidity(sender, dl, this.tokenY);
     let dx = dxdy[0];
     await tokenX.transfer(dexX.self, sender, dx);
@@ -149,8 +172,8 @@ class DexMina extends TokenContractV2 {
   @method.returns(UInt64)
   async swapX(dx: UInt64) {
     let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
-    let tokenY = new TokenDex(this.tokenY);
-    let dexY = new DexMinaHolder(this.address, tokenY.deriveTokenId());
+    let tokenY = new TokenContract(this.tokenY);
+    let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
     let dy = await dexY.swap(sender, dx, this.tokenX);
     await tokenY.transfer(dexY.self, sender, dy);
     return dy;
@@ -166,8 +189,8 @@ class DexMina extends TokenContractV2 {
   @method.returns(UInt64)
   async swapY(dy: UInt64) {
     let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
-    let tokenX = new TokenDex(this.tokenX);
-    let dexX = new DexMinaHolder(this.address, tokenX.deriveTokenId());
+    let tokenX = new TokenContract(this.tokenX);
+    let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
     let dx = await dexX.swap(sender, dy, this.tokenY);
     await tokenX.transfer(dexX.self, sender, dx);
     return dx;
@@ -195,7 +218,8 @@ class DexMina extends TokenContractV2 {
   }
 }
 
-class DexMinaHolder extends SmartContract {
+
+class DexTokenHolder extends SmartContract {
   // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
   // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
   // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
@@ -203,7 +227,7 @@ class DexMinaHolder extends SmartContract {
   @method.returns(UInt64x2)
   async redeemLiquidityPartial(user: PublicKey, dl: UInt64) {
     // user burns dl, approved by the Dex main contract
-    let dex = new DexMina(addresses.dex);
+    let dex = new DexToken(addresses.dex);
     let l = await dex.burnLiquidity(user, dl);
 
     // in return, we give dy back
@@ -229,8 +253,8 @@ class DexMinaHolder extends SmartContract {
     otherTokenAddress: PublicKey
   ) {
     // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
-    let tokenY = new TokenDex(otherTokenAddress);
-    let dexY = new DexMinaHolder(this.address, tokenY.deriveTokenId());
+    let tokenY = new TokenContract(otherTokenAddress);
+    let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
     let result = await dexY.redeemLiquidityPartial(user, dl);
     let l = result[0];
     let dy = result[1];
@@ -255,7 +279,7 @@ class DexMinaHolder extends SmartContract {
   ) {
     // we're writing this as if our token === y and other token === x
     let dx = otherTokenAmount;
-    let tokenX = new TokenDex(otherTokenAddress);
+    let tokenX = new TokenContract(otherTokenAddress);
     // get balances
     let dexX = AccountUpdate.create(this.address, tokenX.deriveTokenId());
     let x = dexX.account.balance.getAndRequireEquals();
@@ -267,6 +291,51 @@ class DexMinaHolder extends SmartContract {
     // just subtract dy balance and let adding balance be handled one level higher
     this.balance.subInPlace(dy);
     return dy;
+  }
+}
+
+
+/**
+ * Simple token with API flexible enough to handle all our use cases
+ */
+class TokenContract extends TokenContractV2 {
+  @method async init() {
+    super.init();
+    // mint the entire supply to the token account with the same address as this contract
+    /**
+     * DUMB STUFF FOR TESTING (change in real app)
+     *
+     * we mint the max uint64 of tokens here, so that we can overflow it in tests if we just mint a bit more
+     */
+    let receiver = this.internal.mint({
+      address: this.address,
+      amount: UInt64.MAXINT(),
+    });
+    // assert that the receiving account is new, so this can be only done once
+    receiver.account.isNew.requireEquals(Bool(true));
+    // pay fees for opened account
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
+  }
+
+  /**
+   * DUMB STUFF FOR TESTING (delete in real app)
+   *
+   * mint additional tokens to some user, so we can overflow token balances
+   */
+  @method async init2() {
+    let receiver = this.internal.mint({
+      address: addresses.user,
+      amount: UInt64.from(10n ** 6n),
+    });
+    // assert that the receiving account is new, so this can be only done once
+    receiver.account.isNew.requireEquals(Bool(true));
+    // pay fees for opened account
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
+  }
+
+  @method
+  async approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
   }
 }
 

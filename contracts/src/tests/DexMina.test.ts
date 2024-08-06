@@ -1,6 +1,6 @@
 import { Account, AccountUpdate, Bool, Field, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 
-import { Dex, DexTokenHolder, TokenContract, addresses, keys } from '../DexMina';
+import { DexMina, DexMinaHolder, TokenDex, addresses, keys } from '../DexMina';
 
 let proofsEnabled = true;
 
@@ -18,15 +18,15 @@ describe('Dex Proof', () => {
         aliceKey: PrivateKey,
         zkAppAddress: PublicKey,
         zkAppPrivateKey: PrivateKey,
-        zkApp: any,
+        zkApp: DexMina,
         zkToken0Address: PublicKey,
         zkToken0PrivateKey: PrivateKey,
-        zkToken0: TokenContract,
+        zkToken0: TokenDex,
         zkToken1Address: PublicKey,
         zkToken1PrivateKey: PrivateKey,
-        zkToken1: TokenContract,
-        tokenHolder0: any,
-        tokenHolder1: any;
+        zkToken1: TokenDex,
+        tokenHolder0: DexMinaHolder,
+        tokenHolder1: DexMinaHolder;
 
 
     beforeEach(async () => {
@@ -44,23 +44,23 @@ describe('Dex Proof', () => {
 
         zkAppPrivateKey = PrivateKey.random();
         zkAppAddress = zkAppPrivateKey.toPublicKey();
-        zkApp = new Dex(zkAppAddress);
+        zkApp = new DexMina(zkAppAddress);
 
         zkToken0PrivateKey = keys.tokenX;
         zkToken0Address = zkToken0PrivateKey.toPublicKey();
-        zkToken0 = new TokenContract(zkToken0Address);
+        zkToken0 = new TokenDex(zkToken0Address);
 
         zkToken1PrivateKey = keys.tokenY;
         zkToken1Address = zkToken1PrivateKey.toPublicKey();
-        zkToken1 = new TokenContract(zkToken1Address);
+        zkToken1 = new TokenDex(zkToken1Address);
 
         if (proofsEnabled) {
             console.time('compile token');
-            const tokenKey = await TokenContract.compile();
+            const tokenKey = await TokenDex.compile();
             console.timeEnd('compile token');
             console.time('compile pool');
-            const key = await Dex.compile();
-            await DexTokenHolder.compile();
+            const key = await DexMina.compile();
+            await DexMinaHolder.compile();
             console.timeEnd('compile pool');
             console.log("key pool", key.verificationKey.data);
             console.log("key pool hash", key.verificationKey.hash.toBigInt());
@@ -79,8 +79,8 @@ describe('Dex Proof', () => {
         // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
         await txn.sign([deployerKey, zkAppPrivateKey, zkToken0PrivateKey, zkToken1PrivateKey]).send();
 
-        tokenHolder0 = new DexTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
-        tokenHolder1 = new DexTokenHolder(zkAppAddress, zkToken1.deriveTokenId());
+        tokenHolder0 = new DexMinaHolder(zkAppAddress, zkToken0.deriveTokenId());
+        tokenHolder1 = new DexMinaHolder(zkAppAddress, zkToken1.deriveTokenId());
         txn = await Mina.transaction(deployerAccount, async () => {
             AccountUpdate.fundNewAccount(deployerAccount, 3);
             await zkApp.deploy();
