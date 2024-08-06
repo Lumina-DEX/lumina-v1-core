@@ -17,8 +17,9 @@ import {
   TokenContractV2,
   AccountUpdateForest,
 } from 'o1js';
+import { TokenDex } from './TokenDex';
 
-export { TokenContract, addresses, DexToken, DexTokenHolder, keys, randomAccounts, tokenIds };
+export { addresses, DexToken, DexTokenHolder, TokenDex, keys, randomAccounts, tokenIds };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) { }
 
@@ -55,8 +56,8 @@ class DexToken extends TokenContractV2 {
   @method.returns(UInt64)
   async supplyLiquidityBase(dx: UInt64, dy: UInt64) {
     let user = this.sender.getUnconstrained(); // unconstrained because transfer() requires the signature anyway
-    let tokenX = new TokenContract(this.tokenX);
-    let tokenY = new TokenContract(this.tokenY);
+    let tokenX = new TokenDex(this.tokenX);
+    let tokenY = new TokenDex(this.tokenY);
 
     // get balances of X and Y token
     let dexXUpdate = AccountUpdate.create(
@@ -84,27 +85,7 @@ class DexToken extends TokenContractV2 {
     // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
     let userUpdate = this.internal.mint({ address: user, amount: dl });
-    if (lockedLiquiditySlots !== undefined) {
-      /**
-       * exercise the "timing" (vesting) feature to lock the received liquidity tokens.
-       *
-       * THIS IS HERE FOR TESTING!
-       *
-       * In reality, the timing feature is a bit awkward to use for time-locking liquidity tokens.
-       * That's because, if there is currently a vesting schedule on an account, we can't modify it.
-       * Thus, a liquidity provider would need to wait for their current tokens to unlock before being able to
-       * supply liquidity again (or, create another account to supply liquidity from).
-       */
-      let amountLocked = dl;
-      userUpdate.account.timing.set({
-        initialMinimumBalance: amountLocked,
-        cliffAmount: amountLocked,
-        cliffTime: UInt32.from(lockedLiquiditySlots),
-        vestingIncrement: UInt64.zero,
-        vestingPeriod: UInt32.one,
-      });
-      userUpdate.requireSignature();
-    }
+
 
     // update l supply
     let l = this.totalSupply.get();
@@ -154,7 +135,7 @@ class DexToken extends TokenContractV2 {
   async redeemLiquidity(dl: UInt64) {
     // call the token X holder inside a token X-approved callback
     let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
-    let tokenX = new TokenContract(this.tokenX);
+    let tokenX = new TokenDex(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
     let dxdy = await dexX.redeemLiquidity(sender, dl, this.tokenY);
     let dx = dxdy[0];
@@ -172,7 +153,7 @@ class DexToken extends TokenContractV2 {
   @method.returns(UInt64)
   async swapX(dx: UInt64) {
     let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
-    let tokenY = new TokenContract(this.tokenY);
+    let tokenY = new TokenDex(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
     let dy = await dexY.swap(sender, dx, this.tokenX);
     await tokenY.transfer(dexY.self, sender, dy);
@@ -189,7 +170,7 @@ class DexToken extends TokenContractV2 {
   @method.returns(UInt64)
   async swapY(dy: UInt64) {
     let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
-    let tokenX = new TokenContract(this.tokenX);
+    let tokenX = new TokenDex(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
     let dx = await dexX.swap(sender, dy, this.tokenY);
     await tokenX.transfer(dexX.self, sender, dx);
@@ -253,7 +234,7 @@ class DexTokenHolder extends SmartContract {
     otherTokenAddress: PublicKey
   ) {
     // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
-    let tokenY = new TokenContract(otherTokenAddress);
+    let tokenY = new TokenDex(otherTokenAddress);
     let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
     let result = await dexY.redeemLiquidityPartial(user, dl);
     let l = result[0];
@@ -279,7 +260,7 @@ class DexTokenHolder extends SmartContract {
   ) {
     // we're writing this as if our token === y and other token === x
     let dx = otherTokenAmount;
-    let tokenX = new TokenContract(otherTokenAddress);
+    let tokenX = new TokenDex(otherTokenAddress);
     // get balances
     let dexX = AccountUpdate.create(this.address, tokenX.deriveTokenId());
     let x = dexX.account.balance.getAndRequireEquals();
@@ -295,49 +276,6 @@ class DexTokenHolder extends SmartContract {
 }
 
 
-/**
- * Simple token with API flexible enough to handle all our use cases
- */
-class TokenContract extends TokenContractV2 {
-  @method async init() {
-    super.init();
-    // mint the entire supply to the token account with the same address as this contract
-    /**
-     * DUMB STUFF FOR TESTING (change in real app)
-     *
-     * we mint the max uint64 of tokens here, so that we can overflow it in tests if we just mint a bit more
-     */
-    let receiver = this.internal.mint({
-      address: this.address,
-      amount: UInt64.MAXINT(),
-    });
-    // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.requireEquals(Bool(true));
-    // pay fees for opened account
-    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
-  }
-
-  /**
-   * DUMB STUFF FOR TESTING (delete in real app)
-   *
-   * mint additional tokens to some user, so we can overflow token balances
-   */
-  @method async init2() {
-    let receiver = this.internal.mint({
-      address: addresses.user,
-      amount: UInt64.from(10n ** 6n),
-    });
-    // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.requireEquals(Bool(true));
-    // pay fees for opened account
-    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
-  }
-
-  @method
-  async approveBase(forest: AccountUpdateForest) {
-    this.checkZeroBalanceChange(forest);
-  }
-}
 
 const savedKeys = [
   'EKFcUu4FLygkyZR8Ch4F8hxuJps97GCfiMRSWXDP55sgvjcmNGHc',

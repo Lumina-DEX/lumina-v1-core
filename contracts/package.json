@@ -24,6 +24,7 @@
     "testbalancer": "node --experimental-vm-modules node_modules/jest/bin/jest.js balancer.test",
     "testmina": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolmina.test",
     "testdex": "node --experimental-vm-modules node_modules/jest/bin/jest.js DexMina.test",
+    "testtoken": "node --experimental-vm-modules node_modules/jest/bin/jest.js DexToken.test",
     "lint": "npx eslint src/* --fix",
     "patch": "node patch.js"
   },
