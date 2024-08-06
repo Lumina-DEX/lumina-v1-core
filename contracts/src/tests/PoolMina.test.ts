@@ -32,9 +32,26 @@ describe('Pool Mina', () => {
       await TokenStandard.compile();
       const key = await PoolMina.compile();
       await MinaTokenHolder.compile();
+
+      console.log("provers", key.provers.length);
+
+      const analyze = await PoolMina.analyzeMethods();
+      getGates(analyze);
+
       console.timeEnd('compile pool');
     }
+
+    function getGates(analyze: any) {
+      for (const key in analyze) {
+        if (Object.prototype.hasOwnProperty.call(analyze, key)) {
+          const element = analyze[key];
+          console.log(key, element?.gates.length)
+        }
+      }
+    }
   });
+
+
 
   beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });
@@ -49,7 +66,7 @@ describe('Pool Mina', () => {
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new PoolMina(zkAppAddress);
 
-    zkToken0PrivateKey = PrivateKey.random();
+    zkToken0PrivateKey = PrivateKey.fromBase58("EKFBv1hRZc3cXzyp3iWDHnyfaRHVvXhRbg2Q4KmnZmpWDV4Gc5wJ");
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
     zkToken0 = new TokenStandard(zkToken0Address);
 

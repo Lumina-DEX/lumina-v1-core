@@ -19,7 +19,7 @@ export class MinaTokenHolder extends SmartContract {
         amountOutMin: UInt64
     ) {
         let pm = new PoolMina(poolAddress);
-        const addressA = pm.tokenA.getAndRequireEquals();
+        const addressA = pm.tokenA;
 
         const tokenA = new TokenStandard(addressA);
 
@@ -56,7 +56,7 @@ export class MinaTokenHolder extends SmartContract {
         liquidityAmount: UInt64
     ) {
         let pm = new PoolMina(poolAddress);
-        const addressA = pm.tokenA.getAndRequireEquals();
+        const addressA = pm.tokenA;
         const totalSupply = pm.liquiditySupply.getAndRequireEquals();
 
         const tokenA = new TokenStandard(addressA);

@@ -14,35 +14,15 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
  */
 export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
-    @state(PublicKey) tokenA = State<PublicKey>();
+    tokenA = PublicKey.fromBase58("B62qjZ1W2ybx2AYLYUyjPMoBT6Kn6CPPjAN2WWSRKH46uGgn2SgeNtK");
     @state(UInt64) liquiditySupply = State<UInt64>();
-
-    async deploy(args: PoolMinaDeployProps) {
-        await super.deploy(args);
-
-        args?.tokenA.isEmpty().assertFalse("Token A is empty");
-        this.tokenA.set(args.tokenA);
-    }
-
-    init() {
-        super.init();
-
-        // this.account.permissions.set({
-        //     ...Permissions.default(),
-        //     editState: Permissions.proofOrSignature(),
-        //     editActionState: Permissions.proofOrSignature(),
-        //     send: Permissions.proofOrSignature(),
-        //     access: Permissions.proofOrSignature()
-        // });
-
-    }
 
     @method async approveBase(forest: AccountUpdateForest) {
         this.checkZeroBalanceChange(forest);
     }
 
     @method async supplyFirstLiquidities(amountA: UInt64, amountMina: UInt64) {
-        const addressA = this.tokenA.getAndRequireEquals();
+        const addressA = this.tokenA;
 
         amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
         amountMina.assertGreaterThan(UInt64.zero, "No amount Mina supplied");
@@ -73,7 +53,7 @@ export class PoolMina extends TokenContractV2 {
     @method async supplyLiquidityFromTokenA(amountA: UInt64, maxAmountMina: UInt64) {
         amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
 
-        const addressA = this.tokenA.getAndRequireEquals();
+        const addressA = this.tokenA;
 
         // todo manage mina native token
         addressA.isEmpty().assertFalse("Pool not initialised");
@@ -114,7 +94,7 @@ export class PoolMina extends TokenContractV2 {
     @method async supplyLiquidityFromMina(amountMina: UInt64, maxAmountA: UInt64) {
         amountMina.assertGreaterThan(UInt64.zero, "No Mina amount supplied");
 
-        const addressA = this.tokenA.getAndRequireEquals();
+        const addressA = this.tokenA;
 
         // todo manage mina native token
         addressA.isEmpty().assertFalse("Pool not initialised");
@@ -156,7 +136,7 @@ export class PoolMina extends TokenContractV2 {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
-        const addressA = this.tokenA.getAndRequireEquals();
+        const addressA = this.tokenA;
 
         // todo manage mina native token
         addressA.isEmpty().assertFalse("Pool not initialised");
