@@ -4,6 +4,11 @@ import { TokenStandard, MinaTokenHolder } from './index.js';
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
 
+export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
+    tokenA: PublicKey;
+}
+
+
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
@@ -11,6 +16,13 @@ export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) tokenA = State<PublicKey>();
     @state(UInt64) liquiditySupply = State<UInt64>();
+
+    async deploy(args: PoolMinaDeployProps) {
+        await super.deploy(args);
+
+        args?.tokenA.isEmpty().assertFalse("Token A is empty");
+        this.tokenA.set(args.tokenA);
+    }
 
     init() {
         super.init();
@@ -29,15 +41,13 @@ export class PoolMina extends TokenContractV2 {
         this.checkZeroBalanceChange(forest);
     }
 
-    @method async createPool(tokenA: PublicKey, amountA: UInt64, amountMina: UInt64) {
+    @method async supplyFirstLiquidities(amountA: UInt64, amountMina: UInt64) {
         const addressA = this.tokenA.getAndRequireEquals();
-
-        addressA.isEmpty().assertTrue("Pool already initialised");
 
         amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
         amountMina.assertGreaterThan(UInt64.zero, "No amount Mina supplied");
 
-        let tokenContractA = new TokenStandard(tokenA);
+        let tokenContractA = new TokenStandard(addressA);
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getAndRequireSignature();
@@ -57,7 +67,6 @@ export class PoolMina extends TokenContractV2 {
         this.internal.mint({ address: sender, amount: liquidityAmount });
 
         // set default informations
-        this.tokenA.set(tokenA);
         this.liquiditySupply.set(liquidityAmount.add(minimunLiquidity));
     }
 

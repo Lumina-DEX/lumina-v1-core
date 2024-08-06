@@ -3,7 +3,7 @@ import { Account, AccountUpdate, Bool, Field, Mina, PrivateKey, PublicKey, Token
 import { Pool, minimunLiquidity } from '../Pool';
 import { TokenA } from '../TokenA';
 import { TokenHolder } from '../TokenHolder';
-import { PoolMina } from '../PoolMina';
+import { PoolMina, PoolMinaDeployProps } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { TokenStandard } from '../TokenStandard';
 
@@ -53,9 +53,10 @@ describe('Pool Mina', () => {
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
     zkToken0 = new TokenStandard(zkToken0Address);
 
+    const args: PoolMinaDeployProps = { tokenA: zkToken0Address };
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 3);
-      await zkApp.deploy();
+      await zkApp.deploy(args);
       await zkToken0.deploy();
     });
     await txn.prove();
@@ -85,9 +86,9 @@ describe('Pool Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.createPool(zkToken0Address, amt, amt);
+      await zkApp.supplyFirstLiquidities(amt, amt);
     });
-    console.log("createPool", txn.toPretty());
+    console.log("createPool au", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
@@ -104,7 +105,7 @@ describe('Pool Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.createPool(zkToken0Address, amt, amt);
+      await zkApp.supplyFirstLiquidities(amt, amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
