@@ -22,26 +22,18 @@ export class Pool extends TokenContractV2 {
     }
 
     @method async supplyFirstLiquidities(amountA: UInt64, amountB: UInt64) {
-        amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
-        amountB.assertGreaterThan(UInt64.zero, "No amount B supplied");
-
-        let tokenContractA = new TokenStandard(this.tokenA);
-        let tokenContractB = new TokenStandard(this.tokenB);
+        const tokenContractA = new TokenStandard(this.tokenA);
+        const tokenContractB = new TokenStandard(this.tokenB);
 
         // require signature on transfer, so don't need to request it now
-        let sender = this.sender.getUnconstrained();
+        const sender = this.sender.getUnconstrained();
 
-        const liquidityAmount = amountA.add(amountB);
-
-        // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
-        liquidityAmount.assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
-
-        let dexAUpdate = AccountUpdate.create(
+        const dexAUpdate = AccountUpdate.create(
             this.address,
             tokenContractA.deriveTokenId()
         );
 
-        let dexBUpdate = AccountUpdate.create(
+        const dexBUpdate = AccountUpdate.create(
             this.address,
             tokenContractB.deriveTokenId()
         );
@@ -51,7 +43,8 @@ export class Pool extends TokenContractV2 {
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
         // => maintains ratio a/l, b/l
-        let liquidityUser = liquidityAmount.sub(minimunLiquidity);
+        const liquidityAmount = amountA.add(amountB);
+        const liquidityUser = liquidityAmount.sub(minimunLiquidity);
         // mint token
         this.internal.mint({ address: sender, amount: liquidityUser });
 
