@@ -22,12 +22,10 @@ export class PoolMina extends TokenContractV2 {
     }
 
     @method async supplyFirstLiquidities(amountA: UInt64, amountMina: UInt64) {
-        const addressA = this.tokenA;
-
         amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
         amountMina.assertGreaterThan(UInt64.zero, "No amount Mina supplied");
 
-        let tokenContractA = new TokenStandard(addressA);
+        let tokenContractA = new TokenStandard(this.tokenA);
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getAndRequireSignature();

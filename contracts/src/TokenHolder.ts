@@ -18,8 +18,8 @@ export class TokenHolder extends SmartContract {
         amountOutMin: UInt64
     ) {
         let pm = new Pool(poolAddress);
-        const addressA = pm.tokenA.getAndRequireEquals();
-        const addressB = pm.tokenB.getAndRequireEquals();
+        const addressA = pm.tokenA;
+        const addressB = pm.tokenB;
 
         const tokenA = new TokenStandard(addressA);
         const tokenB = new TokenStandard(addressB);
@@ -62,8 +62,8 @@ export class TokenHolder extends SmartContract {
         liquidityAmount: UInt64
     ) {
         let pm = new Pool(poolAddress);
-        const addressA = pm.tokenA.getAndRequireEquals();
-        const addressB = pm.tokenB.getAndRequireEquals();
+        const addressA = pm.tokenA;
+        const addressB = pm.tokenB;
         const totalSupply = pm.liquiditySupply.getAndRequireEquals();
 
         const tokenA = new TokenStandard(addressA);

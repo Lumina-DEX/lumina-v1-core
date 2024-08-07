@@ -4,8 +4,9 @@ import { Pool, minimunLiquidity } from '../Pool';
 import { TokenHolder } from '../TokenHolder';
 import { TokenA } from '../TokenA';
 import { TokenB } from '../TokenB';
+import { TokenStandard } from '../TokenStandard';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Pool', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -21,10 +22,10 @@ describe('Pool', () => {
     zkApp: Pool,
     zkToken0Address: PublicKey,
     zkToken0PrivateKey: PrivateKey,
-    zkToken0: TokenA,
+    zkToken0: TokenStandard,
     zkToken1Address: PublicKey,
     zkToken1PrivateKey: PrivateKey,
-    zkToken1: TokenB,
+    zkToken1: TokenStandard,
     tokenHolder0: TokenHolder,
     tokenHolder1: TokenHolder;
 
@@ -41,18 +42,18 @@ describe('Pool', () => {
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new Pool(zkAppAddress);
 
-    zkToken0PrivateKey = PrivateKey.random();
+    zkToken0PrivateKey = PrivateKey.fromBase58("EKFBv1hRZc3cXzyp3iWDHnyfaRHVvXhRbg2Q4KmnZmpWDV4Gc5wJ");
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
-    zkToken0 = new TokenA(zkToken0Address);
+    zkToken0 = new TokenStandard(zkToken0Address);
 
-    zkToken1PrivateKey = PrivateKey.random();
+    zkToken1PrivateKey = PrivateKey.fromBase58("EKFAECKgNnkFL3XY7Gwc4nzyXNFWKSo26tvYfxRD4NVWQxqvrUHd");
     zkToken1Address = zkToken1PrivateKey.toPublicKey();
-    zkToken1 = new TokenB(zkToken1Address);
+    zkToken1 = new TokenStandard(zkToken1Address);
 
     if (proofsEnabled) {
       console.time('compile token');
-      const tokenKey = await TokenA.compile();
-      const tokenKey2 = await TokenB.compile();
+      await TokenHolder.compile();
+      await TokenStandard.compile();
       console.timeEnd('compile token');
       console.time('compile pool');
       const key = await Pool.compile();
@@ -63,7 +64,7 @@ describe('Pool', () => {
 
 
     const txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 3);
+      AccountUpdate.fundNewAccount(deployerAccount, 5);
       await zkApp.deploy();
       await zkToken0.deploy();
       await zkToken1.deploy();
@@ -98,7 +99,7 @@ describe('Pool', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.createPool(zkToken0Address, zkToken1Address, amt, amt);
+      await zkApp.supplyFirstLiquidities(amt, amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -116,7 +117,7 @@ describe('Pool', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.createPool(zkToken0Address, zkToken1Address, amt, amt);
+      await zkApp.supplyFirstLiquidities(amt, amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -142,7 +143,7 @@ describe('Pool', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.createPool(zkToken0Address, zkToken1Address, amt, amt);
+      await zkApp.supplyFirstLiquidities(amt, amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -171,7 +172,7 @@ describe('Pool', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.createPool(zkToken0Address, zkToken1Address, amt, amt);
+      await zkApp.supplyFirstLiquidities(amt, amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -215,19 +216,19 @@ describe('Pool', () => {
 
   async function mintToken(user: PublicKey) {
     // update transaction
-    const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkToken0.mintTo(user, UInt64.from(1000 * 10 ** 9));
+    const txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await zkToken0.transfer(deployerAccount, user, UInt64.from(1000 * 10 ** 9));
     });
     await txn.prove();
-    await txn.sign([senderKey, zkToken0PrivateKey]).send();
+    await txn.sign([deployerKey, zkToken0PrivateKey]).send();
 
-    const txn2 = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkToken1.mintTo(user, UInt64.from(1000 * 10 ** 9));
+    const txn2 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await zkToken1.transfer(deployerAccount, user, UInt64.from(1000 * 10 ** 9));
     });
     await txn2.prove();
-    await txn2.sign([senderKey, zkToken1PrivateKey]).send();
+    await txn2.sign([deployerKey, zkToken1PrivateKey]).send();
   }
 
 });
