@@ -8,5 +8,7 @@ import { BalancerHolder } from './BalancerHolder.js';
 import { Balancer } from './Balancer.js';
 import { ShowBalance } from './ShowBalance.js';
 import { MinaTokenHolder } from './MinaTokenHolder.js';
+import { TokenDex } from './TokenDex.js';
+import { DexToken, DexTokenHolder } from './DexToken.js';
 
-export { Pool, mulDiv, TokenHolder, TokenA, TokenB, TokenStandard, Balancer, BalancerHolder, ShowBalance, MinaTokenHolder };
+export { DexToken, DexTokenHolder, Pool, TokenDex, mulDiv, TokenHolder, TokenA, TokenB, TokenStandard, Balancer, BalancerHolder, ShowBalance, MinaTokenHolder };

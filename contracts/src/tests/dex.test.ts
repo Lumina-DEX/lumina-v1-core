@@ -32,8 +32,17 @@ describe('Dex Proof', () => {
 
     beforeEach(async () => {
         const gate = await Dex.analyzeMethods();
+        getGates(gate);
 
-        console.log("gate dex", gate)
+
+        function getGates(analyze: any) {
+            for (const key in analyze) {
+                if (Object.prototype.hasOwnProperty.call(analyze, key)) {
+                    const element = analyze[key];
+                    console.log(key, element?.gates.length)
+                }
+            }
+        }
 
         const Local = await Mina.LocalBlockchain({ proofsEnabled });
         Mina.setActiveInstance(Local);

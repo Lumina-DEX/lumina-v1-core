@@ -8,6 +8,8 @@ TokenA B62qjZ1W2ybx2AYLYUyjPMoBT6Kn6CPPjAN2WWSRKH46uGgn2SgeNtK  (Zeko and mina t
 TokenB B62qkSPqDx2TazHm6PxdqXSb7DiVfvt7UM17ykK3xb3VSPjKLPbYWdb
 Balancer B62qqroHK8ug1uvmMA6xP6bEa5dbifU2ZMczpbZjNRrpmTxmi3xeFSD (Zeko and mina testnet)
 ShowBalance B62qram7TfkH5r99zsWtd2wgj55fHM9fU7yZCE9G94h3knUvzxU3Q6Y (Zeko and mina testnet)
+DexToken B62qmCbWRAfPvbMRuHxBVBLStnyJDMVS8zF7MXQ2eU7E3hxfxSzetEb (Mina)
+
 
 ### GraphQL
 https://api.minascan.io/node/devnet/v1/graphql

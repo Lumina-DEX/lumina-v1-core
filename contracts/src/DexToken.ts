@@ -17,7 +17,7 @@ import {
   TokenContractV2,
   AccountUpdateForest,
 } from 'o1js';
-import { TokenDex } from './TokenDex';
+import { TokenDex } from './index.js';
 
 export { addresses, DexToken, DexTokenHolder, TokenDex, keys, randomAccounts, tokenIds };
 
@@ -26,8 +26,10 @@ class UInt64x2 extends Struct([UInt64, UInt64]) { }
 
 class DexToken extends TokenContractV2 {
   // addresses of token contracts are constants
-  tokenX = addresses.tokenX;
-  tokenY = addresses.tokenY;
+  // tokenX = addresses.tokenX;
+  // tokenY = addresses.tokenY;
+  tokenX = PublicKey.fromBase58("B62qjZ1W2ybx2AYLYUyjPMoBT6Kn6CPPjAN2WWSRKH46uGgn2SgeNtK");
+  tokenY = PublicKey.fromBase58("B62qkSPqDx2TazHm6PxdqXSb7DiVfvt7UM17ykK3xb3VSPjKLPbYWdb");
 
   // Approvable API
 
