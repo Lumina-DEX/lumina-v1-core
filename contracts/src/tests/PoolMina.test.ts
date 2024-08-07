@@ -96,7 +96,7 @@ describe('Pool Mina', () => {
 
   });
 
-  it('create pool', async () => {
+  it('add first liquidity', async () => {
     showBalanceToken0();
     showBalanceToken1();
 
@@ -109,16 +109,13 @@ describe('Pool Mina', () => {
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
-    showBalanceToken0();
-    showBalanceToken1();
-
     const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
     const expected = amt.value.add(amt.value).sub(minimunLiquidity.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
   });
 
-  it('swap tokens', async () => {
+  it('swap from mina', async () => {
     let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
@@ -127,8 +124,6 @@ describe('Pool Mina', () => {
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    showBalanceToken0();
-    showBalanceToken1();
     let amtSwap = UInt64.from(1 * 10 ** 9);
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
@@ -136,9 +131,24 @@ describe('Pool Mina', () => {
     });
     await txn2.prove();
     await txn2.sign([senderKey]).send();
+  });
 
-    showBalanceToken0();
-    showBalanceToken1();
+  it('swap from token', async () => {
+    let amt = UInt64.from(10 * 10 ** 9);
+    const txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.supplyFirstLiquidities(amt, amt);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    let amtSwap = UInt64.from(1 * 10 ** 9);
+    const txn2 = await Mina.transaction(senderAccount, async () => {
+      //AccountUpdate.fundNewAccount(senderAccount, 2);
+      await zkApp.swapFromToken(amtSwap, UInt64.from(1));
+    });
+    await txn2.prove();
+    await txn2.sign([senderKey]).send();
   });
   /*
     it('supply liquidity', async () => {

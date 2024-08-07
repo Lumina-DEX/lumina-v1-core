@@ -1,5 +1,5 @@
 import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
-import { TokenStandard, MinaTokenHolder } from './index.js';
+import { TokenStandard, MinaTokenHolder, mulDiv } from './index.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -152,6 +152,28 @@ export class PoolMina extends TokenContractV2 {
         // will transfer token in to this pool and calculate correct amount out to transfer the token out
         const amountOut = await tokenHolderOut.swap(this.address, sender, amountIn, amountOutMin);
         await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
+    }
+
+    @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64) {
+        amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
+        amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
+
+        const tokenContractA = new TokenStandard(this.tokenA);
+        const holderA = new MinaTokenHolder(this.address, tokenContractA.deriveTokenId());
+
+        const reserveIn = holderA.account.balance.getAndRequireEquals();
+        const reserveOut = this.account.balance.getAndRequireEquals();
+
+        let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
+        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
+
+        let sender = this.sender.getUnconstrained();
+
+        // send token A to contract
+        await tokenContractA.transfer(sender, this.address, amountIn);
+        // send mina to user
+        await this.send({ to: sender, amount: amountOut });
+
     }
 
 }
