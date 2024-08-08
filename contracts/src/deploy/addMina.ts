@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
-import { PoolMina, MinaTokenHolder, TokenStandard, TokenA } from '../index.js';
+import { TokenStandard, PoolMina, MinaTokenHolder } from '../index.js';
 
 // check command line arg
 let deployAlias = "poolmina";
@@ -22,7 +22,7 @@ if (!deployAlias)
     throw Error(`Missing <deployAlias> argument.
 
 Usage:
-node build/src/deploy/poolminaholder.js
+node build/src/deploy/addmina.js
 `);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'zeko';
@@ -50,21 +50,20 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
 let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
     await fs.readFile("keys/poolmina.json", 'utf8'));
 
-console.log("key", zkAppKeysBase58);
-
 let zkAppToken0Base58: { privateKey: string; publicKey: string } = JSON.parse(
-    await fs.readFile("keys/tokenStandard.json", 'utf8'));
+    await fs.readFile("keys/tokenstandard.json", 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
 let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
 let zkToken0PrivateKey = PrivateKey.fromBase58(zkAppToken0Base58.privateKey);
+
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
     // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
     // This is to ensure the backward compatibility.
     networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-    mina: config.url,
+    mina: config.url
 });
 console.log("network", config.url);
 // const Network = Mina.Network(config.url);
@@ -76,39 +75,24 @@ let zkApp = new PoolMina(zkAppAddress);
 let zkToken0Address = zkToken0PrivateKey.toPublicKey();
 let zkToken0 = new TokenStandard(zkToken0Address);
 
-console.log("tokenStandard", zkToken0Address.toBase58());
-
 // compile the contract to create prover keys
 console.log('compile the contract...');
 
-await PoolMina.compile();
-await TokenStandard.compile();
-await MinaTokenHolder.compile();
 
 try {
-    // call update() and send transaction
-    console.log('build transaction and create proof...');
-    console.log("derive tokenid", zkToken0.deriveTokenId().toBigInt());
-    let dexTokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
-    console.log("dexTokenHolder0", dexTokenHolder0.address.toBase58());
-    let expected = AccountUpdate.create(zkAppAddress, zkToken0.deriveTokenId());
-    console.log("expected", expected.publicKey.toBase58());
 
-    let tokenAddress = await zkApp.tokenA.fetch();
-    console.log("zkapp token a", tokenAddress?.toBase58());
+    await TokenStandard.compile();
+    await MinaTokenHolder.compile();
+    await PoolMina.compile();
 
-    let tx = await Mina.transaction(
-        { sender: feepayerAddress, fee },
-        async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, 1);
-            await dexTokenHolder0.deploy();
-            await zkToken0.approveAccountUpdate(dexTokenHolder0.self);
-        }
-    );
-    await tx.prove();
-    console.log("tx", tx.toPretty());
-    console.log('send transaction...');
-    const sentTx = await tx.sign([feepayerKey, zkAppKey, zkToken0PrivateKey]).send();
+    let amt = UInt64.from(5000 * 10 ** 9);
+    let amtMina = UInt64.from(10 * 10 ** 9);
+    const txn = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
+        AccountUpdate.fundNewAccount(feepayerAddress, 2);
+        await zkApp.supplyFirstLiquidities(amt, amtMina);
+    });
+    await txn.prove();
+    const sentTx = await txn.sign([feepayerKey]).send();
     if (sentTx.status === 'pending') {
         console.log(
             '\nSuccess! Update transaction sent.\n' +
@@ -118,12 +102,9 @@ try {
         );
     }
 
-
-
 } catch (err) {
     console.log(err);
 }
-
 
 
 function getTxnUrl(graphQlUrl: string, txnHash: string | undefined) {

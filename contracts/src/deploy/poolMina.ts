@@ -53,7 +53,7 @@ let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
 console.log("key", zkAppKeysBase58);
 
 let zkAppToken0Base58: { privateKey: string; publicKey: string } = JSON.parse(
-    await fs.readFile("keys/tokenA.json", 'utf8'));
+    await fs.readFile("keys/tokenStandard.json", 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
 let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
@@ -75,7 +75,7 @@ let zkAppAddress = zkAppKey.toPublicKey();
 let zkApp = new PoolMina(zkAppAddress);
 let zkToken0Address = zkToken0PrivateKey.toPublicKey();
 
-console.log("tokenA", zkToken0Address.toBase58());
+console.log("tokenStandard", zkToken0Address.toBase58());
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
@@ -108,6 +108,8 @@ try {
             `\n${getTxnUrl(config.url, sentTx.hash)}`
         );
     }
+
+
 
 } catch (err) {
     console.log(err);

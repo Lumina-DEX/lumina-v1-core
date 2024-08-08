@@ -14,15 +14,15 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
-import { PoolMina, MinaTokenHolder, TokenStandard, TokenA } from '../index.js';
+import { PoolMina, MinaTokenHolder, TokenStandard, TokenA, PoolMinaDeployProps } from '../index.js';
 
 // check command line arg
-let deployAlias = "poolmina";
+let deployAlias = "tokenstandard";
 if (!deployAlias)
     throw Error(`Missing <deployAlias> argument.
 
 Usage:
-node build/src/deploy/poolminaholder.js
+node build/src/deploy/tokenstandard.js
 `);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'zeko';
@@ -48,12 +48,12 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
 );
 
 let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-    await fs.readFile("keys/poolmina.json", 'utf8'));
+    await fs.readFile("keys/tokenstandard.json", 'utf8'));
 
 console.log("key", zkAppKeysBase58);
 
 let zkAppToken0Base58: { privateKey: string; publicKey: string } = JSON.parse(
-    await fs.readFile("keys/tokenStandard.json", 'utf8'));
+    await fs.readFile("keys/tokenA.json", 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
 let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
@@ -72,43 +72,28 @@ const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
 let feepayerAddress = feepayerKey.toPublicKey();
 let zkAppAddress = zkAppKey.toPublicKey();
-let zkApp = new PoolMina(zkAppAddress);
-let zkToken0Address = zkToken0PrivateKey.toPublicKey();
-let zkToken0 = new TokenStandard(zkToken0Address);
-
-console.log("tokenStandard", zkToken0Address.toBase58());
+let zkApp = new TokenStandard(zkAppAddress);
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
 
-await PoolMina.compile();
 await TokenStandard.compile();
-await MinaTokenHolder.compile();
 
 try {
     // call update() and send transaction
     console.log('build transaction and create proof...');
-    console.log("derive tokenid", zkToken0.deriveTokenId().toBigInt());
-    let dexTokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
-    console.log("dexTokenHolder0", dexTokenHolder0.address.toBase58());
-    let expected = AccountUpdate.create(zkAppAddress, zkToken0.deriveTokenId());
-    console.log("expected", expected.publicKey.toBase58());
-
-    let tokenAddress = await zkApp.tokenA.fetch();
-    console.log("zkapp token a", tokenAddress?.toBase58());
 
     let tx = await Mina.transaction(
         { sender: feepayerAddress, fee },
         async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, 1);
-            await dexTokenHolder0.deploy();
-            await zkToken0.approveAccountUpdate(dexTokenHolder0.self);
+            AccountUpdate.fundNewAccount(feepayerAddress, 2);
+            await zkApp.deploy();
         }
     );
     await tx.prove();
-    console.log("tx", tx.toPretty());
+
     console.log('send transaction...');
-    const sentTx = await tx.sign([feepayerKey, zkAppKey, zkToken0PrivateKey]).send();
+    const sentTx = await tx.sign([feepayerKey, zkAppKey]).send();
     if (sentTx.status === 'pending') {
         console.log(
             '\nSuccess! Update transaction sent.\n' +

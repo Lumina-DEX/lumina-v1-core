@@ -82,13 +82,32 @@
       "fee": "0.1",
       "smartContract": "Pool"
     },
+    "tokenstandard": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/tokenstandard.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1",
+      "smartContract": "TokenStandard"
+    },
     "poolmina": {
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/poolmina.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "deployer",
-      "fee": "0.1"
+      "fee": "0.1",
+      "smartContract": "PoolMina"
+    },
+    "minatokenholder": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/minatokenholder.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1",
+      "smartContract": "MinaTokenHolder"
     }
   }
 }
