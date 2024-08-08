@@ -101,48 +101,52 @@ describe('Pool Mina', () => {
     showBalanceToken1();
 
     let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.supplyFirstLiquidities(amt, amt);
+      await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     console.log("createPool au", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
     const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-    const expected = amt.value.add(amt.value).sub(minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
   });
 
   it('swap from mina', async () => {
     let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.supplyFirstLiquidities(amt, amt);
+      await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    let amtSwap = UInt64.from(1 * 10 ** 9);
+    let amtSwap = UInt64.from(1.3 * 10 ** 9);
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.swapFromMina(amtSwap, UInt64.from(1));
     });
+    console.log("swap from mina", txn2.toPretty());
     await txn2.prove();
     await txn2.sign([senderKey]).send();
   });
 
   it('swap from token', async () => {
     let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkApp.supplyFirstLiquidities(amt, amt);
+      await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    let amtSwap = UInt64.from(1 * 10 ** 9);
+    let amtSwap = UInt64.from(1.3 * 10 ** 9);
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.swapFromToken(amtSwap, UInt64.from(1));

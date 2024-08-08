@@ -1,4 +1,4 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey } from 'o1js';
 import { TokenStandard, MinaTokenHolder, mulDiv } from './index.js';
 
 // minimum liquidity permanently locked in the pool
@@ -21,10 +21,31 @@ export class PoolMina extends TokenContractV2 {
         await super.deploy(args);
         args.tokenA.isEmpty().assertFalse("token empty");
         this.tokenA.set(args.tokenA);
+
+        this.account.permissions.set({
+            ...Permissions.default(),
+            access: Permissions.none(),
+            editState: Permissions.proofOrSignature(),
+            editActionState: Permissions.proofOrSignature(),
+            incrementNonce: Permissions.proofOrSignature(),
+            send: Permissions.proofOrSignature(),
+            setVerificationKey: Permissions.VerificationKey.proofOrSignature()
+        });
+
+        // lumina dex liquidity
+        this.account.tokenSymbol.set("LDL");
     }
 
     @method async approveBase(forest: AccountUpdateForest) {
         this.checkZeroBalanceChange(forest);
+    }
+
+    /**
+     * Upgrade to a new version
+     * @param verificationKey new verification key
+     */
+    @method async updgrade(verificationKey: VerificationKey) {
+        this.account.verificationKey.set(verificationKey);
     }
 
     @method async supplyFirstLiquidities(amountA: UInt64, amountMina: UInt64) {
@@ -134,13 +155,15 @@ export class PoolMina extends TokenContractV2 {
         let tokenContractOut = new TokenStandard(this.tokenA.getAndRequireEquals());
         let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
 
-        // will transfer token in to this pool and calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(this.address, amountIn, amountOutMin);
 
         // transfer In before transfer out        
         let sender = this.sender.getUnconstrained();
         let accountUser = AccountUpdate.createSigned(sender);
-        await accountUser.send({ to: this, amount: amountIn });
+
+        // will transfer token in to this pool and calculate correct amount out to transfer the token out
+        const amountOut = await tokenHolderOut.swap(accountUser, amountIn, amountOutMin);
+
+        //await accountUser.send({ to: this, amount: amountIn });
         await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
     }
 
@@ -149,18 +172,22 @@ export class PoolMina extends TokenContractV2 {
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
         const tokenContractA = new TokenStandard(this.tokenA.getAndRequireEquals());
-        const holderA = new MinaTokenHolder(this.address, tokenContractA.deriveTokenId());
+        const holderA = AccountUpdate.create(this.address, tokenContractA.deriveTokenId());
 
         const reserveIn = holderA.account.balance.getAndRequireEquals();
         const reserveOut = this.account.balance.getAndRequireEquals();
 
+        reserveIn.assertGreaterThan(amountIn, "Insufficient reserve in");
+
         let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
+
+        reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
 
         let sender = this.sender.getUnconstrained();
 
         // send token A to contract
-        await tokenContractA.transfer(sender, this.address, amountIn);
+        await tokenContractA.transfer(sender, holderA, amountIn);
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
 

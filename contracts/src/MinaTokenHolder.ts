@@ -13,32 +13,32 @@ export class MinaTokenHolder extends SmartContract {
     // this works for both directions (in our case where both tokens use the same contract)
     @method.returns(UInt64)
     async swap(
-        poolAddress: PublicKey,
+        accountUser: AccountUpdate,
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
-        let pm = new PoolMina(poolAddress);
+        const minaAccount = AccountUpdate.create(this.address);
 
-        const tokenA = new TokenStandard(pm.tokenA.getAndRequireEquals());
+        // this account = Address + derive token
+        const reserveIn = this.account.balance.getAndRequireEquals();
+        const reserveOut = minaAccount.account.balance.getAndRequireEquals();
 
-        const holderA = new MinaTokenHolder(poolAddress, tokenA.deriveTokenId());
-
-        // prevent from swap from bad pool, address holderA need to match this address
-        this.address.equals(holderA.address).assertTrue("Incorrect token address");
-
-        const reserveIn = pm.account.balance.getAndRequireEquals();
-        const reserveOut = holderA.account.balance.getAndRequireEquals();
+        Provable.log("reserveIn", reserveIn);
+        Provable.log("reserveOut", reserveOut);
 
         reserveIn.assertGreaterThan(amountIn, "Insufficient reserve in");
-        reserveOut.assertGreaterThan(amountOutMin, "Insufficient reserve out");
 
         // No tax for the moment (probably in a next version), todo check overflow     
         let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
+        reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
+
+        await accountUser.send({ to: this.address, amount: amountIn });
+
         // send token to the user
         this.balance.subInPlace(amountOut);
-        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+        //this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
         return amountOut;
     }

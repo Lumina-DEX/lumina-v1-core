@@ -95,7 +95,7 @@ try {
 
     console.log('reserve in', reserveIn.toBigInt());
 
-    let amt = UInt64.from(10 * 10 ** 9);
+    let amt = UInt64.from(55 * 10 ** 9);
     const txn = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
         await zkApp.swapFromToken(amt, UInt64.from(1000));
     });
