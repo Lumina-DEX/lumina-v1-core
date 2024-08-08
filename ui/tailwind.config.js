@@ -1,6 +1,5 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+export default {
   content: [
     "./src/**/*.{js,ts,jsx,tsx}",
     "node_modules/daisyui/dist/**/*.js",
@@ -59,4 +58,3 @@ const config: Config = {
     ],
   },
 };
-export default config;
