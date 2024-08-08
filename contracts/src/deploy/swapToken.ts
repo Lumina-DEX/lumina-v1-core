@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
+import { AccountUpdate, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
 import { TokenStandard, PoolMina, MinaTokenHolder } from '../index.js';
 
 // check command line arg
@@ -22,7 +22,7 @@ if (!deployAlias)
     throw Error(`Missing <deployAlias> argument.
 
 Usage:
-node build/src/deploy/addmina.js
+node build/src/deploy/swaptoken.js
 `);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'zeko';
@@ -89,13 +89,20 @@ try {
     let tokenAddress = await zkApp.tokenA.fetch();
     console.log("zkapp token a", tokenAddress?.toBase58());
 
-    let amt = UInt64.from(5000 * 10 ** 9);
-    let amtMina = UInt64.from(10 * 10 ** 9);
+    await fetchAccount({ publicKey: zkApp.address });
+
+    const reserveIn = zkApp.account.balance.getAndRequireEquals();
+
+    console.log('reserve in', reserveIn.toBigInt());
+
+    let amt = UInt64.from(10 * 10 ** 9);
     const txn = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-        AccountUpdate.fundNewAccount(feepayerAddress, 1);
-        await zkApp.supplyFirstLiquidities(amt, amtMina);
+        await zkApp.swapFromToken(amt, UInt64.from(1000));
     });
+
+    console.log("txn", txn.toPretty());
     await txn.prove();
+
     const sentTx = await txn.sign([feepayerKey]).send();
     if (sentTx.status === 'pending') {
         console.log(
