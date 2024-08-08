@@ -6,10 +6,11 @@ import PermissionedPools from "./PermissionedPools";
 import PermissionLessPools from "./PermissionLessPools";
 import type { NextPageWithLayout } from "@/pages/_app.page";
 import useSupabaseFunctions from "@/services/supabase";
+import useMockFunctions from "@/services/mock";
 
 const PoolPage: NextPageWithLayout = () => {
   const [pools, setPools] = useState<any[]>([]);
-  const { getPools } = useSupabaseFunctions();
+  const { getPools } = useMockFunctions();
 
   useEffect(() => {
     getPools().then((response) => {

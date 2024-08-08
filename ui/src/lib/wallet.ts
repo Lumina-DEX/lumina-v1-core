@@ -1,6 +1,7 @@
 import useAccount from "@/states/useAccount";
+import MinaProvider, { ChainInfoArgs, ProviderError } from "@aurowallet/mina-provider";
 
-export const mina = typeof window !== "undefined" && (window as any)?.mina;
+export const mina: MinaProvider = typeof window !== "undefined" && (window as any)?.mina;
 
 export const MINA_SUB_DECIMAL: number = 1e9;
 const WALLET_CONNECTED_BEFORE_FLAG: string = "wallet_connected_before";
@@ -33,8 +34,8 @@ async function requestNetwork() {
     .catch((e: any) => console.error(e));
 }
 
-async function handleChainChanged(newChain: string) {
-  useAccount.setState(() => ({ network: newChain }));
+async function handleChainChanged(newChain: ChainInfoArgs) {
+  useAccount.setState(() => ({ network: newChain.networkID }));
 }
 
 async function requestAccounts() {
@@ -44,11 +45,11 @@ async function requestAccounts() {
     .catch((e: any) => console.error(e));
 }
 
-async function handleAccountsChanged(accounts: string[]) {
+async function handleAccountsChanged(accounts: string[] | ProviderError) {
   let publicKeyBase58: string = "";
   let walletConnected: boolean = false;
 
-  if (accounts?.length > 0) {
+  if (Array.isArray(accounts) && accounts?.length > 0) {
     publicKeyBase58 = accounts[0];
     await setupWorkerClient(publicKeyBase58);
     walletConnected = true;

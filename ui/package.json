@@ -10,7 +10,7 @@
     "ts-watch": "tsc --noEmit --incremental --watch"
   },
   "dependencies": {
-    "@aurowallet/mina-provider": "^1.0.1",
+    "@aurowallet/mina-provider": "^1.0.5",
     "@supabase/auth-helpers-nextjs": "^0.7.4",
     "@supabase/auth-helpers-react": "^0.4.2",
     "@supabase/auth-ui-react": "^0.4.4",
@@ -21,7 +21,7 @@
     "jwt-decode": "^4.0.0",
     "lightweight-charts": "^4.2.0",
     "next": "14.2.3",
-    "o1js": "^1.*",
+    "o1js": "^1.6.0",
     "qrcode.react": "^3.1.0",
     "react": "^18",
     "react-cookie": "^7.2.0",

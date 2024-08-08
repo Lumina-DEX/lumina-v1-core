@@ -1,8 +1,9 @@
+import useMockFunctions from "@/services/mock";
 import useSupabaseFunctions from "@/services/supabase";
 import useAccount from "@/states/useAccount";
 
 export default function usePermission() {
-  const { getKYCPermissioned, getKYBPermissioned } = useSupabaseFunctions();
+  const { getKYCPermissioned, getKYBPermissioned } = useMockFunctions();
   const { hasSideos, accountUpdate } = useAccount((state) => ({
     hasSideos: state.hasSideos,
     accountUpdate: state.update,

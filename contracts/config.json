@@ -21,11 +21,11 @@
     },
     "tokenb": {
       "networkId": "testnet",
-      "url": "https://devnet.zeko.io/graphql",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/tokenB.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1",
-      "fee": "0.01",
+      "fee": "0.1",
       "smartContract": "TokenB"
     },
     "balancer": {

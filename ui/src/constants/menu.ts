@@ -20,6 +20,10 @@ export const MenuItems = [
     name: "Manage",
     link: "/dash/manage",
   },
+  {
+    name: "Deploy",
+    link: "/dash/pool/deploy",
+  },
 ];
 
 export const WalletDropdownList = [

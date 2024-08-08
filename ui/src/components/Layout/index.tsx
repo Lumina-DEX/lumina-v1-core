@@ -7,13 +7,14 @@ import { LoadingContext } from "@/contexts/LoadingContext";
 import useSupabaseFunctions from "@/services/supabase";
 import useTokens from "@/states/useTokens";
 import { Token } from "@/types/token";
+import useMockFunctions from "@/services/mock";
 
 const Layout: React.FC<PropsWithChildren> = ({ children }) => {
   const [isLoading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [darkMode, setDarkMode] = useState(true);
 
-  const { getTokens } = useSupabaseFunctions();
+  const { getTokens } = useMockFunctions();
   const { updateTokens } = useTokens((state) => ({
     updateTokens: state.update,
   }));

@@ -52,8 +52,20 @@ export default class ZkappWorkerClient {
     return this._call("createUpdateTransaction", {});
   }
 
+  deployPoolInstance(tokenX: string, tokenY: string) {
+    return this._call("deployPoolInstance", {
+      tokenX, tokenY
+    });
+  }
+
   async getTransactionJSON() {
     const result = await this._call("getTransactionJSON", {});
+    return result;
+  }
+
+
+  async getKey() {
+    const result = await this._call("getKey", {});
     return result;
   }
 

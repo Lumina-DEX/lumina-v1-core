@@ -1,10 +1,11 @@
 import { Database } from "@/lib/database.types";
+import useMockFunctions from "@/services/mock";
 import useSupabaseFunctions from "@/services/supabase";
 import { useEffect, useState } from "react";
 import { Table } from "react-daisyui";
 
 function LeaderboardPanel() {
-  const { getLeaderboard } = useSupabaseFunctions();
+  const { getLeaderboard } = useMockFunctions();
   const [members, setMembers] = useState<
     Database["public"]["Tables"]["leaderboard"]["Row"][]
   >([]);

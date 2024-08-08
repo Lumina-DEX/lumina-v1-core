@@ -4,9 +4,10 @@ import ZkappWorkerClient from "@/lib/zkappWorkerClient";
 import { useEffect } from "react";
 import useLoad from "@/states/useLoad";
 import useSupabaseFunctions from "@/services/supabase";
+import useMockFunctions from "@/services/mock";
 
 export default function AccountUpdater() {
-  const { getRisk, saveRisk } = useSupabaseFunctions();
+  const { getRisk, saveRisk } = useMockFunctions();
   const { address, hasBeenSetup, accountUpdate } = useAccount((state) => ({
     address: state.publicKeyBase58,
     hasBeenSetup: state.hasBeenSetup,

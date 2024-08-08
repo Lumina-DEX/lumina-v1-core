@@ -13,7 +13,7 @@ import usePermission from "@/hooks/permission";
 const KYBPage: NextPageWithLayout = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { submitBusinessForm } = useSupabaseFunctions();
+  const { submitBusinessForm } = useMockFunctions();
   const { sync: syncPermission } = usePermission();
   const [formData, setFormData] = useState<IBusinessContact>({
     firstName: "",
