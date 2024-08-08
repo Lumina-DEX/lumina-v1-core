@@ -14,14 +14,12 @@ export class MinaTokenHolder extends SmartContract {
     @method.returns(UInt64)
     async swap(
         poolAddress: PublicKey,
-        user: PublicKey,
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
         let pm = new PoolMina(poolAddress);
-        const addressA = pm.tokenA;
 
-        const tokenA = new TokenStandard(addressA);
+        const tokenA = new TokenStandard(pm.tokenA.getAndRequireEquals());
 
         const holderA = new MinaTokenHolder(poolAddress, tokenA.deriveTokenId());
 
@@ -33,10 +31,6 @@ export class MinaTokenHolder extends SmartContract {
 
         reserveIn.assertGreaterThan(amountIn, "Insufficient reserve in");
         reserveOut.assertGreaterThan(amountOutMin, "Insufficient reserve out");
-
-        // send token from user to us (i.e., to the same address as this but with the other token)
-        // let accountUser = AccountUpdate.createSigned(user);
-        // await accountUser.send({ to: pm, amount: amountIn });
 
         // No tax for the moment (probably in a next version), todo check overflow     
         let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
@@ -56,10 +50,9 @@ export class MinaTokenHolder extends SmartContract {
         liquidityAmount: UInt64
     ) {
         let pm = new PoolMina(poolAddress);
-        const addressA = pm.tokenA;
         const totalSupply = pm.liquiditySupply.getAndRequireEquals();
 
-        const tokenA = new TokenStandard(addressA);
+        const tokenA = new TokenStandard(pm.tokenA.getAndRequireEquals());
 
         const holderA = new MinaTokenHolder(poolAddress, tokenA.deriveTokenId());
 

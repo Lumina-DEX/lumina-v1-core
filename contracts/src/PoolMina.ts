@@ -14,8 +14,14 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
  */
 export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
-    tokenA = PublicKey.fromBase58("B62qjZ1W2ybx2AYLYUyjPMoBT6Kn6CPPjAN2WWSRKH46uGgn2SgeNtK");
+    @state(PublicKey) tokenA = State<PublicKey>();
     @state(UInt64) liquiditySupply = State<UInt64>();
+
+    async deploy(args: PoolMinaDeployProps) {
+        await super.deploy(args);
+        args.tokenA.isEmpty().assertFalse("token empty");
+        this.tokenA.set(args.tokenA);
+    }
 
     @method async approveBase(forest: AccountUpdateForest) {
         this.checkZeroBalanceChange(forest);
@@ -29,7 +35,7 @@ export class PoolMina extends TokenContractV2 {
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
         liquidityAmount.assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
-        let tokenContractA = new TokenStandard(this.tokenA);
+        let tokenContractA = new TokenStandard(this.tokenA.getAndRequireEquals());
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getAndRequireSignature();
@@ -51,12 +57,7 @@ export class PoolMina extends TokenContractV2 {
     @method async supplyLiquidityFromTokenA(amountA: UInt64, maxAmountMina: UInt64) {
         amountA.assertGreaterThan(UInt64.zero, "No amount A supplied");
 
-        const addressA = this.tokenA;
-
-        // todo manage mina native token
-        addressA.isEmpty().assertFalse("Pool not initialised");
-
-        let tokenContractA = new TokenStandard(addressA);
+        let tokenContractA = new TokenStandard(this.tokenA.getAndRequireEquals());
 
         const holderA = new MinaTokenHolder(this.address, tokenContractA.deriveTokenId());
         const holderB = new MinaTokenHolder(this.address);
@@ -92,12 +93,7 @@ export class PoolMina extends TokenContractV2 {
     @method async supplyLiquidityFromMina(amountMina: UInt64, maxAmountA: UInt64) {
         amountMina.assertGreaterThan(UInt64.zero, "No Mina amount supplied");
 
-        const addressA = this.tokenA;
-
-        // todo manage mina native token
-        addressA.isEmpty().assertFalse("Pool not initialised");
-
-        let tokenContractA = new TokenStandard(addressA);
+        let tokenContractA = new TokenStandard(this.tokenA.getAndRequireEquals());
 
         const holderA = new MinaTokenHolder(this.address, tokenContractA.deriveTokenId());
         const holderB = new MinaTokenHolder(this.address);
@@ -134,21 +130,17 @@ export class PoolMina extends TokenContractV2 {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
-        const addressA = this.tokenA;
-
-        // todo manage mina native token
-        addressA.isEmpty().assertFalse("Pool not initialised");
-
-        let sender = this.sender.getUnconstrained();
-        let accountUser = AccountUpdate.createSigned(sender);
-        await accountUser.send({ to: this, amount: amountIn });
-
         // we request token out because this is the token holder who update his balance to transfer out
-        let tokenContractOut = new TokenStandard(addressA);
+        let tokenContractOut = new TokenStandard(this.tokenA.getAndRequireEquals());
         let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
 
         // will transfer token in to this pool and calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(this.address, sender, amountIn, amountOutMin);
+        const amountOut = await tokenHolderOut.swap(this.address, amountIn, amountOutMin);
+
+        // transfer In before transfer out        
+        let sender = this.sender.getUnconstrained();
+        let accountUser = AccountUpdate.createSigned(sender);
+        await accountUser.send({ to: this, amount: amountIn });
         await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
     }
 
@@ -156,7 +148,7 @@ export class PoolMina extends TokenContractV2 {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
-        const tokenContractA = new TokenStandard(this.tokenA);
+        const tokenContractA = new TokenStandard(this.tokenA.getAndRequireEquals());
         const holderA = new MinaTokenHolder(this.address, tokenContractA.deriveTokenId());
 
         const reserveIn = holderA.account.balance.getAndRequireEquals();

@@ -37,10 +37,12 @@ const DeployPoolPage: NextPageWithLayout = () => {
 
       console.log("result", result);
 
-      setLoading(false);
     } catch (error) {
       setStatus("Error check console");
       console.error(error);
+    }
+    finally {
+      setLoading(false);
     }
   };
 
@@ -54,7 +56,7 @@ const DeployPoolPage: NextPageWithLayout = () => {
         </div>
       </div>
 
-      <div>
+      <div className="flex flex-col w-full gap-2 items-center justify-center">
         <input type="text"
           defaultValue={tokenX}
           value={tokenX}
@@ -65,9 +67,9 @@ const DeployPoolPage: NextPageWithLayout = () => {
           onChange={(event) => setTokenY(event.target.value)}
           placeholder="Token Y address"></input>
       </div>
-      <div>
+      <div className="flex flex-col gap-y-4">
         {!loading ?
-          <button onClick={() => handleSubmit()}>Deploy</button>
+          <button className="w-full h-[60px] min-h-0 shadow-md font-orbitron" onClick={() => handleSubmit()}>Deploy</button>
           :
           <span>{status}</span>
         }

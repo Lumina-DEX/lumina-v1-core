@@ -10,5 +10,6 @@ import { ShowBalance } from './ShowBalance.js';
 import { MinaTokenHolder } from './MinaTokenHolder.js';
 import { TokenDex } from './TokenDex.js';
 import { DexToken, DexTokenHolder } from './DexToken.js';
+import { PoolMina, PoolMinaDeployProps } from './PoolMina.js';
 
-export { DexToken, DexTokenHolder, Pool, TokenDex, mulDiv, TokenHolder, TokenA, TokenB, TokenStandard, Balancer, BalancerHolder, ShowBalance, MinaTokenHolder };
+export { DexToken, DexTokenHolder, PoolMina, PoolMinaDeployProps, Pool, TokenDex, mulDiv, TokenHolder, TokenA, TokenB, TokenStandard, Balancer, BalancerHolder, ShowBalance, MinaTokenHolder };
