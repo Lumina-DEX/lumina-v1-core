@@ -24,11 +24,6 @@ export class PoolMina extends TokenContractV2 {
 
         this.account.permissions.set({
             ...Permissions.default(),
-            access: Permissions.none(),
-            editState: Permissions.proofOrSignature(),
-            editActionState: Permissions.proofOrSignature(),
-            incrementNonce: Permissions.proofOrSignature(),
-            send: Permissions.proofOrSignature(),
             setVerificationKey: Permissions.VerificationKey.proofOrSignature()
         });
 

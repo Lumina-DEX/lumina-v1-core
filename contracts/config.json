@@ -99,6 +99,14 @@
       "feepayerAlias": "deployer",
       "fee": "0.1",
       "smartContract": "MinaTokenHolder"
+    },
+    "poolmina": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/poolmina.json",
+      "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1"
     }
   }
 }

@@ -1,9 +1,6 @@
-import { Account, AccountUpdate, Bool, Field, Mina, PrivateKey, PublicKey, TokenContract, UInt64 } from 'o1js';
+import { AccountUpdate, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 
-import { Pool, minimunLiquidity } from '../Pool';
-import { TokenA } from '../TokenA';
-import { TokenHolder } from '../TokenHolder';
-import { PoolMina, PoolMinaDeployProps } from '../PoolMina';
+import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { TokenStandard } from '../TokenStandard';
 
