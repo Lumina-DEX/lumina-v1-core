@@ -35,7 +35,7 @@ if (!deployAlias)
     throw Error(`Missing <deployAlias> argument.
 
 Usage:
-node build/src/deploy/lightnetmina.js
+node build/src/deploy/deployAll.js
 `);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'zeko';
@@ -56,17 +56,20 @@ type Config = {
 };
 let configJson: Config = JSON.parse(await fs.readFile('config.json', 'utf8'));
 let config = configJson.deployAliases[deployAlias];
+let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
+    await fs.readFile(config.feepayerKeyPath, 'utf8'));
 
-let feepayerKey = PrivateKey.fromBase58("EKF6qrb2tRGNF6beHQeb418Y12bSaToUBUkcCvz4ZHH2MgKq4YJ2");
-let zkAppKey = PrivateKey.random();
-let zkToken0PrivateKey = PrivateKey.random();
+let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
+let zkAppKey = PrivateKey.fromBase58("EKFM9yi3LtS5orvfNnjJ393FHZXoob3r24SyaVTFwYH4qCWeHfY6");
+let zkToken0PrivateKey = PrivateKey.fromBase58("EKDsrdPUQRi4r25sDRTf5WxKnCgdEXNb4VDu65seg9Qw926aN1Re");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
     // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
     // This is to ensure the backward compatibility.
     networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-    mina: "http://localhost:8080/graphql",
+    mina: "https://api.minascan.io/node/devnet/v1/graphql",
+    archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
 });
 console.log("network", config.url);
 // const Network = Mina.Network(config.url);
