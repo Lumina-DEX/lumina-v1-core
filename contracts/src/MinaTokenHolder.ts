@@ -17,11 +17,11 @@ export class MinaTokenHolder extends SmartContract {
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
-        const minaAccount = AccountUpdate.create(this.address);
+        const poolMina = new PoolMina(this.address);
 
         // this account = Address + derive token
-        const reserveIn = this.account.balance.getAndRequireEquals();
-        const reserveOut = minaAccount.account.balance.getAndRequireEquals();
+        const reserveIn = poolMina.reserveMina.getAndRequireEquals();
+        const reserveOut = poolMina.reserveToken.getAndRequireEquals();
 
         Provable.log("reserveIn", reserveIn);
         Provable.log("reserveOut", reserveOut);
@@ -38,7 +38,7 @@ export class MinaTokenHolder extends SmartContract {
 
         // send token to the user
         this.balance.subInPlace(amountOut);
-        //this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
         return amountOut;
     }
@@ -52,7 +52,7 @@ export class MinaTokenHolder extends SmartContract {
         let pm = new PoolMina(poolAddress);
         const totalSupply = pm.liquiditySupply.getAndRequireEquals();
 
-        const tokenA = new TokenStandard(pm.tokenA.getAndRequireEquals());
+        const tokenA = new TokenStandard(pm.token.getAndRequireEquals());
 
         const holderA = new MinaTokenHolder(poolAddress, tokenA.deriveTokenId());
 

@@ -159,7 +159,7 @@ async function deployToken() {
 async function deployPool() {
     try {
         console.log("deploy pool");
-        const args: PoolMinaDeployProps = { tokenA: zkToken0Address };
+        const args: PoolMinaDeployProps = { token: zkToken0Address };
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {

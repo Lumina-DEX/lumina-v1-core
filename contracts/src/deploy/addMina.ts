@@ -86,7 +86,7 @@ try {
 
     console.log("zkapp", zkApp.address.toBase58());
 
-    let tokenAddress = await zkApp.tokenA.fetch();
+    let tokenAddress = await zkApp.token.fetch();
     console.log("zkapp token a", tokenAddress?.toBase58());
 
     let amt = UInt64.from(5000 * 10 ** 9);

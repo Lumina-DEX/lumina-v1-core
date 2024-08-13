@@ -94,7 +94,7 @@ try {
     let expected = AccountUpdate.create(zkAppAddress, zkToken0.deriveTokenId());
     console.log("expected", expected.publicKey.toBase58());
 
-    let tokenAddress = await zkApp.tokenA.fetch();
+    let tokenAddress = await zkApp.token.fetch();
     console.log("zkapp token a", tokenAddress?.toBase58());
 
     let tx = await Mina.transaction(

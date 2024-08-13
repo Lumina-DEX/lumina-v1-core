@@ -88,7 +88,7 @@ try {
     // call update() and send transaction
     console.log('build transaction and create proof...');
 
-    const args: PoolMinaDeployProps = { tokenA: zkToken0Address };
+    const args: PoolMinaDeployProps = { token: zkToken0Address };
     let tx = await Mina.transaction(
         { sender: feepayerAddress, fee },
         async () => {
