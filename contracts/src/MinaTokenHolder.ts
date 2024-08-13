@@ -13,7 +13,6 @@ export class MinaTokenHolder extends SmartContract {
     // this works for both directions (in our case where both tokens use the same contract)
     @method.returns(UInt64)
     async swap(
-        accountUser: AccountUpdate,
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
@@ -33,8 +32,6 @@ export class MinaTokenHolder extends SmartContract {
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
         reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
-
-        await accountUser.send({ to: this.address, amount: amountIn });
 
         // send token to the user
         this.balance.subInPlace(amountOut);

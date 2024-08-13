@@ -60,8 +60,8 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
     await fs.readFile(config.feepayerKeyPath, 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-let zkAppKey = PrivateKey.fromBase58("EKDntDrRpoo4cSpA6Uv89WHBdgGaLWwrepiKKAngz2NXgSgEZ1vX");
-let zkToken0PrivateKey = PrivateKey.fromBase58("EKDsrdPUQRi4r25sDRTf5WxKnCgdEXNb4VDu65seg9Qw926aN1Re");
+let zkAppKey = PrivateKey.fromBase58("EKFYik9xXsXDw5Msd1ET4SfsUVkABYKoKzNzqB6DKgFBqUv6fCjU");
+let zkToken0PrivateKey = PrivateKey.fromBase58("EKELFPho8gVKD3iiLqrzF3pMDbCQqnSvAddaF7JHzUVo8nki1B14");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
@@ -238,7 +238,10 @@ async function addLiquidity() {
 async function swapMina() {
     try {
         console.log("swap Mina");
-        let amtSwap = UInt64.from(220_000);
+        let amtSwap = UInt64.from(23 * 10 * 8);
+        const mina = await zkApp.reserveMina.fetch();
+        const token = await zkApp.reserveToken.fetch();
+        console.log("bal", { mina: mina?.toString(), token: token?.toString() })
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
             await zkApp.swapFromMina(amtSwap, UInt64.from(1000));
         });

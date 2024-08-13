@@ -12,6 +12,12 @@ DexToken B62qkc4LF9Axhv5xCVn1WfHhR1iK9S7tjEbaKGtYtBTxU1KzkQQ8pLp (Mina)
 TokenStandard B62qqSkmjeUQHhHbCERLwFnwizVW92XU2kcqqdYy2CuBTvp5gaqR8TP (Mina)
 PoolMina B62qmDWWfMN4cGLFabeqAiYdE27C89EDxuHVovUGRiABeC7Ed8Kx17T (Mina)
 
+### Generate key
+(usefull for test)
+ ``` 
+node src/key.js
+ ```
+
 ### GraphQL
 https://api.minascan.io/node/devnet/v1/graphql
 https://devnet.zeko.io/graphql

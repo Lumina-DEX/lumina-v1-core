@@ -166,8 +166,10 @@ export class PoolMina extends TokenContractV2 {
         let sender = this.sender.getUnconstrained();
         let accountUser = AccountUpdate.createSigned(sender);
 
-        // will transfer token in to this pool and calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(accountUser, amountIn, amountOutMin);
+        // transfer token in to this pool
+        await accountUser.send({ to: this, amount: amountIn });
+        // calculate correct amount out to transfer the token out
+        const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin);
 
         //await accountUser.send({ to: this, amount: amountIn });
         await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);

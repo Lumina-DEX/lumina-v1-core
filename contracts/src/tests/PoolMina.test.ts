@@ -4,7 +4,7 @@ import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { TokenStandard } from '../TokenStandard';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Pool Mina', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -24,7 +24,8 @@ describe('Pool Mina', () => {
     zkToken0Address: PublicKey,
     zkToken0PrivateKey: PrivateKey,
     zkToken0: TokenStandard,
-    tokenHolder0: MinaTokenHolder;
+    tokenHolder0: MinaTokenHolder,
+    tokenHolder1: MinaTokenHolder;
 
   beforeAll(async () => {
     if (proofsEnabled) {
@@ -70,31 +71,34 @@ describe('Pool Mina', () => {
     zkAppAddress2 = zkAppPrivateKey2.toPublicKey();
     zkApp2 = new PoolMina(zkAppAddress2);
 
-    zkToken0PrivateKey = PrivateKey.fromBase58("EKFBv1hRZc3cXzyp3iWDHnyfaRHVvXhRbg2Q4KmnZmpWDV4Gc5wJ");
+    zkToken0PrivateKey = PrivateKey.random();
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
     zkToken0 = new TokenStandard(zkToken0Address);
 
     const args: PoolMinaDeployProps = { token: zkToken0Address };
     const txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 3);
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.deploy(args);
       await zkApp2.deploy(args);
       await zkToken0.deploy();
     });
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn.sign([deployerKey, zkAppPrivateKey, zkToken0PrivateKey]).send();
+    await txn.sign([deployerKey, zkAppPrivateKey, zkAppPrivateKey2, zkToken0PrivateKey]).send();
 
     tokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
+    tokenHolder1 = new MinaTokenHolder(zkAppAddress2, zkToken0.deriveTokenId());
 
     const txn2 = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      AccountUpdate.fundNewAccount(deployerAccount, 2);
       await tokenHolder0.deploy();
+      await tokenHolder1.deploy();
       await zkToken0.approveAccountUpdate(tokenHolder0.self);
+      await zkToken0.approveAccountUpdate(tokenHolder1.self);
     });
     await txn2.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn2.sign([deployerKey, zkAppPrivateKey]).send();
+    await txn2.sign([deployerKey, zkAppPrivateKey, zkAppPrivateKey2]).send();
 
     // mint token to user
     await mintToken(senderAccount);
@@ -107,14 +111,21 @@ describe('Pool Mina', () => {
 
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
-    const txn = await Mina.transaction(senderAccount, async () => {
+    let txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
       await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     console.log("createPool au", txn.transaction.accountUpdates.length);
-    console.log("supplyFirstLiquidities", txn.toPretty());
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp2.supplyFirstLiquidities(amtToken, amt);
+    });
+    console.log("createPool au", txn.transaction.accountUpdates.length);
+    await txn.prove();
+    await txn.sign([senderKey, zkAppPrivateKey2]).send();
 
     const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
     const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
