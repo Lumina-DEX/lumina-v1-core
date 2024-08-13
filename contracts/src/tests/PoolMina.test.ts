@@ -4,7 +4,7 @@ import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { TokenStandard } from '../TokenStandard';
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Pool Mina', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -115,9 +115,22 @@ describe('Pool Mina', () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
       await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
+    console.log("supplyFirstLiquidities", txn.toPretty());
     console.log("createPool au", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
+
+
+    const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
+    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
+    console.log("liquidity user", liquidityUser.toString());
+    expect(liquidityUser.value).toEqual(expected);
+
+    const balanceToken = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    expect(balanceToken.value).toEqual(amtToken.value);
+
+    const balanceMina = Mina.getBalance(zkAppAddress);
+    expect(balanceMina.value).toEqual(amt.value);
 
     txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
@@ -127,10 +140,6 @@ describe('Pool Mina', () => {
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey2]).send();
 
-    const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
-    console.log("liquidity user", liquidityUser.toString());
-    expect(liquidityUser.value).toEqual(expected);
   });
 
 

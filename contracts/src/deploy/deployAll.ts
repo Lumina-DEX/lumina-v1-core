@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
+import { AccountUpdate, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
 import { PoolMina, MinaTokenHolder, TokenStandard, TokenA, PoolMinaDeployProps } from '../index.js';
 import readline from "readline/promises";
 
@@ -238,7 +238,7 @@ async function addLiquidity() {
 async function swapMina() {
     try {
         console.log("swap Mina");
-        let amtSwap = UInt64.from(23 * 10 * 8);
+        let amtSwap = UInt64.from(23 * 10 ** 8);
         const mina = await zkApp.reserveMina.fetch();
         const token = await zkApp.reserveToken.fetch();
         console.log("bal", { mina: mina?.toString(), token: token?.toString() })
@@ -259,11 +259,18 @@ async function swapMina() {
 async function swapToken() {
     try {
         console.log("swap Token");
-        let amtSwap = UInt64.from(3_220_000);
+        let amtSwap = UInt64.from(20 * 10 ** 9);
+        let dexTokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
+        const mina = await zkApp.reserveMina.fetch();
+        const token = await zkApp.reserveToken.fetch();
+        await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToken0.deriveTokenId() });
+        let from = Mina.getBalance(feepayerAddress, zkToken0.deriveTokenId());
+        console.log("from balance", from.value.toString());
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkApp.swapFromMina(amtSwap, UInt64.from(1000));
+            await zkApp.swapFromToken(amtSwap, UInt64.from(1000));
         });
         await tx.prove();
+        console.log("swap token proof", tx.toPretty());
         let sentTx = await tx.sign([feepayerKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
