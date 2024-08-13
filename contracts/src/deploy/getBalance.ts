@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
-import { TokenA, Balancer, TokenStandard, BalancerHolder, ShowBalance } from '../index.js';
+import { TokenA, TokenStandard, ShowBalance } from '../index.js';
 
 // check command line arg
 let deployAlias = "showbalance";
