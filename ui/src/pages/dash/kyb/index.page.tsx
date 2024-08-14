@@ -9,6 +9,7 @@ import { useRouter } from "next/router";
 import { IBusinessContact } from "@/types/businessContact";
 import useSupabaseFunctions from "@/services/supabase";
 import usePermission from "@/hooks/permission";
+import useMockFunctions from "@/services/mock";
 
 const KYBPage: NextPageWithLayout = () => {
   const searchParams = useSearchParams();
