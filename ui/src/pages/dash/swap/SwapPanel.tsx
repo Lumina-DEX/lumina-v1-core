@@ -22,6 +22,8 @@ const SwapPanel: React.FC = () => {
   const fromTokenSymbol = searchParams.get("fromToken");
   const toTokenSymbol = searchParams.get("toToken");
 
+  const zkState = useAccount.getState();
+
   const tokens = useTokens((state) =>
     Object.fromEntries(
       state.tokens.map((token) => [token.symbol.toLowerCase(), token])
@@ -78,6 +80,13 @@ const SwapPanel: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toToken]);
 
+  useEffect(() => {
+    if (parseInt(fromAmount)) {
+      getSwapAmount().then();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromAmount]);
+
   const onConnectWallet = async () => {
     connect();
   };
@@ -91,6 +100,30 @@ const SwapPanel: React.FC = () => {
     });
   };
 
+  const getSwapAmount = async () => {
+    const reserves = await zkState.zkappWorkerClient?.getReserves();
+    if (reserves?.amountMina && reserves?.amountToken) {
+      const amountMina = parseInt(reserves?.amountMina);
+      const amountToken = parseInt(reserves?.amountToken);
+      let amtIn = parseFloat(fromAmount);
+      console.log("amtIn", amtIn);
+      if (fromToken?.symbol == "DAI") {
+        let calcul = (amountMina * amtIn / (amountToken + amtIn));
+        console.log("calcul from dai", calcul);
+        setToAmount(calcul.toString());
+      } else {
+        let calcul = (amountToken * amtIn / (amountMina + amtIn));
+        console.log("calcul from mina", calcul);
+        setToAmount(calcul.toString());
+      }
+    }
+    console.log("reserves", reserves);
+  }
+
+  const swap = async () => {
+    console.log("infos", { fromToken, fromAmount, toToken, toAmount });
+  }
+
   return (
     <>
       {/* Swap from */}
@@ -103,9 +136,9 @@ const SwapPanel: React.FC = () => {
               <span className="text-sm">
                 {typeof slippagePercent === "number"
                   ? new Intl.NumberFormat("en-US", {
-                      style: "percent",
-                      maximumFractionDigits: 2,
-                    }).format(slippagePercent / 100)
+                    style: "percent",
+                    maximumFractionDigits: 2,
+                  }).format(slippagePercent / 100)
                   : "Invalid"}
               </span>
             </div>
@@ -236,6 +269,7 @@ const SwapPanel: React.FC = () => {
                 color="primary"
                 size="lg"
                 disabled={!loadState}
+                onClick={swap}
               >
                 Swap
               </Button>

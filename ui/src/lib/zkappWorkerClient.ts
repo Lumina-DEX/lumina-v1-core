@@ -5,6 +5,7 @@ import type {
   ZkappWorkerReponse,
   WorkerFunctions,
 } from "./zkappWorker";
+import { Json } from "o1js/dist/node/bindings/mina-transaction/gen/transaction-bigint";
 
 export default class ZkappWorkerClient {
   // ---------------------------------------------------------------------------------------
@@ -32,6 +33,17 @@ export default class ZkappWorkerClient {
     return result as ReturnType<typeof fetchAccount>;
   }
 
+  fetchAccountToken({
+    publicKeyBase58,
+  }: {
+    publicKeyBase58: string;
+  }): ReturnType<typeof fetchAccount> {
+    const result = this._call("fetchAccountToken", {
+      publicKey58: publicKeyBase58,
+    });
+    return result as ReturnType<typeof fetchAccount>;
+  }
+
   async getBalance(publicKey58: string): Promise<UInt64> {
     const result = await this._call("getBalance", { publicKey58 });
     return UInt64.fromJSON(JSON.parse(result as string));
@@ -43,13 +55,17 @@ export default class ZkappWorkerClient {
     });
   }
 
-  async getNum(): Promise<Field> {
-    const result = await this._call("getNum", {});
-    return Field.fromJSON(JSON.parse(result as string));
+  async getReserves(): Promise<any> {
+    const result = await this._call("getReserves", {}) as string;
+    return JSON.parse(result);
   }
 
-  createUpdateTransaction() {
-    return this._call("createUpdateTransaction", {});
+  swapFromMina(user: PublicKey, amt: number, minOut: number) {
+    return this._call("swapFromMinaTransaction", { user, amt, minOut });
+  }
+
+  swapFromToken(user: PublicKey, amt: number, minOut: number) {
+    return this._call("swapFromTokenTransaction", { user, amt, minOut });
   }
 
   deployPoolInstance(tokenX: string, tokenY: string) {

@@ -1,4 +1,4 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey } from 'o1js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Int64 } from 'o1js';
 import { TokenStandard, MinaTokenHolder, mulDiv } from './index.js';
 
 // minimum liquidity permanently locked in the pool
@@ -59,13 +59,30 @@ export class PoolMina extends TokenContractV2 {
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
         liquidityAmount.assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
-        let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenAddress = this.token.getAndRequireEquals();
+        let tokenAccount = AccountUpdate.default(tokenAddress);
+        let tokenId = TokenId.derive(tokenAddress, tokenAccount.tokenId)
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getAndRequireSignature();
         let senderUpdate = AccountUpdate.createSigned(sender);
 
-        await tokenContract.transfer(sender, this.address, amountToken);
+        let from = AccountUpdate.default(sender, tokenId);
+        from.requireSignature();
+        from.label = `${this.constructor.name}.transfer() (from)`;
+
+        let to = AccountUpdate.default(this.address, tokenId);
+        from.balanceChange = Int64.from(amountToken).negV2();
+        to.balanceChange = Int64.from(amountToken);
+        to.label = `${this.constructor.name}.transfer() (to)`;
+
+        let forest = this.toForest([from, to]);
+        let totalBalanceChange = from.balanceChange.add(to.balanceChange);
+
+        // prove that the total balance change is zero
+        totalBalanceChange.assertEquals(0);
+        tokenAccount.approve(forest);
+
         await senderUpdate.send({ to: this, amount: amountMina });
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
@@ -78,6 +95,20 @@ export class PoolMina extends TokenContractV2 {
         this.reserveToken.set(amountToken);
         this.reserveMina.set(amountMina);
         this.liquiditySupply.set(liquidityAmount);
+    }
+
+    checkZero(updates: AccountUpdateForest) {
+        let totalBalanceChange = Int64.zero;
+        this.forEachUpdate(updates, (accountUpdate, usesToken) => {
+            totalBalanceChange = totalBalanceChange.add(Provable.if(usesToken, accountUpdate.balanceChange, Int64.zero));
+        });
+        // prove that the total balance change is zero
+        totalBalanceChange.assertEquals(0);
+    }
+
+    toForest(updates: AccountUpdate[]) {
+        let trees = updates.map((a) => a instanceof AccountUpdate ? a.extractTree() : a);
+        return AccountUpdateForest.fromReverse(trees);
     }
 
     @method async supplyLiquidityFromTokenA(amountToken: UInt64, maxAmountMina: UInt64) {
@@ -203,8 +234,8 @@ export class PoolMina extends TokenContractV2 {
         await this.send({ to: sender, amount: amountOut });
 
         // set new supply
-        this.reserveToken.set(reserveIn.add(amountIn));
-        this.reserveMina.set(reserveOut.sub(amountOut));
+        this.reserveMina.set(reserveIn.add(amountIn));
+        this.reserveToken.set(reserveOut.sub(amountOut));
     }
 
 }

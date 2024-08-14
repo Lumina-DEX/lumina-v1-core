@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { DexToken, DexTokenHolder } from "../../contracts/DexToken";
+import { PoolMina, PoolMinaDeployProps } from "../../contracts/PoolMina";
+import { MinaTokenHolder } from "../../contracts/MinaTokenHolder";
+import { TokenStandard } from "../../contracts/TokenStandard";
 import { AccountUpdate, Mina, PrivateKey, PublicKey } from "o1js";
 import { NextRequest } from 'next/server';
 import { Json } from 'o1js/dist/node/bindings/mina-transaction/gen/transaction-bigint';
@@ -16,12 +18,12 @@ export default async function handler(
     if (req.method === 'POST') {
         const json = req.body;
         const tokenXAddress = json.tokenX as string;
-        const tokenYAddress = json.tokenY as string;
 
 
-        if (tokenXAddress && tokenYAddress) {
-            await DexTokenHolder.compile()
-            await DexToken.compile();
+        if (tokenXAddress) {
+            await PoolMina.compile()
+            await MinaTokenHolder.compile();
+            await TokenStandard.compile();
 
             const Network = Mina.Network({
                 networkId: "testnet",
@@ -30,24 +32,20 @@ export default async function handler(
             Mina.setActiveInstance(Network);
 
             const poolKey = PrivateKey.random();
-            const pool = new DexToken(poolKey.toPublicKey());
+            const pool = new PoolMina(poolKey.toPublicKey());
             console.log("appkey", poolKey.toBase58());
-            pool.tokenX = PublicKey.fromBase58(tokenXAddress);
-            pool.tokenY = PublicKey.fromBase58(tokenYAddress);
-            const tokenX = new DexToken(pool.tokenX);
-            const tokenY = new DexToken(pool.tokenY)
-            const holderX = new DexTokenHolder(poolKey.toPublicKey(), tokenX.deriveTokenId());
-            const holderY = new DexTokenHolder(poolKey.toPublicKey(), tokenY.deriveTokenId());
+            const tokenKey = PublicKey.fromBase58(tokenXAddress);
+            const args: PoolMinaDeployProps = { token: tokenKey };
+            const tokenX = new TokenStandard(tokenKey);
+            const holderX = new MinaTokenHolder(poolKey.toPublicKey(), tokenX.deriveTokenId());
 
             const senderKey = PrivateKey.fromBase58(process.env.FEE_PAYER!);
             const fee = 0.1 * 1e9;
             const transaction = await Mina.transaction({ sender: senderKey.toPublicKey() }, async () => {
                 AccountUpdate.fundNewAccount(senderKey.toPublicKey(), 3);
-                await pool.deploy();
+                await pool.deploy(args);
                 await holderX.deploy();
-                await holderY.deploy();
                 await tokenX.approveAccountUpdate(holderX.self);
-                await tokenY.approveAccountUpdate(holderY.self);
             });
             await transaction.prove();
             const sentTx = await transaction.sign([senderKey, poolKey]).send();

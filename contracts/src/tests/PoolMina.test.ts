@@ -3,6 +3,7 @@ import { AccountUpdate, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { TokenStandard } from '../TokenStandard';
+import { mulDiv } from '../MathLibrary';
 
 let proofsEnabled = false;
 
@@ -182,14 +183,28 @@ describe('Pool Mina', () => {
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    let amtSwap = UInt64.from(1.3 * 10 ** 9);
+    let amountIn = UInt64.from(1.3 * 10 ** 9);
+
+    const reserveIn = zkApp.reserveMina.getAndRequireEquals();
+    const reserveOut = zkApp.reserveToken.getAndRequireEquals();
+
+    const expectedOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn))
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.swapFromMina(amtSwap, UInt64.from(1));
+      await zkApp.swapFromMina(amountIn, UInt64.from(1));
     });
     console.log("swap from mina", txn2.toPretty());
     await txn2.prove();
     await txn2.sign([senderKey]).send();
+
+    const resIN = reserveIn.add(amountIn);
+    const resOut = reserveOut.sub(expectedOut);
+
+    const reserveIn2 = zkApp.reserveMina.getAndRequireEquals();
+    const reserveOut2 = zkApp.reserveToken.getAndRequireEquals();
+    expect(reserveIn2.value).toEqual(resIN.value);
+    expect(reserveOut2.value).toEqual(resOut.value);
+
   });
 
   it('swap from token', async () => {
@@ -202,13 +217,26 @@ describe('Pool Mina', () => {
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    let amtSwap = UInt64.from(1.3 * 10 ** 9);
+    const reserveIn = zkApp.reserveToken.getAndRequireEquals();
+    const reserveOut = zkApp.reserveMina.getAndRequireEquals();
+    let amountIn = UInt64.from(1.3 * 10 ** 9);
+
+    const expectedOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn))
+
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.swapFromToken(amtSwap, UInt64.from(1));
+      await zkApp.swapFromToken(amountIn, UInt64.from(1));
     });
     await txn2.prove();
     await txn2.sign([senderKey]).send();
+
+    const resIN = reserveIn.add(amountIn);
+    const resOut = reserveOut.sub(expectedOut);
+
+    const reserveIn2 = zkApp.reserveToken.getAndRequireEquals();
+    const reserveOut2 = zkApp.reserveMina.getAndRequireEquals();
+    expect(reserveIn2.value).toEqual(resIN.value);
+    expect(reserveOut2.value).toEqual(resOut.value);
   });
   /*
     it('supply liquidity', async () => {

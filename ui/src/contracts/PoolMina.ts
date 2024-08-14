@@ -1,5 +1,5 @@
 import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey } from 'o1js';
-import { TokenStandard, MinaTokenHolder, mulDiv } from './index.js';
+import { TokenStandard, mulDiv, MinaTokenHolder } from './index';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -203,8 +203,8 @@ export class PoolMina extends TokenContractV2 {
         await this.send({ to: sender, amount: amountOut });
 
         // set new supply
-        this.reserveToken.set(reserveIn.add(amountIn));
-        this.reserveMina.set(reserveOut.sub(amountOut));
+        this.reserveMina.set(reserveIn.add(amountIn));
+        this.reserveToken.set(reserveOut.sub(amountOut));
     }
 
 }
