@@ -60,8 +60,8 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
     await fs.readFile(config.feepayerKeyPath, 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-let zkAppKey = PrivateKey.fromBase58("EKFYik9xXsXDw5Msd1ET4SfsUVkABYKoKzNzqB6DKgFBqUv6fCjU");
-let zkToken0PrivateKey = PrivateKey.fromBase58("EKELFPho8gVKD3iiLqrzF3pMDbCQqnSvAddaF7JHzUVo8nki1B14");
+let zkAppKey = PrivateKey.fromBase58("EKEQ57sWisxDNvcuJLgp3fqN66aiXrt4Ea7d6J2whC9JjMd5nWgg");
+let zkToken0PrivateKey = PrivateKey.fromBase58("EKECV5Gd1WsWp3ygYvNBaDDnSrKBxeXn3F2ScXuxReZRP6BoGag8");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
@@ -103,7 +103,9 @@ async function ask() {
             4 add liquidity 
             5 swap mina for token
             6 swap token for mina
-            7 updgrade`);
+            7 updgrade
+            8 deploy all
+            `);
         switch (result) {
             case "1":
                 await deployToken();
@@ -125,6 +127,9 @@ async function ask() {
                 break;
             case "7":
                 await updgrade();
+                break;
+            case "8":
+                await deployAll();
                 break;
             default:
                 await ask();
@@ -195,6 +200,33 @@ async function deployTokenHolder() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
+                await dexTokenHolder0.deploy();
+                await zkToken0.approveAccountUpdate(dexTokenHolder0.self);
+            }
+        );
+        await tx.prove();
+        let sentTx = await tx.sign([feepayerKey, zkAppKey, zkToken0PrivateKey]).send();
+        if (sentTx.status === 'pending') {
+            console.log("hash", sentTx.hash);
+        }
+
+
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+async function deployAll() {
+    try {
+        console.log("deploy all");
+        const args: PoolMinaDeployProps = { token: zkToken0Address };
+        let dexTokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
+        let tx = await Mina.transaction(
+            { sender: feepayerAddress, fee },
+            async () => {
+                AccountUpdate.fundNewAccount(feepayerAddress, 4);
+                await zkToken0.deploy();
+                await zkApp.deploy(args);
                 await dexTokenHolder0.deploy();
                 await zkToken0.approveAccountUpdate(dexTokenHolder0.self);
             }

@@ -1,5 +1,5 @@
 import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount } from "o1js";
-import { PoolMina, PoolMinaDeployProps, MinaTokenHolder, TokenStandard } from "../contracts/index";
+import { PoolMina, PoolMinaDeployProps, MinaTokenHolder, TokenStandard } from "../../../contracts/build/src/index.js";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
