@@ -1,0 +1,12 @@
+{
+  "name": "lumina-mvp",
+  "version": "1.0.0",
+  "description": "lumina mvp",
+  "scripts": {
+    "postinstall": "(cd ./contracts && npm install) && (cd ./ui && npm install)",
+    "dev": "cd ui && npm run dev",
+    "build": "(cd ./contracts && npm run build) && (cd ./ui && npm run build)"
+  },
+  "author": "eddy",
+  "license": "BSL"
+}
