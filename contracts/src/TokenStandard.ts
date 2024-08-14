@@ -15,6 +15,9 @@ export class TokenStandard extends TokenContractV2 {
             address: sender,
             amount: UInt64.MAXINT(),
         });
+
+
+        this.account.tokenSymbol.set("DAI");
     }
 
     @method async approveBase(forest: AccountUpdateForest) {

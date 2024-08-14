@@ -188,6 +188,8 @@ describe('Pool Mina', () => {
     const reserveIn = zkApp.reserveMina.getAndRequireEquals();
     const reserveOut = zkApp.reserveToken.getAndRequireEquals();
 
+    const balBefore = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+
     const expectedOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn))
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
@@ -205,6 +207,8 @@ describe('Pool Mina', () => {
     expect(reserveIn2.value).toEqual(resIN.value);
     expect(reserveOut2.value).toEqual(resOut.value);
 
+    const balAfter = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+    expect(balAfter.value).toEqual(balBefore.add(expectedOut).value);
   });
 
   it('swap from token', async () => {
@@ -222,6 +226,7 @@ describe('Pool Mina', () => {
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
     const expectedOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn))
+    const balBefore = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
@@ -237,6 +242,9 @@ describe('Pool Mina', () => {
     const reserveOut2 = zkApp.reserveMina.getAndRequireEquals();
     expect(reserveIn2.value).toEqual(resIN.value);
     expect(reserveOut2.value).toEqual(resOut.value);
+
+    const balAfter = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+    expect(balAfter.value).toEqual(balBefore.sub(amountIn).value);
   });
   /*
     it('supply liquidity', async () => {
