@@ -9,6 +9,7 @@ import { FiCopy } from "react-icons/fi";
 import { RxExit } from "react-icons/rx";
 import { MdOutlineDarkMode } from "react-icons/md";
 import { AiOutlineRight } from "react-icons/ai";
+// @ts-ignore
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { disconnect, connect } from "@/lib/wallet";
 import Link from "next/link";

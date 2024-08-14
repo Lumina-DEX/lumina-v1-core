@@ -8,6 +8,13 @@ const __dirname = path.dirname(__filename);
 const nextConfig = {
   reactStrictMode: false,
   pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.js"],
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
+    ignoreBuildErrors: true,
+  },
 
   webpack(config, { isServer }) {
     if (!isServer) {

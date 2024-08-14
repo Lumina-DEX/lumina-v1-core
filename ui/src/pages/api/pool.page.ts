@@ -1,7 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { PoolMina, PoolMinaDeployProps } from "../../contracts/PoolMina";
-import { MinaTokenHolder } from "../../contracts/MinaTokenHolder";
-import { TokenStandard } from "../../contracts/TokenStandard";
+import { PoolMina, PoolMinaDeployProps, MinaTokenHolder, TokenStandard } from "../../../../contracts/build/src/index.js";
 import { AccountUpdate, Mina, PrivateKey, PublicKey } from "o1js";
 import { NextRequest } from 'next/server';
 import { Json } from 'o1js/dist/node/bindings/mina-transaction/gen/transaction-bigint';
