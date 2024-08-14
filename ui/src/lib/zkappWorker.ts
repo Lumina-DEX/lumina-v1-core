@@ -37,9 +37,10 @@ const functions = {
     state.TokenStandard = TokenStandard;
   },
   compileContract: async (args: {}) => {
-    await state.TokenStandard?.compile();
+
     await state.PoolMinaHolder?.compile();
     await state.PoolMina!.compile();
+    await state.TokenStandard?.compile();
   },
   fetchAccount: async (args: { publicKey58: string }) => {
     const publicKey = PublicKey.fromBase58(args.publicKey58);
@@ -69,9 +70,9 @@ const functions = {
     const holderX = new MinaTokenHolder(poolKey.toPublicKey(), tokenX.deriveTokenId());
 
     const transaction = await Mina.transaction(async () => {
-      pool.deploy(depArgs);
-      holderX.deploy();
-      tokenX.approveAccountUpdate(holderX.self);
+      await pool.deploy(depArgs);
+      await holderX.deploy();
+      await tokenX.approveAccountUpdate(holderX.self);
     });
     state.transaction = transaction;
     state.key = poolKey.toBase58();
@@ -86,25 +87,32 @@ const functions = {
     return JSON.stringify({ amountToken, amountMina });
   },
   swapFromMinaTransaction: async (args: { user: string, amt: number, minOut: number }) => {
-    const amtIn = args.amt * 10 ** 9;
-    const amtOut = args.minOut * 10 ** 9;
+    const amtIn = Math.trunc(args.amt * 10 ** 9);
+    const amtOut = Math.trunc(args.minOut * 10 ** 9);
 
     const publicKey = PublicKey.fromBase58(args.user);
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
     let newAcc = acc.account?.nonce.equals(UInt32.zero).toBoolean() ? 1 : 0;
-    const transaction = await Mina.transaction(async () => {
+
+    const token = await state.zkapp?.token.fetch();
+    console.log("token", token?.toBase58());
+    const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, newAcc);
-      state.zkapp!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut));
+      await state.zkapp!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut));
     });
     state.transaction = transaction;
 
     await state.transaction!.prove();
   },
   swapFromTokenTransaction: async (args: { user: string, amt: number, minOut: number }) => {
-    const amtIn = args.amt * 10 ** 9;
-    const amtOut = args.minOut * 10 ** 9;
-    const transaction = await Mina.transaction(async () => {
-      state.zkapp!.swapFromToken(UInt64.from(amtIn), UInt64.from(amtOut));
+    const amtIn = Math.trunc(args.amt * 10 ** 9);
+    const amtOut = Math.trunc(args.minOut * 10 ** 9);
+    const publicKey = PublicKey.fromBase58(args.user);
+
+    const token = await state.zkapp?.token.fetch();
+    console.log("token", token?.toBase58());
+    const transaction = await Mina.transaction(publicKey, async () => {
+      await state.zkapp!.swapFromToken(UInt64.from(amtIn), UInt64.from(amtOut));
     });
     state.transaction = transaction;
 

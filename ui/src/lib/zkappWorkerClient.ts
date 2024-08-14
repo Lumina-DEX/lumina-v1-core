@@ -60,22 +60,22 @@ export default class ZkappWorkerClient {
     return JSON.parse(result);
   }
 
-  swapFromMina(user: PublicKey, amt: number, minOut: number) {
-    return this._call("swapFromMinaTransaction", { user, amt, minOut });
+  async swapFromMina(user: string, amt: number, minOut: number) {
+    return await this._call("swapFromMinaTransaction", { user, amt, minOut });
   }
 
-  swapFromToken(user: PublicKey, amt: number, minOut: number) {
-    return this._call("swapFromTokenTransaction", { user, amt, minOut });
+  async swapFromToken(user: string, amt: number, minOut: number) {
+    return await this._call("swapFromTokenTransaction", { user, amt, minOut });
   }
 
-  deployPoolInstance(tokenX: string, tokenY: string) {
-    return this._call("deployPoolInstance", {
+  async deployPoolInstance(tokenX: string, tokenY: string) {
+    return await this._call("deployPoolInstance", {
       tokenX, tokenY
     });
   }
 
-  async getTransactionJSON() {
-    const result = await this._call("getTransactionJSON", {});
+  async getTransactionJSON(): Promise<string> {
+    const result = await this._call("getTransactionJSON", {}) as string;
     return result;
   }
 

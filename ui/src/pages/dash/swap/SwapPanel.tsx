@@ -12,7 +12,8 @@ import { BiCog } from "react-icons/bi";
 import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
 import useLoad from "@/states/useLoad";
-import { connect } from "@/lib/wallet";
+import { connect, mina } from "@/lib/wallet";
+import { PublicKey } from "o1js";
 
 type Percent = number | string;
 
@@ -105,14 +106,18 @@ const SwapPanel: React.FC = () => {
     if (reserves?.amountMina && reserves?.amountToken) {
       const amountMina = parseInt(reserves?.amountMina);
       const amountToken = parseInt(reserves?.amountToken);
-      let amtIn = parseFloat(fromAmount);
+      let amtIn = parseFloat(fromAmount) * 10 ** 9;
       console.log("amtIn", amtIn);
       if (fromToken?.symbol == "DAI") {
-        let calcul = (amountMina * amtIn / (amountToken + amtIn));
+        let calcul = (amountMina * amtIn / (amountToken + amtIn)) / 10 ** 9;
+        // 1 % slippage
+        calcul = calcul - (calcul) / 100;
         console.log("calcul from dai", calcul);
         setToAmount(calcul.toString());
       } else {
-        let calcul = (amountToken * amtIn / (amountMina + amtIn));
+        let calcul = (amountToken * amtIn / (amountMina + amtIn)) / 10 ** 9;
+        // 1 % slippage
+        calcul = calcul - (calcul) / 100;
         console.log("calcul from mina", calcul);
         setToAmount(calcul.toString());
       }
@@ -122,6 +127,18 @@ const SwapPanel: React.FC = () => {
 
   const swap = async () => {
     console.log("infos", { fromToken, fromAmount, toToken, toAmount });
+
+    console.log("zkState", zkState)
+    let user = zkState.publicKeyBase58!;
+    let amtIn = parseFloat(fromAmount);
+    let amtOut = parseFloat(toAmount);
+    if (fromToken?.symbol == "DAI") {
+      const create = await zkState.zkappWorkerClient?.swapFromToken(user, amtIn, amtOut);
+    } else {
+      const create = await zkState.zkappWorkerClient?.swapFromMina(user, amtIn, amtOut);
+    }
+    const json = await zkState.zkappWorkerClient?.getTransactionJSON();
+    await mina!.sendTransaction({ transaction: json });
   }
 
   return (
