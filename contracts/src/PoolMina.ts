@@ -1,5 +1,5 @@
 import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey } from 'o1js';
-import { TokenStandard, MinaTokenHolder, mulDiv } from './index.js';
+import { TokenStandard, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
