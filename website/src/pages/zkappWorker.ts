@@ -60,6 +60,9 @@ const functions = {
     const publicKey = PublicKey.fromBase58(args.publicKey58);
     await fetchAccount({ publicKey })
     state.zkapp = new state.PoolMina!(publicKey);
+    const token = await state.zkapp.token.fetch();
+    await fetchAccount({ publicKey: token })
+    state.zkToken = new state.TokenStandard!(token);
   },
   deployPoolInstance: async (args: { tokenX: string }) => {
     const poolKey = PrivateKey.random();
@@ -93,8 +96,7 @@ const functions = {
 
     const publicKey = PublicKey.fromBase58(args.user);
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
-    let newAcc = acc.account?.nonce.equals(UInt32.zero).toBoolean() ? 1 : 0;
-
+    let newAcc = acc.account ? 0 : 1;
     const token = await state.zkapp?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {

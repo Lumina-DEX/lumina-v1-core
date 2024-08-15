@@ -236,9 +236,9 @@ export default function Home() {
 
   let mainContent = (
     <div style={{ justifyContent: 'center', alignItems: 'center' }}>
-      <div className={styles.center} style={{ padding: 0 }}>
+      {/* <div className={styles.center} style={{ padding: 0 }}>
         Current state in zkApp: {JSON.stringify(state.currentNum!)}{' '}
-      </div>
+      </div> */}
       {/* <button
         className={styles.card}
         onClick={onSendTransaction}
@@ -247,9 +247,9 @@ export default function Home() {
         Send Transaction
       </button> */}
       <Swap accountState={state}></Swap>
-      <button className={styles.card} onClick={onRefreshCurrentNum}>
+      {/* <button className={styles.card} onClick={onRefreshCurrentNum}>
         Get Latest State
-      </button>
+      </button> */}
     </div>
   );
 
