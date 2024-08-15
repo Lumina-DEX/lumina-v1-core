@@ -102,7 +102,7 @@ const Swap = ({ accountState }) => {
             <CurrencyFormat
               className="w-48 border-black text-default pr-3 text-xl text-right rounded focus:outline-none "
               thousandSeparator={true}
-              decimalScale={2}
+              decimalScale={6}
               placeholder="0.0"
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
@@ -118,7 +118,7 @@ const Swap = ({ accountState }) => {
             <CurrencyFormat
               className="w-48 border-slate-50 text-default  pr-3 text-xl text-right text-xl rounded focus:outline-none "
               thousandSeparator={true}
-              decimalScale={2}
+              decimalScale={6}
               placeholder="0.0"
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
