@@ -94,7 +94,7 @@ const Swap = ({ accountState }) => {
   return (
     <>
       <div className="flex flex-row justify-center w-screen ">
-        <div style={{ backgroundColor: "rgba(255,255,255,0.6)" }} className="flex flex-col p-5 gap-5 rounded w-[300px] h-[300px] items-center">
+        <div style={{ backgroundColor: "rgba(0,0,0,0.2)" }} className="flex flex-col p-5 gap-5 rounded w-[300px] h-[300px] items-center">
           <div className="text-xl">
             Swap
           </div>
