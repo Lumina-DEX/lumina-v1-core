@@ -5,7 +5,6 @@ import type {
   ZkappWorkerReponse,
   WorkerFunctions,
 } from "./zkappWorker";
-import { Json } from "o1js/dist/node/bindings/mina-transaction/gen/transaction-bigint";
 
 export default class ZkappWorkerClient {
   // ---------------------------------------------------------------------------------------
@@ -68,9 +67,9 @@ export default class ZkappWorkerClient {
     return await this._call("swapFromTokenTransaction", { user, amt, minOut });
   }
 
-  async deployPoolInstance(tokenX: string, tokenY: string) {
+  async deployPoolInstance(tokenX: string) {
     return await this._call("deployPoolInstance", {
-      tokenX, tokenY
+      tokenX
     });
   }
 

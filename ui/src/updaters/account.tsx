@@ -30,9 +30,11 @@ export default function AccountUpdater() {
     (async () => {
       if (!hasBeenSetup) {
         loadUpdate({ msg: "Loading web worker...", process: 0 });
+        console.log("Loading web worker...");
         const zkappWorkerClient = new ZkappWorkerClient();
         await timeout(5);
 
+        console.log("Done loading web worker...");
         loadUpdate({ msg: "Done loading web worker", process: 0.25 });
         await timeout(5);
 

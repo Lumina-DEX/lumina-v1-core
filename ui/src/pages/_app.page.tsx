@@ -10,6 +10,7 @@ import { NextPage } from "next";
 import Updaters from "@/updaters";
 import Head from "next/head";
 import useAccount from "@/states/useAccount";
+import { ErrorBoundary } from "react-error-boundary";
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode;
@@ -40,7 +41,9 @@ export default function App({
               You are blocked!
             </span>
           ) : (
-            <Component {...pageProps} />
+            <ErrorBoundary fallback={<p>Something went wrong</p>}>
+              <Component {...pageProps} />
+            </ErrorBoundary>
           )
         )}
         <Updaters />

@@ -1,5 +1,7 @@
 import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount } from "o1js";
-import { PoolMina, PoolMinaDeployProps, MinaTokenHolder, TokenStandard } from "../../../contracts/build/src/index.js";
+console.log('Load Web Worker.');
+
+import type { PoolMina, PoolMinaDeployProps, MinaTokenHolder, TokenStandard } from "../../../contracts/src/index";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -37,10 +39,9 @@ const functions = {
     state.TokenStandard = TokenStandard;
   },
   compileContract: async (args: {}) => {
-
-    await state.PoolMinaHolder?.compile();
-    await state.PoolMina!.compile();
     await state.TokenStandard?.compile();
+    await state.PoolMinaHolder!.compile();
+    await state.PoolMina!.compile();
   },
   fetchAccount: async (args: { publicKey58: string }) => {
     const publicKey = PublicKey.fromBase58(args.publicKey58);
@@ -60,14 +61,14 @@ const functions = {
     await fetchAccount({ publicKey })
     state.zkapp = new state.PoolMina!(publicKey);
   },
-  deployPoolInstance: async (args: { app: string, tokenX: string, tokenY: string }) => {
+  deployPoolInstance: async (args: { tokenX: string }) => {
     const poolKey = PrivateKey.random();
-    const pool = new PoolMina(poolKey.toPublicKey());
+    const pool = new state.PoolMina!(poolKey.toPublicKey());
     console.log("appkey", poolKey.toBase58());
     const tokenKey = PublicKey.fromBase58(args.tokenX);
     const depArgs: PoolMinaDeployProps = { token: tokenKey };
-    const tokenX = new TokenStandard(tokenKey);
-    const holderX = new MinaTokenHolder(poolKey.toPublicKey(), tokenX.deriveTokenId());
+    const tokenX = new state.TokenStandard!(tokenKey);
+    const holderX = new state.PoolMinaHolder!(poolKey.toPublicKey(), tokenX.deriveTokenId());
 
     const transaction = await Mina.transaction(async () => {
       await pool.deploy(depArgs);
@@ -155,3 +156,5 @@ if (typeof window !== "undefined") {
     }
   );
 }
+
+console.log('Web Worker Successfully Initialized.');
