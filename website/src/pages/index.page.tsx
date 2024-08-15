@@ -4,6 +4,7 @@ import GradientBG from '../components/GradientBG.js';
 import styles from '../styles/Home.module.css';
 import './reactCOIServiceWorker';
 import ZkappWorkerClient from './zkappWorkerClient';
+import Swap from '@/components/Swap';
 
 let transactionFee = 0.1;
 const ZKAPP_ADDRESS = 'B62qjBPtgWypGa5W6kwdUFhH5WKRKVb3UJPXVGhrkPz28juJriPpf3u';
@@ -233,26 +234,25 @@ export default function Home() {
     );
   }
 
-  let mainContent;
-  if (state.hasBeenSetup && state.accountExists) {
-    mainContent = (
-      <div style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <div className={styles.center} style={{ padding: 0 }}>
-          Current state in zkApp: {JSON.stringify(state.currentNum!)}{' '}
-        </div>
-        <button
-          className={styles.card}
-          onClick={onSendTransaction}
-          disabled={state.creatingTransaction}
-        >
-          Send Transaction
-        </button>
-        <button className={styles.card} onClick={onRefreshCurrentNum}>
-          Get Latest State
-        </button>
+  let mainContent = (
+    <div style={{ justifyContent: 'center', alignItems: 'center' }}>
+      <div className={styles.center} style={{ padding: 0 }}>
+        Current state in zkApp: {JSON.stringify(state.currentNum!)}{' '}
       </div>
-    );
-  }
+      {/* <button
+        className={styles.card}
+        onClick={onSendTransaction}
+        disabled={state.creatingTransaction}
+      >
+        Send Transaction
+      </button> */}
+      <Swap accountState={state}></Swap>
+      <button className={styles.card} onClick={onRefreshCurrentNum}>
+        Get Latest State
+      </button>
+    </div>
+  );
+
 
   return (
     <GradientBG>
