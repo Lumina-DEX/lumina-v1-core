@@ -12,6 +12,8 @@ type Percent = number | string;
 const Swap = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
 
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     if (window && (window as any).mina) {
       setMina((window as any).mina);
@@ -31,7 +33,7 @@ const Swap = ({ accountState }) => {
 
 
   useEffect(() => {
-    if (parseInt(fromAmount)) {
+    if (parseFloat(fromAmount)) {
       getSwapAmount().then();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -63,21 +65,30 @@ const Swap = ({ accountState }) => {
   }
 
   const swap = async () => {
-    console.log("infos", { fromAmount, toAmount });
+    try {
+      console.log("infos", { fromAmount, toAmount });
 
-    if (mina) {
-      console.log("zkState", zkState)
-      const user: string = (await mina.requestAccounts())[0];
-      let amtIn = parseFloat(fromAmount);
-      let amtOut = parseFloat(toAmount);
-      if (!toDai) {
-        const create = await zkState.zkappWorkerClient?.swapFromToken(user, amtIn, amtOut);
-      } else {
-        const create = await zkState.zkappWorkerClient?.swapFromMina(user, amtIn, amtOut);
+      if (mina) {
+        setLoading(true);
+        console.log("zkState", zkState)
+        const user: string = (await mina.requestAccounts())[0];
+        let amtIn = parseFloat(fromAmount);
+        let amtOut = parseFloat(toAmount);
+        if (!toDai) {
+          const create = await zkState.zkappWorkerClient?.swapFromToken(user, amtIn, amtOut);
+        } else {
+          const create = await zkState.zkappWorkerClient?.swapFromMina(user, amtIn, amtOut);
+        }
+        const json = await zkState.zkappWorkerClient?.getTransactionJSON();
+        await mina.sendTransaction({ transaction: json });
       }
-      const json = await zkState.zkappWorkerClient?.getTransactionJSON();
-      await mina.sendTransaction({ transaction: json });
+    } catch (error) {
+      console.log('swap error', error);
     }
+    finally {
+      setLoading(false);
+    }
+
   }
 
   return (
@@ -114,9 +125,12 @@ const Swap = ({ accountState }) => {
             />
             {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Dai</span>}
           </div>
-          <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
+          {loading ? <p>Creating transaction ...</p> : <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap
           </button>
+
+          }
+
         </div>
       </div>
     </>

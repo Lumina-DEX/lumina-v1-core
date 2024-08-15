@@ -234,24 +234,27 @@ export default function Home() {
     );
   }
 
-  let mainContent = (
-    <div style={{ justifyContent: 'center', alignItems: 'center' }}>
-      {/* <div className={styles.center} style={{ padding: 0 }}>
+  let mainContent;
+  if (state.hasBeenSetup && state.accountExists) {
+    mainContent = (
+      <div style={{ justifyContent: 'center', alignItems: 'center' }}>
+        {/* <div className={styles.center} style={{ padding: 0 }}>
         Current state in zkApp: {JSON.stringify(state.currentNum!)}{' '}
       </div> */}
-      {/* <button
+        {/* <button
         className={styles.card}
         onClick={onSendTransaction}
         disabled={state.creatingTransaction}
       >
         Send Transaction
       </button> */}
-      <Swap accountState={state}></Swap>
-      {/* <button className={styles.card} onClick={onRefreshCurrentNum}>
+        <Swap accountState={state}></Swap>
+        {/* <button className={styles.card} onClick={onRefreshCurrentNum}>
         Get Latest State
       </button> */}
-    </div>
-  );
+      </div>
+    );
+  }
 
 
   return (
