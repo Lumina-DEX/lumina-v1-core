@@ -23,6 +23,7 @@
     "testpool": "node --experimental-vm-modules node_modules/jest/bin/jest.js pool.test",
     "testbalancer": "node --experimental-vm-modules node_modules/jest/bin/jest.js balancer.test",
     "testmina": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolmina.test",
+    "testmulti": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolminamulti.test",
     "testdex": "node --experimental-vm-modules node_modules/jest/bin/jest.js DexMina.test",
     "testtoken": "node --experimental-vm-modules node_modules/jest/bin/jest.js Token.test",
     "testdx": "node --experimental-vm-modules node_modules/jest/bin/jest.js dex.test",

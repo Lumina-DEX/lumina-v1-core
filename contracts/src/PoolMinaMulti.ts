@@ -1,5 +1,5 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Int64, Bool, UInt32 } from 'o1js';
-import { TokenStandard, MinaTokenHolder, mulDiv } from './index.js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, Bool } from 'o1js';
+import { TokenStandard, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -12,7 +12,7 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class PoolMina extends TokenContractV2 {
+export class PoolMinaMulti extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
     @state(UInt64) reserveToken = State<UInt64>();
@@ -59,33 +59,13 @@ export class PoolMina extends TokenContractV2 {
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
         liquidityAmount.assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
-        let tokenAddress = this.token.getAndRequireEquals();
-        let tokenAccount = AccountUpdate.default(tokenAddress);
-        let tokenId = TokenId.derive(tokenAddress, tokenAccount.tokenId)
+        let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getAndRequireSignature();
         let senderUpdate = AccountUpdate.createSigned(sender);
 
-        let from = AccountUpdate.default(sender, tokenId);
-        from.requireSignature();
-        from.label = `${this.constructor.name}.transfer() (from)`;
-        from.body.preconditions.account.nonce = { isSome: Bool(true), value: { lower: UInt32.zero, upper: UInt32.zero } };
-        from.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-
-        let to = AccountUpdate.default(this.address, tokenId);
-        from.balanceChange = Int64.from(amountToken).negV2();
-        to.balanceChange = Int64.from(amountToken);
-        to.label = `${this.constructor.name}.transfer() (to)`;
-        to.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-
-        let forest = this.toForest([from, to]);
-        let totalBalanceChange = from.balanceChange.add(to.balanceChange);
-
-        // prove that the total balance change is zero
-        totalBalanceChange.assertEquals(0);
-        tokenAccount.approve(forest);
-
+        await tokenContract.transfer(sender, this.address, amountToken);
         await senderUpdate.send({ to: this, amount: amountMina });
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
@@ -98,20 +78,6 @@ export class PoolMina extends TokenContractV2 {
         this.reserveToken.set(amountToken);
         this.reserveMina.set(amountMina);
         this.liquiditySupply.set(liquidityAmount);
-    }
-
-    checkZero(updates: AccountUpdateForest) {
-        let totalBalanceChange = Int64.zero;
-        this.forEachUpdate(updates, (accountUpdate, usesToken) => {
-            totalBalanceChange = totalBalanceChange.add(Provable.if(usesToken, accountUpdate.balanceChange, Int64.zero));
-        });
-        // prove that the total balance change is zero
-        totalBalanceChange.assertEquals(0);
-    }
-
-    toForest(updates: AccountUpdate[]) {
-        let trees = updates.map((a) => a instanceof AccountUpdate ? a.extractTree() : a);
-        return AccountUpdateForest.fromReverse(trees);
     }
 
     @method async supplyLiquidityFromTokenA(amountToken: UInt64, maxAmountMina: UInt64) {
@@ -184,7 +150,7 @@ export class PoolMina extends TokenContractV2 {
         this.liquiditySupply.set(actualSupply.add(liquidityAmount));
     }
 
-    @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64) {
+    @method async swapFromMina(pool: PublicKey, amountIn: UInt64, amountOutMin: UInt64) {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
@@ -194,7 +160,6 @@ export class PoolMina extends TokenContractV2 {
         // we request token out because this is the token holder who update his balance to transfer out
         let tokenContractOut = new TokenStandard(this.token.getAndRequireEquals());
         let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
-
 
         // transfer In before transfer out        
         let sender = this.sender.getUnconstrained();
@@ -206,12 +171,16 @@ export class PoolMina extends TokenContractV2 {
         const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin);
 
         //await accountUser.send({ to: this, amount: amountIn });
-        await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
+        await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOutMin);
 
         // set new supply
         this.reserveMina.set(balanceMina.add(amountIn));
         this.reserveToken.set(balanceToken.sub(amountOut));
+
+        this.self.body.preconditions.account.state = [this.empty, this.empty, this.empty, this.empty, this.empty, this.empty, this.empty, this.empty];
     }
+
+    empty = { isSome: Bool(false), value: Field.empty() };
 
     @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64) {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
@@ -237,8 +206,8 @@ export class PoolMina extends TokenContractV2 {
         await this.send({ to: sender, amount: amountOut });
 
         // set new supply
-        this.reserveMina.set(reserveIn.add(amountIn));
-        this.reserveToken.set(reserveOut.sub(amountOut));
+        this.reserveToken.set(reserveIn.add(amountIn));
+        this.reserveMina.set(reserveOut.sub(amountOut));
     }
 
 }
