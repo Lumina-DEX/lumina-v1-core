@@ -1,6 +1,7 @@
 import { Field, SmartContract, Struct, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, Int64, Poseidon, Bool, Experimental, SelfProof, ZkProgram, MerkleWitness, MerkleTree } from 'o1js';
 import { TokenStandard } from './index.js';
 import { Withdraw } from './Withdraw.js';
+import { add } from 'o1js/dist/node/lib/provable/gadgets/native-curve.js';
 
 
 export class Leaf extends Struct({
@@ -92,7 +93,47 @@ export const RollupProof = ZkProgram({
     publicOutput: ProvedMerkle,
 
     methods: {
-        addLeaf: {
+        deposit: {
+            privateInputs: [SelfProof, Leaf, Leaf, MerkleWitness32, MerkleWitness32],
+            async method(oldProof: SelfProof<ProvedMerkle, void>, previousLeaf: Leaf, newLeaf: Leaf, previousWitness: MerkleWitness32, newWitness: MerkleWitness32) {
+
+                const rootBefore = previousWitness.calculateRoot(previousLeaf.hash());
+                rootBefore.assertEquals(oldProof.publicInput.initialMerkle);
+
+                return oldProof.publicInput;
+            },
+        },
+        withdraw: {
+            privateInputs: [SelfProof, Leaf, Leaf, MerkleWitness32, MerkleWitness32],
+            async method(oldProof: SelfProof<ProvedMerkle, void>, previousLeaf: Leaf, newLeaf: Leaf, previousWitness: MerkleWitness32, newWitness: MerkleWitness32) {
+
+                const rootBefore = previousWitness.calculateRoot(previousLeaf.hash());
+                rootBefore.assertEquals(oldProof.publicInput.initialMerkle);
+
+                return oldProof.publicInput;
+            },
+        },
+        swap: {
+            privateInputs: [SelfProof, Leaf, Leaf, MerkleWitness32, MerkleWitness32],
+            async method(oldProof: SelfProof<ProvedMerkle, void>, previousLeaf: Leaf, newLeaf: Leaf, previousWitness: MerkleWitness32, newWitness: MerkleWitness32) {
+
+                const rootBefore = previousWitness.calculateRoot(previousLeaf.hash());
+                rootBefore.assertEquals(oldProof.publicInput.initialMerkle);
+
+                return oldProof.publicInput;
+            },
+        },
+        addLiquidity: {
+            privateInputs: [SelfProof, Leaf, Leaf, MerkleWitness32, MerkleWitness32],
+            async method(oldProof: SelfProof<ProvedMerkle, void>, previousLeaf: Leaf, newLeaf: Leaf, previousWitness: MerkleWitness32, newWitness: MerkleWitness32) {
+
+                const rootBefore = previousWitness.calculateRoot(previousLeaf.hash());
+                rootBefore.assertEquals(oldProof.publicInput.initialMerkle);
+
+                return oldProof.publicInput;
+            },
+        },
+        removeLiquidity: {
             privateInputs: [SelfProof, Leaf, Leaf, MerkleWitness32, MerkleWitness32],
             async method(oldProof: SelfProof<ProvedMerkle, void>, previousLeaf: Leaf, newLeaf: Leaf, previousWitness: MerkleWitness32, newWitness: MerkleWitness32) {
 
