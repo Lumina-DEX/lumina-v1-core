@@ -24,9 +24,9 @@
     "testbalancer": "node --experimental-vm-modules node_modules/jest/bin/jest.js balancer.test",
     "testmina": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolmina.test",
     "testmulti": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolminamulti.test",
-    "testdex": "node --experimental-vm-modules node_modules/jest/bin/jest.js DexMina.test",
+    "testaccount": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolaccount.test",
+    "testdex": "node --experimental-vm-modules node_modules/jest/bin/jest.js dex.test",
     "testtoken": "node --experimental-vm-modules node_modules/jest/bin/jest.js Token.test",
-    "testdx": "node --experimental-vm-modules node_modules/jest/bin/jest.js dex.test",
     "lint": "npx eslint src/* --fix",
     "patch": "node patch.js"
   },
