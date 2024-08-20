@@ -35,7 +35,7 @@ export class Deposit extends SmartContract {
         let senderContract = new TokenStandard(sender);
 
         let withdrawContractSender = new Withdraw(this.address, senderContract.deriveTokenId());
-        withdrawContractSender.addProof()
+        // withdrawContractSender.addProof()
 
         await tokenContractA.transfer(this.self, receiver, amountA);
         await tokenContractB.transfer(this.self, receiver, amountB);

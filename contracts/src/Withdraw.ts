@@ -19,7 +19,7 @@ export class Withdraw extends SmartContract {
         let actualNonce = this.lastNonce.getAndRequireEquals();
         let expectedNonce = actualNonce.add(1);
 
-        expectedNonce.assertEquals(nonce, "Incorrect proof")
+        expectedNonce.equals(nonce).assertTrue("Incorrect proof");
 
         this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
