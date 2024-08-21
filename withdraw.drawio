@@ -1,0 +1,123 @@
+<mxfile host="65bd71144e">
+    <diagram id="9t62fphV6wk2fh-ekMFj" name="Page-1">
+        <mxGraphModel dx="1424" dy="743" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="22" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=strokeColor;" parent="1" vertex="1">
+                    <mxGeometry x="530" y="40" width="5" height="260" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="Deposit contract" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="637.5" y="10" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" value="Sub account (Deposit contract+ User tokenId)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="840" y="10" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="Rollup contract" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="467.5" y="10" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=strokeColor;" parent="1" vertex="1">
+                    <mxGeometry x="302.5" y="40" width="5" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="Backend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="10" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="49" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=strokeColor;" vertex="1" parent="1">
+                    <mxGeometry x="90" y="40" width="5" height="460" as="geometry"/>
+                </mxCell>
+                <mxCell id="50" value="User" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="20" y="10" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="51" value="" style="endArrow=classic;html=1;entryX=0.2;entryY=0.55;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" target="27">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="310" y="70" as="sourcePoint"/>
+                        <mxPoint x="325.5" y="216" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="416" y="70"/>
+                            <mxPoint x="416" y="170"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="52" value="Check if withdraw is possible, &lt;br&gt;generate new withdraw proof" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="51">
+                    <mxGeometry x="-0.1233" y="2" relative="1" as="geometry">
+                        <mxPoint x="2" y="20" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="54" value="Store proof" style="endArrow=classic;html=1;exitX=-0.3;exitY=0.713;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1.033;entryY=0.658;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="27" target="22">
+                    <mxGeometry x="0.0008" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="310" as="sourcePoint"/>
+                        <mxPoint x="850" y="260" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="29" value="Request withdraw" style="endArrow=classic;html=1;fillColor=#f5f5f5;strokeColor=#666666;shadow=0;entryX=0.803;entryY=0.069;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="49" target="27" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="91.34500000000003" y="70.5" as="sourcePoint"/>
+                        <mxPoint x="300" y="71" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="55" value="Send to the user proof to withdraw" style="endArrow=classic;html=1;" edge="1" parent="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="305" y="237" as="sourcePoint"/>
+                        <mxPoint x="90" y="237" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="62" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=strokeColor;" vertex="1" parent="1">
+                    <mxGeometry x="720" y="40" width="5" height="450" as="geometry"/>
+                </mxCell>
+                <mxCell id="63" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=strokeColor;" vertex="1" parent="1">
+                    <mxGeometry x="910" y="40" width="5" height="450" as="geometry"/>
+                </mxCell>
+                <mxCell id="65" value="Claim withdraw" style="endArrow=classic;html=1;shadow=0;strokeColor=#000000;exitX=0.367;exitY=0.58;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="49" target="62">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="560" y="300" as="sourcePoint"/>
+                        <mxPoint x="610" y="250" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="66" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=strokeColor;" vertex="1" parent="1">
+                    <mxGeometry x="530" y="310" width="5" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="67" value="Check proof exist" style="endArrow=classic;html=1;shadow=0;strokeColor=#000000;exitX=0;exitY=0.769;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.367;entryY=0.621;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="62" target="66">
+                    <mxGeometry x="0.0043" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="700" y="350" as="sourcePoint"/>
+                        <mxPoint x="540" y="386" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="640" y="386"/>
+                        </Array>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="68" value="Validate proof existance" style="endArrow=classic;html=1;shadow=0;strokeColor=#000000;exitX=0.367;exitY=0.89;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.033;entryY=0.834;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="66" target="62">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="700" y="350" as="sourcePoint"/>
+                        <mxPoint x="750" y="300" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="69" value="Check proof wasn't submit before" style="endArrow=classic;html=1;shadow=0;strokeColor=#000000;entryX=1.2;entryY=0.632;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.033;exitY=0.636;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="62" target="63">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="700" y="350" as="sourcePoint"/>
+                        <mxPoint x="750" y="300" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="70" value="Validate non existance" style="endArrow=classic;html=1;shadow=0;strokeColor=#000000;exitX=1.033;exitY=0.71;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="63" target="62">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="700" y="350" as="sourcePoint"/>
+                        <mxPoint x="750" y="300" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="71" value="Store proof" style="endArrow=classic;html=1;shadow=0;strokeColor=#000000;exitX=0.867;exitY=0.886;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.033;entryY=0.882;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="62" target="63">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="760" y="460" as="sourcePoint"/>
+                        <mxPoint x="810" y="410" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="72" value="Send money" style="endArrow=classic;html=1;shadow=0;strokeColor=#000000;exitX=1.2;exitY=0.932;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1.033;entryY=0.907;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="62" target="49">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="700" y="350" as="sourcePoint"/>
+                        <mxPoint x="750" y="300" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
