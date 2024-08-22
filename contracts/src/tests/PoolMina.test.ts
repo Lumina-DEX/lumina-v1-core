@@ -2,7 +2,7 @@ import { AccountUpdate, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 
 import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
-import { TokenStandard } from '../TokenStandard';
+import { FungibleToken } from '../FungibleToken';
 import { mulDiv } from '../MathLibrary';
 
 let proofsEnabled = false;
@@ -24,14 +24,14 @@ describe('Pool Mina', () => {
     zkApp2: PoolMina,
     zkToken0Address: PublicKey,
     zkToken0PrivateKey: PrivateKey,
-    zkToken0: TokenStandard,
+    zkToken0: FungibleToken,
     tokenHolder0: MinaTokenHolder,
     tokenHolder1: MinaTokenHolder;
 
   beforeAll(async () => {
     if (proofsEnabled) {
       console.time('compile pool');
-      await TokenStandard.compile();
+      await FungibleToken.compile();
       const key = await PoolMina.compile();
       await MinaTokenHolder.compile();
 
@@ -74,14 +74,17 @@ describe('Pool Mina', () => {
 
     zkToken0PrivateKey = PrivateKey.random();
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
-    zkToken0 = new TokenStandard(zkToken0Address);
+    zkToken0 = new FungibleToken(zkToken0Address);
 
     const args: PoolMinaDeployProps = { token: zkToken0Address };
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.deploy(args);
       await zkApp2.deploy(args);
-      await zkToken0.deploy();
+      await zkToken0.deploy({
+        symbol: "tokA",
+        src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+      });
     });
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization

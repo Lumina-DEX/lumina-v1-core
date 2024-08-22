@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable } from 'o1js';
-import { TokenStandard } from './index.js';
+import { FungibleToken } from './index.js';
 
 
 /**
@@ -12,9 +12,9 @@ export class ShowBalance extends SmartContract {
 
     @method.returns(UInt64) async getBalance(account: PublicKey, token: PublicKey) {
 
-        let tokenContract = new TokenStandard(token);
+        let tokenContract = new FungibleToken(token);
 
-        const holder = new TokenStandard(account, tokenContract.deriveTokenId());
+        const holder = new FungibleToken(account, tokenContract.deriveTokenId());
 
         const balance = holder.account.balance.getAndRequireEquals();
 

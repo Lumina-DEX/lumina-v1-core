@@ -1,5 +1,5 @@
 import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey } from 'o1js';
-import { TokenStandard, MinaTokenHolder, mulDiv } from './indexmina.js';
+import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -47,7 +47,7 @@ export class PoolMina extends SmartContract {
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
         liquidityAmount.assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
-        let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
 
         // require signature on transfer, so don't need to request it now
         let sender = this.sender.getAndRequireSignature();
@@ -69,7 +69,7 @@ export class PoolMina extends SmartContract {
     @method async supplyLiquidityFromTokenA(amountToken: UInt64, maxAmountMina: UInt64) {
         amountToken.assertGreaterThan(UInt64.zero, "No token amount supplied");
 
-        let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
@@ -103,7 +103,7 @@ export class PoolMina extends SmartContract {
     @method async supplyLiquidityFromMina(amountMina: UInt64, maxAmountToken: UInt64) {
         amountMina.assertGreaterThan(UInt64.zero, "No Mina amount supplied");
 
-        let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
@@ -139,7 +139,7 @@ export class PoolMina extends SmartContract {
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
         // we request token out because this is the token holder who update his balance to transfer out
-        let tokenContractOut = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenContractOut = new FungibleToken(this.token.getAndRequireEquals());
         let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
 
         // transfer In before transfer out        
@@ -152,7 +152,7 @@ export class PoolMina extends SmartContract {
         const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin);
 
         //await accountUser.send({ to: this, amount: amountIn });
-        await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
+        await tokenContractOut.transfer(tokenHolderOut.address, sender, amountOut);
 
     }
 
@@ -160,7 +160,7 @@ export class PoolMina extends SmartContract {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
-        let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();

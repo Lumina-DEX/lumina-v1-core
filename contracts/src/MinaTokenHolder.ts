@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account } from 'o1js';
-import { PoolMina, TokenStandard, mulDiv } from './indexmina.js';
+import { PoolMina, FungibleToken, mulDiv } from './indexmina.js';
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
@@ -52,7 +52,7 @@ export class MinaTokenHolder extends SmartContract {
         let pm = new PoolMina(poolAddress);
         const totalSupply = pm.liquiditySupply.getAndRequireEquals();
 
-        const tokenA = new TokenStandard(pm.token.getAndRequireEquals());
+        const tokenA = new FungibleToken(pm.token.getAndRequireEquals());
 
         const holderA = new MinaTokenHolder(poolAddress, tokenA.deriveTokenId());
 

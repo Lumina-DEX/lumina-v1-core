@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64 } from 'o1js';
-import { PoolMina, MinaTokenHolder, TokenStandard, TokenA, PoolMinaDeployProps } from '../index.js';
+import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps } from '../index.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
@@ -79,7 +79,7 @@ let feepayerAddress = feepayerKey.toPublicKey();
 let zkAppAddress = zkAppKey.toPublicKey();
 let zkApp = new PoolMina(zkAppAddress);
 let zkToken0Address = zkToken0PrivateKey.toPublicKey();
-let zkToken0 = new TokenStandard(zkToken0Address);
+let zkToken0 = new FungibleToken(zkToken0Address);
 
 console.log("tokenStandard", zkToken0Address.toBase58());
 console.log("tokenStandard", zkToken0PrivateKey.toBase58());
@@ -90,7 +90,7 @@ console.log("pool", zkAppAddress.toBase58());
 console.log('compile the contract...');
 
 const key = await PoolMina.compile();
-await TokenStandard.compile();
+await FungibleToken.compile();
 await MinaTokenHolder.compile();
 
 async function ask() {
@@ -153,7 +153,10 @@ async function deployToken() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 2);
-                await zkToken0.deploy();
+                await zkToken0.deploy({
+                    symbol: "tokA",
+                    src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+                });
             }
         );
         await tx.prove();
@@ -225,7 +228,10 @@ async function deployAll() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkToken0.deploy();
+                await zkToken0.deploy({
+                    symbol: "tokA",
+                    src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+                });
                 await zkApp.deploy(args);
                 await dexTokenHolder0.deploy();
                 await zkToken0.approveAccountUpdate(dexTokenHolder0.self);
