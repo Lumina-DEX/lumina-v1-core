@@ -44,7 +44,7 @@ In order for a user to withdraw their tokens, they will need to make an initial 
 
 ### Swap
 
-A swap will simply consist of updating the state of the rollup, of course this update will be based on evidence to avoid any manipulation of the dex.
+A swap will simply consist of updating the state of the rollup, of course this update will be based on proof to avoid any manipulation of the dex.
 
 These proofs will be recursive and therefore only one proof containing multiple interactions with the dex can be saved, limiting the amount of data to be processed onchain.
 
