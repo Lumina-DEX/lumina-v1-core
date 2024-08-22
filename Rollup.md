@@ -24,4 +24,11 @@ Swaps can be validated in seconds, whereas onchain it could take several minutes
 
 ## How it works
 
-Deposit : 
+### Deposit
+
+For a deposit to be effective, it requires the existence of a global deposit contract and a unique contract for each user where their deposits will be recorded, this second contract will only be deployed at the first use by an account.
+
+Once the deposit is effective onchain, our rollup will take it into account and integrate it into its state and validate its new state onchain, which requires at least 2 blocks for a deposit to be accessible in the dex.
+
+![Deposit schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/deposit.png?raw=true)
+
