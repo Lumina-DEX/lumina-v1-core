@@ -53,7 +53,7 @@ These proofs will be recursive and therefore only one proof containing multiple 
 
 ### Rollup state
 
-The rollup status will be generated from a merkle map containing the different updated data of each dex user, of the different peers ...
+The rollup status will be generated from a merkle map containing the different updated data of each dex user, of the different pairs ...
 
 ![Merkle schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/merkle.png?raw=true)
 
