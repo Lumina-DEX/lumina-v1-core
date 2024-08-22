@@ -10,17 +10,20 @@ The solution would be to manage these swaps offchain, the only part that would b
 
 Of course, these swaps will be validated by proofs and their results regularly recorded onchain.
 
+
 ## Limitations of this solution
 
 Swaps are managed offchain, but require a proof of deposit that can only be made onchain, and the user may have to create an account for these deposits, so for a deposit to be taken into account it may take several blocks, including a fairly long time on Mina, on Zeko this time may be a few seconds or a few minutes at most.
 
 This solution requires a server powerful enough to create proofs and with an uptime of practically 100%. In addition, every interaction with the rollup must be saved (ipfs/database ...), so that the current state of the rollup can be reconstructed at any time.
 
+
 ## Advantages of this solution
 
 This solution will allow the user to make swaps only with a signature of his wallet, allowing better accessibility especially from mobile as the generation of proof will not be necessary, it remains at least necessary to deposit or withdraw his tokens.
 
 Swaps can be validated in seconds, whereas onchain it could take several minutes.
+
 
 ## How it works
 
@@ -31,4 +34,31 @@ For a deposit to be effective, it requires the existence of a global deposit con
 Once the deposit is effective onchain, our rollup will take it into account and integrate it into its state and validate its new state onchain, which requires at least 2 blocks for a deposit to be accessible in the dex.
 
 ![Deposit schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/deposit.png?raw=true)
+
+
+### Withdraw
+
+In order for a user to withdraw their tokens, they will need to make an initial request to the dex, which will generate the onchain proof so that the user can subsequently withdraw their onchain tokens.
+
+![Withdraw schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/withdraw.png?raw=true)
+
+### Swap
+
+A swap will simply consist of updating the state of the rollup, of course this update will be based on evidence to avoid any manipulation of the dex.
+
+These proofs will be recursive and therefore only one proof containing multiple interactions with the dex can be saved, limiting the amount of data to be processed onchain.
+
+![Swap schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/withdraw.png?raw=true)
+
+
+### Rollup state
+
+The rollup status will be generated from a merkle map containing the different updated data of each dex user, of the different peers ...
+
+![Merkle schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/merkle.png?raw=true)
+
+
+## Additional information
+
+This is simply a proposed solution, it may evolve during development depending on the constraints encountered, or by proposing a better solution.
 
