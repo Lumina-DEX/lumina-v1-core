@@ -48,7 +48,7 @@ A swap will simply consist of updating the state of the rollup, of course this u
 
 These proofs will be recursive and therefore only one proof containing multiple interactions with the dex can be saved, limiting the amount of data to be processed onchain.
 
-![Swap schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/withdraw.png?raw=true)
+![Swap schema](https://github.com/Lumina-DEX/lumina-mvp/blob/rollup/swap.png?raw=true)
 
 
 ### Rollup state
