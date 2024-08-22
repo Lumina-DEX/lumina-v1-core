@@ -12,11 +12,9 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class PoolMina extends TokenContractV2 {
+export class PoolMina extends SmartContract {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
-    @state(UInt64) reserveToken = State<UInt64>();
-    @state(UInt64) reserveMina = State<UInt64>();
     @state(UInt64) liquiditySupply = State<UInt64>();
 
     async deploy(args: PoolMinaDeployProps) {
@@ -24,20 +22,10 @@ export class PoolMina extends TokenContractV2 {
         args.token.isEmpty().assertFalse("token empty");
         this.token.set(args.token);
 
-        this.reserveToken.set(UInt64.zero);
-        this.reserveMina.set(UInt64.zero);
-
         this.account.permissions.set({
             ...Permissions.default(),
             setVerificationKey: Permissions.VerificationKey.proofOrSignature()
         });
-
-        // lumina dex liquidity
-        this.account.tokenSymbol.set("LDL");
-    }
-
-    @method async approveBase(forest: AccountUpdateForest) {
-        this.checkZeroBalanceChange(forest);
     }
 
     /**
@@ -72,11 +60,9 @@ export class PoolMina extends TokenContractV2 {
         // => maintains ratio a/l, b/l       
         const liquidityUser = liquidityAmount.sub(minimunLiquidity);
         // mint token
-        this.internal.mint({ address: sender, amount: liquidityUser });
+        //this.internal.mint({ address: sender, amount: liquidityUser });
 
         // set default informations
-        this.reserveToken.set(amountToken);
-        this.reserveMina.set(amountMina);
         this.liquiditySupply.set(liquidityAmount);
     }
 
@@ -84,9 +70,10 @@ export class PoolMina extends TokenContractV2 {
         amountToken.assertGreaterThan(UInt64.zero, "No token amount supplied");
 
         let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        const balanceToken = this.reserveToken.getAndRequireEquals();
-        const balanceMina = this.reserveMina.getAndRequireEquals();
+        const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
+        const balanceMina = this.account.balance.getAndRequireEquals();
 
         // amount Y to supply
         const amountMina = mulDiv(amountToken, balanceMina, balanceToken);
@@ -107,11 +94,9 @@ export class PoolMina extends TokenContractV2 {
         // => maintains ratio a/l, b/l
         let liquidityAmount = amountToken.add(amountMina);
         // mint token
-        this.internal.mint({ address: sender, amount: liquidityAmount });
+        // this.internal.mint({ address: sender, amount: liquidityAmount });
 
         // set new supply
-        this.reserveMina.set(balanceMina.add(amountMina));
-        this.reserveToken.set(balanceToken.add(amountToken));
         this.liquiditySupply.set(actualSupply.add(liquidityAmount));
     }
 
@@ -119,9 +104,10 @@ export class PoolMina extends TokenContractV2 {
         amountMina.assertGreaterThan(UInt64.zero, "No Mina amount supplied");
 
         let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        const balanceToken = this.reserveToken.getAndRequireEquals();
-        const balanceMina = this.reserveMina.getAndRequireEquals();
+        const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
+        const balanceMina = this.account.balance.getAndRequireEquals();
 
         // amount Y to supply
         const amountToken = mulDiv(amountMina, balanceToken, balanceMina);
@@ -142,11 +128,9 @@ export class PoolMina extends TokenContractV2 {
         // => maintains ratio a/l, b/l
         let liquidityAmount = amountToken.add(amountMina);
         // mint token
-        this.internal.mint({ address: sender, amount: liquidityAmount });
+        //this.internal.mint({ address: sender, amount: liquidityAmount });
 
-        // set new supply
-        this.reserveMina.set(balanceMina.add(amountMina));
-        this.reserveToken.set(balanceToken.add(amountToken));
+        // set new supply      
         this.liquiditySupply.set(actualSupply.add(liquidityAmount));
     }
 
@@ -154,13 +138,9 @@ export class PoolMina extends TokenContractV2 {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
-        const balanceToken = this.reserveToken.getAndRequireEquals();
-        const balanceMina = this.reserveMina.getAndRequireEquals();
-
         // we request token out because this is the token holder who update his balance to transfer out
         let tokenContractOut = new TokenStandard(this.token.getAndRequireEquals());
         let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
-
 
         // transfer In before transfer out        
         let sender = this.sender.getUnconstrained();
@@ -174,26 +154,24 @@ export class PoolMina extends TokenContractV2 {
         //await accountUser.send({ to: this, amount: amountIn });
         await tokenContractOut.transfer(tokenHolderOut.self, sender, amountOut);
 
-        // set new supply
-        this.reserveMina.set(balanceMina.add(amountIn));
-        this.reserveToken.set(balanceToken.sub(amountOut));
     }
 
     @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64) {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
-        const tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenContract = new TokenStandard(this.token.getAndRequireEquals());
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        const reserveIn = this.reserveToken.getAndRequireEquals();
-        const reserveOut = this.reserveMina.getAndRequireEquals();
+        const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
+        const balanceMina = this.account.balance.getAndRequireEquals();
 
-        reserveIn.assertGreaterThan(amountIn, "Insufficient reserve in");
+        balanceToken.assertGreaterThan(amountIn, "Insufficient reserve in");
 
-        let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
+        let amountOut = mulDiv(balanceMina, amountIn, balanceToken.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
-        reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
+        balanceToken.assertGreaterThan(amountOut, "Insufficient reserve out");
 
         let sender = this.sender.getUnconstrained();
 
@@ -202,9 +180,6 @@ export class PoolMina extends TokenContractV2 {
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
 
-        // set new supply
-        this.reserveToken.set(reserveIn.add(amountIn));
-        this.reserveMina.set(reserveOut.sub(amountOut));
     }
 
 }

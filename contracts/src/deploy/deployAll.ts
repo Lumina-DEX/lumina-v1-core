@@ -271,8 +271,8 @@ async function swapMina() {
     try {
         console.log("swap Mina");
         let amtSwap = UInt64.from(23 * 10 ** 8);
-        const mina = await zkApp.reserveMina.fetch();
-        const token = await zkApp.reserveToken.fetch();
+        const mina = await Mina.getBalance(zkAppAddress);
+        const token = await Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
         console.log("bal", { mina: mina?.toString(), token: token?.toString() })
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
             await zkApp.swapFromMina(amtSwap, UInt64.from(1000));
@@ -293,8 +293,8 @@ async function swapToken() {
         console.log("swap Token");
         let amtSwap = UInt64.from(20 * 10 ** 9);
         let dexTokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
-        const mina = await zkApp.reserveMina.fetch();
-        const token = await zkApp.reserveToken.fetch();
+        const mina = await Mina.getBalance(zkAppAddress);
+        const token = await Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
         await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToken0.deriveTokenId() });
         let from = Mina.getBalance(feepayerAddress, zkToken0.deriveTokenId());
         console.log("from balance", from.value.toString());
