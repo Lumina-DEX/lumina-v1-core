@@ -28,6 +28,7 @@ export class MinaTokenHolder extends SmartContract {
 
         const balanceMina = poolMina.balance.getAndRequireEquals();
         const balanceToken = this.account.balance.getAndRequireEquals();
+        balanceToken.greaterThan(UInt64.zero);
 
         const sender = AccountUpdate.createSigned(accountUser);
 
@@ -51,12 +52,12 @@ export class MinaTokenHolder extends SmartContract {
 
 
         // send token to the user
-        let receiverUpdate = this.send({ to: accountUser, amount: amountOut })
+        let receiverUpdate = this.send({ to: accountUser, amount: amountOutMin })
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent
         receiverUpdate.body.useFullCommitment = Bool(true)
 
 
-        return amountOut;
+        return amountOutMin;
     }
 
     // check if they are no exploit possible

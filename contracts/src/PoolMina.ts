@@ -164,28 +164,24 @@ export class PoolMina extends TokenContractV2 {
 
     }
 
-    @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64) {
+    @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
-        amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
-
+        balanceMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
+        balanceMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
-
-        const tokenId = tokenContract.deriveTokenId();
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
-        const balanceMina = this.account.balance.getAndRequireEquals();
+        const balanceToken = tokenAccount.account.balance.requireBetween(UInt64.one, balanceMax);
+        const balanceMina = this.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
 
         Provable.log("swapFromToken balance token", balanceToken);
         Provable.log("swapFromToken balance mina", balanceMina);
 
-        balanceToken.assertGreaterThan(amountIn, "Insufficient reserve in");
+        balanceMin.assertGreaterThan(amountIn, "Insufficient reserve in");
 
-        let amountOut = mulDiv(balanceMina, amountIn, balanceToken.add(amountIn));
+        let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
-
-        balanceToken.assertGreaterThan(amountOut, "Insufficient reserve out");
 
         await tokenContract.approveAccountUpdate(tokenAccount);
 
@@ -195,12 +191,6 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.transfer(sender, this.address, amountIn);
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
-
-        const balanceToken2 = tokenAccount.account.balance.getAndRequireEquals();
-        const balanceMina2 = this.account.balance.getAndRequireEquals();
-
-        Provable.log("swapFromToken balance token 2", balanceToken2);
-        Provable.log("swapFromToken balance mina 2", balanceMina2);
 
     }
 

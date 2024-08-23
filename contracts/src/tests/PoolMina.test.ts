@@ -223,19 +223,35 @@ describe('Pool Mina', () => {
     await txn.sign([senderKey]).send();
 
     const reserveIn = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
-    const reserveOut = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    const reserveOut = Mina.getBalance(zkAppAddress);
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
-    const expectedOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn))
+    const balanceMin = reserveOut.sub(reserveOut.div(100));
+    const balanceMax = reserveIn.add(reserveIn.div(100));
+
+    const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
+    const optimalOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
+
+    const minOut = optimalOut.sub(optimalOut.div(50)); // 2 % dif 
+
     const balBefore = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+
+    const userMinaBalBefore = Mina.getBalance(senderAccount);
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.swapFromToken(amountIn, UInt64.from(1));
+      await zkApp.swapFromToken(amountIn, minOut, balanceMin, balanceMax);
     });
     console.log("swap from token", txn2.toPretty());
     await txn2.prove();
     await txn2.sign([senderKey]).send();
+
+    const userMinaBalAfter = Mina.getBalance(senderAccount);
+
+    console.log('optimal out', optimalOut.toBigInt());
+    console.log('minimal out', minOut.toBigInt());
+    console.log('expected out', expectedOut.toBigInt());
+    console.log('received', userMinaBalAfter.sub(userMinaBalBefore).toBigInt());
 
     // const resIN = reserveIn.add(amountIn);
     // const resOut = reserveOut.sub(expectedOut);
