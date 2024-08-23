@@ -80,7 +80,7 @@ export class PoolMina extends SmartContract {
         amountToken.assertGreaterThan(UInt64.zero, "No token amount supplied");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        let tokenAccount = AccountUpdate.default(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
         const balanceMina = this.account.balance.getAndRequireEquals();
@@ -114,7 +114,7 @@ export class PoolMina extends SmartContract {
         amountMina.assertGreaterThan(UInt64.zero, "No Mina amount supplied");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        let tokenAccount = AccountUpdate.default(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
         const balanceMina = this.account.balance.getAndRequireEquals();
@@ -171,10 +171,13 @@ export class PoolMina extends SmartContract {
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        let tokenAccount = AccountUpdate.default(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
         const balanceMina = this.account.balance.getAndRequireEquals();
+
+        Provable.log("balance token", balanceToken);
+        Provable.log("balance mina", balanceMina);
 
         balanceToken.assertGreaterThan(amountIn, "Insufficient reserve in");
 

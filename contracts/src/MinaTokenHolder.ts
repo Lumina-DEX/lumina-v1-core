@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, TokenContract, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account } from 'o1js';
+import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account } from 'o1js';
 import { PoolMina, FungibleToken, mulDiv } from './indexmina.js';
 
 /**
