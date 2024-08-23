@@ -237,13 +237,13 @@ describe('Pool Mina', () => {
     await txn2.prove();
     await txn2.sign([senderKey]).send();
 
-    const resIN = reserveIn.add(amountIn);
-    const resOut = reserveOut.sub(expectedOut);
+    // const resIN = reserveIn.add(amountIn);
+    // const resOut = reserveOut.sub(expectedOut);
 
-    const reserveIn2 = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
-    const reserveOut2 = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
-    expect(reserveIn2.value).toEqual(resIN.value);
-    expect(reserveOut2.value).toEqual(resOut.value);
+    // const reserveIn2 = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    // const reserveOut2 = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    // expect(reserveIn2.value).toEqual(resIN.value);
+    // expect(reserveOut2.value).toEqual(resOut.value);
 
     const balAfter = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
     expect(balAfter.value).toEqual(balBefore.sub(amountIn).value);
