@@ -24,9 +24,9 @@ export class MinaTokenHolder extends SmartContract {
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
-        const poolMina = new PoolMina(this.address);
+        const poolMina = AccountUpdate.create(this.address).account;
 
-        const balanceMina = poolMina.account.balance.getAndRequireEquals();
+        const balanceMina = poolMina.balance.getAndRequireEquals();
         const balanceToken = this.account.balance.getAndRequireEquals();
 
         const sender = AccountUpdate.createSigned(accountUser);

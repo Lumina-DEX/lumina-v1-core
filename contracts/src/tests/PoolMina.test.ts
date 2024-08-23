@@ -233,6 +233,7 @@ describe('Pool Mina', () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.swapFromToken(amountIn, UInt64.from(1));
     });
+    console.log("swap from token", txn2.toPretty());
     await txn2.prove();
     await txn2.sign([senderKey]).send();
 
