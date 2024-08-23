@@ -1,4 +1,4 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey } from 'o1js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account } from 'o1js';
 import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
@@ -60,11 +60,21 @@ export class PoolMina extends SmartContract {
         // => maintains ratio a/l, b/l       
         const liquidityUser = liquidityAmount.sub(minimunLiquidity);
         // mint token
-        //this.internal.mint({ address: sender, amount: liquidityUser });
+        this.mint(this.self, sender, liquidityUser);
 
         // set default informations
         this.liquiditySupply.set(liquidityAmount);
     }
+
+    mint(from: AccountUpdate, to: PublicKey, amount: UInt64): AccountUpdate {
+        let id = TokenId.derive(from.publicKey, from.tokenId);
+        let receiver = AccountUpdate.default(to, id);
+        receiver.balance.addInPlace(amount);
+        receiver.label = `token.mint()`;
+        from.approve(receiver);
+        return receiver;
+    }
+
 
     @method async supplyLiquidityFromTokenA(amountToken: UInt64, maxAmountMina: UInt64) {
         amountToken.assertGreaterThan(UInt64.zero, "No token amount supplied");
