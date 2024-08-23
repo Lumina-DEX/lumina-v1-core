@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account } from 'o1js';
+import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool } from 'o1js';
 import { PoolMina, FungibleToken, mulDiv } from './indexmina.js';
 
 /**
@@ -7,11 +7,20 @@ import { PoolMina, FungibleToken, mulDiv } from './indexmina.js';
 export class MinaTokenHolder extends SmartContract {
     init() {
         super.init();
+
+        this.account.permissions.set({
+            ...Permissions.default(),
+            send: Permissions.proof(),
+            setVerificationKey:
+                Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+            setPermissions: Permissions.impossible(),
+        });
     }
 
     // this works for both directions (in our case where both tokens use the same contract)
     @method.returns(UInt64)
     async swap(
+        accountUser: PublicKey,
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
@@ -36,9 +45,12 @@ export class MinaTokenHolder extends SmartContract {
 
         reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
 
+
         // send token to the user
-        this.balance.subInPlace(amountOut);
-        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+        let receiverUpdate = this.send({ to: accountUser, amount: amountOut })
+        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent
+        receiverUpdate.body.useFullCommitment = Bool(true)
+
 
         return amountOut;
     }

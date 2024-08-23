@@ -12,7 +12,7 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class PoolMina extends SmartContract {
+export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
     @state(UInt64) liquiditySupply = State<UInt64>();
@@ -24,8 +24,14 @@ export class PoolMina extends SmartContract {
 
         this.account.permissions.set({
             ...Permissions.default(),
+            send: Permissions.proof(),
             setVerificationKey: Permissions.VerificationKey.proofOrSignature()
         });
+    }
+
+    @method
+    async approveBase(forest: AccountUpdateForest) {
+        this.checkZeroBalanceChange(forest);
     }
 
     /**
@@ -60,19 +66,11 @@ export class PoolMina extends SmartContract {
         // => maintains ratio a/l, b/l       
         const liquidityUser = liquidityAmount.sub(minimunLiquidity);
         // mint token
-        this.mint(this.self, sender, liquidityUser);
+        this.internal.mint({ address: sender, amount: liquidityUser });
+
 
         // set default informations
         this.liquiditySupply.set(liquidityAmount);
-    }
-
-    mint(from: AccountUpdate, to: PublicKey, amount: UInt64): AccountUpdate {
-        let id = TokenId.derive(from.publicKey, from.tokenId);
-        let receiver = AccountUpdate.default(to, id);
-        receiver.balance.addInPlace(amount);
-        receiver.label = `token.mint()`;
-        from.approve(receiver);
-        return receiver;
     }
 
 
@@ -104,7 +102,7 @@ export class PoolMina extends SmartContract {
         // => maintains ratio a/l, b/l
         let liquidityAmount = amountToken.add(amountMina);
         // mint token
-        // this.internal.mint({ address: sender, amount: liquidityAmount });
+        this.internal.mint({ address: sender, amount: liquidityAmount });
 
         // set new supply
         this.liquiditySupply.set(actualSupply.add(liquidityAmount));
@@ -138,7 +136,7 @@ export class PoolMina extends SmartContract {
         // => maintains ratio a/l, b/l
         let liquidityAmount = amountToken.add(amountMina);
         // mint token
-        //this.internal.mint({ address: sender, amount: liquidityAmount });
+        this.internal.mint({ address: sender, amount: liquidityAmount });
 
         // set new supply      
         this.liquiditySupply.set(actualSupply.add(liquidityAmount));
@@ -159,10 +157,10 @@ export class PoolMina extends SmartContract {
         // transfer token in to this pool
         await accountUser.send({ to: this, amount: amountIn });
         // calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin);
+        const amountOut = await tokenHolderOut.swap(sender, amountIn, amountOutMin);
 
         //await accountUser.send({ to: this, amount: amountIn });
-        await tokenContractOut.transfer(tokenHolderOut.address, sender, amountOut);
+        //await tokenContractOut.transfer(tokenHolderOut.address, sender, amountOut);
 
     }
 
