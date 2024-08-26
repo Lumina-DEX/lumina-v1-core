@@ -3,8 +3,10 @@ import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64,
 import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
 import { FungibleToken } from '../FungibleToken';
+import { FungibleTokenProof } from '../FungibleTokenProof';
 import { mulDiv } from '../MathLibrary';
 import { FungibleTokenAdmin } from '../FungibleTokenAdmin';
+import { FungibleTokenAdminProof } from '../FungibleTokenAdminProof';
 
 let proofsEnabled = false;
 
@@ -28,10 +30,10 @@ describe('Pool Mina', () => {
     zkToken0: FungibleToken,
     zkLiquidityTokenAdminAddress: PublicKey,
     zkLiquidityTokenAdminPrivateKey: PrivateKey,
-    zkLiquidityTokenAdmin: FungibleTokenAdmin,
+    zkLiquidityTokenAdmin: FungibleTokenAdminProof,
     zkLiquidityTokenAddress: PublicKey,
     zkLiquidityTokenPrivateKey: PrivateKey,
-    zkLiquidityToken: FungibleToken,
+    zkLiquidityToken: FungibleTokenProof,
     tokenHolder0: MinaTokenHolder;
 
   beforeAll(async () => {
@@ -41,7 +43,9 @@ describe('Pool Mina', () => {
     if (proofsEnabled) {
       console.time('compile pool');
       await FungibleTokenAdmin.compile();
+      await FungibleTokenAdminProof.compile();
       await FungibleToken.compile();
+      await FungibleTokenProof.compile();
       const key = await PoolMina.compile();
       await MinaTokenHolder.compile();
       console.timeEnd('compile pool');
@@ -82,11 +86,11 @@ describe('Pool Mina', () => {
 
     zkLiquidityTokenAdminPrivateKey = PrivateKey.random();
     zkLiquidityTokenAdminAddress = zkLiquidityTokenAdminPrivateKey.toPublicKey();
-    zkLiquidityTokenAdmin = new FungibleTokenAdmin(zkLiquidityTokenAdminAddress);
+    zkLiquidityTokenAdmin = new FungibleTokenAdminProof(zkLiquidityTokenAdminAddress);
 
     zkLiquidityTokenPrivateKey = PrivateKey.random();
     zkLiquidityTokenAddress = zkLiquidityTokenPrivateKey.toPublicKey();
-    zkLiquidityToken = new FungibleToken(zkLiquidityTokenAddress);
+    zkLiquidityToken = new FungibleTokenProof(zkLiquidityTokenAddress);
 
 
     // deploy liquidity token
@@ -195,7 +199,7 @@ describe('Pool Mina', () => {
     const liquidityAmount = amt.add(amtToken).sub(minimunLiquidity);
 
     txn = await Mina.transaction(senderAccount, async () => {
-      //AccountUpdate.fundNewAccount(senderAccount, 2);
+      AccountUpdate.fundNewAccount(senderAccount, 1);
       await zkApp.mintFungibleToken(liquidityAmount);
     });
     console.log("mint fungible", txn.toPretty());

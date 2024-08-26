@@ -1,5 +1,5 @@
 import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64 } from 'o1js';
-import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
+import { FungibleToken, FungibleTokenProof, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -54,8 +54,8 @@ export class PoolMina extends TokenContractV2 {
 
         //const tokens = AccountUpdate.createSigned(sender, this.deriveTokenId());
         await this.internal.burn({ address: sender, amount });
-        // const fungibleToken = new FungibleToken(this.liquidityToken.getAndRequireEquals());
-        // await fungibleToken.mint(sender, amount);
+        const fungibleToken = new FungibleTokenProof(this.liquidityToken.getAndRequireEquals());
+        await fungibleToken.mint(sender, amount);
     }
 
     @method async supplyFirstLiquidities(amountToken: UInt64, amountMina: UInt64) {
