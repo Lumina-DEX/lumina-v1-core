@@ -41,8 +41,21 @@ export class PoolMina extends TokenContractV2 {
      * Upgrade to a new version
      * @param verificationKey new verification key
      */
-    @method async updgrade(verificationKey: VerificationKey) {
+    @method async upgrade(verificationKey: VerificationKey) {
         this.account.verificationKey.set(verificationKey);
+    }
+
+    /**
+     * Mint fungible token to user in exchange of internal token
+     * @param amount amount to mint
+     */
+    @method async mintFungibleToken(amount: UInt64) {
+        const sender = this.sender.getUnconstrained();
+
+        //const tokens = AccountUpdate.createSigned(sender, this.deriveTokenId());
+        await this.internal.burn({ address: sender, amount });
+        // const fungibleToken = new FungibleToken(this.liquidityToken.getAndRequireEquals());
+        // await fungibleToken.mint(sender, amount);
     }
 
     @method async supplyFirstLiquidities(amountToken: UInt64, amountMina: UInt64) {

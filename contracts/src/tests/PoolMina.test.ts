@@ -167,10 +167,10 @@ describe('Pool Mina', () => {
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
 
-    // const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-    // const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
-    // console.log("liquidity user", liquidityUser.toString());
-    // expect(liquidityUser.value).toEqual(expected);
+    const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
+    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
+    console.log("liquidity user", liquidityUser.toString());
+    expect(liquidityUser.value).toEqual(expected);
 
     const balanceToken = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
     expect(balanceToken.value).toEqual(amtToken.value);
@@ -179,6 +179,31 @@ describe('Pool Mina', () => {
     expect(balanceMina.value).toEqual(amt.value);
 
   });
+
+
+  it('mint fungible token', async () => {
+
+    let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
+    let txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 2);
+      await zkApp.supplyFirstLiquidities(amtToken, amt);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    const liquidityAmount = amt.add(amtToken).sub(minimunLiquidity);
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      //AccountUpdate.fundNewAccount(senderAccount, 2);
+      await zkApp.mintFungibleToken(liquidityAmount);
+    });
+    console.log("mint fungible", txn.toPretty());
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+  });
+
 
 
   it('add mina ', async () => {
