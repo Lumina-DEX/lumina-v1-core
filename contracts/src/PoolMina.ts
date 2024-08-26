@@ -119,7 +119,7 @@ export class PoolMina extends TokenContractV2 {
         amountMina.assertGreaterThan(UInt64.zero, "No Mina amount supplied");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenAccount = AccountUpdate.default(this.address, tokenContract.deriveTokenId());
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
         const balanceMina = this.account.balance.getAndRequireEquals();
@@ -134,8 +134,13 @@ export class PoolMina extends TokenContractV2 {
         let sender = this.sender.getUnconstrained();
         let senderUpdate = AccountUpdate.createSigned(sender);
 
-        await tokenContract.transfer(sender, this.address, amountToken);
-        await senderUpdate.send({ to: this.address, amount: amountMina });
+        senderUpdate.balance.subInPlace(amountMina);
+        this.self.balance.addInPlace(amountMina);
+
+        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
+        //await tokenContract.transfer(senderUpdate.publicKey, this.address, amountToken);
+        senderToken.balance.subInPlace(amountToken);
+        tokenAccount.balance.addInPlace(amountToken);
 
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
 
@@ -147,6 +152,8 @@ export class PoolMina extends TokenContractV2 {
 
         // set new supply      
         circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount);
+
+        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
 
     @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64) {
