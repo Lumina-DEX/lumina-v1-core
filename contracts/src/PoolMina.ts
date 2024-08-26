@@ -47,8 +47,8 @@ export class PoolMina extends TokenContractV2 {
 
 
     @method async supplyFirstLiquidities(amountToken: UInt64, amountMina: UInt64) {
-        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
-        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals()
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
+        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
         balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
 
         amountToken.assertGreaterThan(UInt64.zero, "No amount A supplied");
@@ -59,13 +59,19 @@ export class PoolMina extends TokenContractV2 {
         liquidityAmount.assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        // require signature on transfer, so don't need to request it now
-        let sender = this.sender.getAndRequireSignature();
+        // create custom account update to optimize the number of account update
+        let sender = this.sender.getUnconstrained();
         let senderUpdate = AccountUpdate.createSigned(sender);
 
-        await tokenContract.transfer(sender, this.address, amountToken);
-        await senderUpdate.send({ to: this, amount: amountMina });
+        senderUpdate.balance.subInPlace(amountMina);
+        this.self.balance.addInPlace(amountMina);
+
+        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
+        //await tokenContract.transfer(senderUpdate.publicKey, this.address, amountToken);
+        senderToken.balance.subInPlace(amountToken);
+        tokenAccount.balance.addInPlace(amountToken);
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
         // => maintains ratio a/l, b/l       
@@ -74,9 +80,10 @@ export class PoolMina extends TokenContractV2 {
         this.internal.mint({ address: sender, amount: liquidityUser });
 
         // keep circulation supply info to calculate next liquidity add/remove
-        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount)
-    }
+        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount);
 
+        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+    }
 
 
     @method async supplyLiquidityFromToken(amountToken: UInt64, maxAmountMina: UInt64) {
