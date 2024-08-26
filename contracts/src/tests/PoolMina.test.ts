@@ -212,6 +212,28 @@ describe('Pool Mina', () => {
     expect(balAfter.value).toEqual(balBefore.add(expectedOut).value);
   });
 
+  it('try hack swap from mina', async () => {
+    let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
+    const txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.supplyFirstLiquidities(amtToken, amt);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    let amountIn = UInt64.from(1.3 * 10 ** 9);
+
+    const txn2 = await Mina.transaction(senderAccount, async () => {
+      await tokenHolder0.swap(amountIn, UInt64.from(1));
+      await zkToken0.approveAccountUpdate(zkApp.self);
+    });
+    await txn2.prove();
+    // expect failed
+    await expect(txn2.sign([senderKey]).send()).rejects.toThrow();
+
+  });
+
   it('swap from token', async () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
