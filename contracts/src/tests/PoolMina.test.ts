@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
 import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
 import { MinaTokenHolder } from '../MinaTokenHolder';
@@ -26,21 +26,24 @@ describe('Pool Mina', () => {
     zkToken0Address: PublicKey,
     zkToken0PrivateKey: PrivateKey,
     zkToken0: FungibleToken,
-    tokenHolder0: MinaTokenHolder,
-    tokenHolder1: MinaTokenHolder;
+    zkLiquidityTokenAdminAddress: PublicKey,
+    zkLiquidityTokenAdminPrivateKey: PrivateKey,
+    zkLiquidityTokenAdmin: FungibleTokenAdmin,
+    zkLiquidityTokenAddress: PublicKey,
+    zkLiquidityTokenPrivateKey: PrivateKey,
+    zkLiquidityToken: FungibleToken,
+    tokenHolder0: MinaTokenHolder;
 
   beforeAll(async () => {
+    const analyze = await PoolMina.analyzeMethods();
+    getGates(analyze);
+
     if (proofsEnabled) {
       console.time('compile pool');
+      await FungibleTokenAdmin.compile();
       await FungibleToken.compile();
       const key = await PoolMina.compile();
       await MinaTokenHolder.compile();
-
-      console.log("provers", key.provers.length);
-
-      const analyze = await PoolMina.analyzeMethods();
-      getGates(analyze);
-
       console.timeEnd('compile pool');
     }
 
@@ -77,7 +80,40 @@ describe('Pool Mina', () => {
     zkToken0Address = zkToken0PrivateKey.toPublicKey();
     zkToken0 = new FungibleToken(zkToken0Address);
 
-    const args: PoolMinaDeployProps = { token: zkToken0Address };
+    zkLiquidityTokenAdminPrivateKey = PrivateKey.random();
+    zkLiquidityTokenAdminAddress = zkLiquidityTokenAdminPrivateKey.toPublicKey();
+    zkLiquidityTokenAdmin = new FungibleTokenAdmin(zkLiquidityTokenAdminAddress);
+
+    zkLiquidityTokenPrivateKey = PrivateKey.random();
+    zkLiquidityTokenAddress = zkLiquidityTokenPrivateKey.toPublicKey();
+    zkLiquidityToken = new FungibleToken(zkLiquidityTokenAddress);
+
+
+    // deploy liquidity token
+    const txn0 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 3);
+      await zkLiquidityTokenAdmin.deploy({
+        adminPublicKey: zkAppAddress,
+      });
+      await zkLiquidityToken.deploy({
+        symbol: "lma",
+        src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+      });
+      await zkLiquidityToken.initialize(
+        zkLiquidityTokenAdminAddress,
+        UInt8.from(9),
+        Bool(false),
+      )
+    });
+    await txn0.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn0.sign([deployerKey, zkLiquidityTokenAdminPrivateKey, zkLiquidityTokenPrivateKey]).send();
+
+
+    const args: PoolMinaDeployProps = { token: zkToken0Address, liquidityToken: zkLiquidityTokenAddress };
+
+    await fetchAccount({ publicKey: zkLiquidityTokenAddress });
+
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.deploy(args);
@@ -93,6 +129,8 @@ describe('Pool Mina', () => {
         UInt8.from(9),
         Bool(false),
       )
+
+      //await zkApp.initialize();
     });
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
@@ -109,23 +147,22 @@ describe('Pool Mina', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn2.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey]).send();
 
+
     // mint token to user
     await mintToken(senderAccount);
 
   });
 
   it('add first liquidity', async () => {
-    showBalanceToken0();
-    showBalanceToken1();
 
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
+      AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     console.log("supplyFirstLiquidities", txn.toPretty());
-    console.log("createPool au", txn.transaction.accountUpdates.length);
+    console.log("supplyFirstLiquidities au", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
@@ -149,7 +186,7 @@ describe('Pool Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
+      AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     console.log("createPool au", txn.transaction.accountUpdates.length);
@@ -177,7 +214,7 @@ describe('Pool Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
+      AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     await txn.prove();
@@ -216,7 +253,7 @@ describe('Pool Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
+      AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     await txn.prove();
@@ -238,7 +275,7 @@ describe('Pool Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
+      AccountUpdate.fundNewAccount(senderAccount, 2);
       await zkApp.supplyFirstLiquidities(amtToken, amt);
     });
     await txn.prove();

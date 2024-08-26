@@ -103,7 +103,8 @@ export class MinaTokenHolder extends SmartContract {
         liquidityAmount: UInt64
     ) {
         let pm = new PoolMina(poolAddress);
-        const totalSupply = pm.liquiditySupply.getAndRequireEquals();
+        const poolMina = AccountUpdate.create(this.address, pm.deriveTokenId());
+        const totalSupply = poolMina.account.balance.getAndRequireEquals();
 
         const tokenA = new FungibleToken(pm.token.getAndRequireEquals());
 

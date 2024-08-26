@@ -1,4 +1,4 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account } from 'o1js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64 } from 'o1js';
 import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
@@ -6,6 +6,7 @@ export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
 
 export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
     token: PublicKey;
+    liquidityToken: PublicKey;
 }
 
 
@@ -15,12 +16,14 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
-    @state(UInt64) liquiditySupply = State<UInt64>();
+    @state(PublicKey) liquidityToken = State<PublicKey>();
 
     async deploy(args: PoolMinaDeployProps) {
         await super.deploy(args);
-        args.token.isEmpty().assertFalse("token empty");
+        args.token.isEmpty().assertFalse("Token empty");
+        args.liquidityToken.isEmpty().assertFalse("Liquidity token empty");
         this.token.set(args.token);
+        this.liquidityToken.set(args.liquidityToken);
 
         this.account.permissions.set({
             ...Permissions.default(),
@@ -43,8 +46,9 @@ export class PoolMina extends TokenContractV2 {
     }
 
     @method async supplyFirstLiquidities(amountToken: UInt64, amountMina: UInt64) {
-        const liquidity = this.liquiditySupply.getAndRequireEquals();
-        liquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
+        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals()
+        balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
 
         amountToken.assertGreaterThan(UInt64.zero, "No amount A supplied");
         amountMina.assertGreaterThan(UInt64.zero, "No amount Mina supplied");
@@ -68,10 +72,10 @@ export class PoolMina extends TokenContractV2 {
         // mint token
         this.internal.mint({ address: sender, amount: liquidityUser });
 
-
-        // set default informations
-        this.liquiditySupply.set(liquidityAmount);
+        // keep circulation supply info to calculate next liquidity add/remove
+        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount)
     }
+
 
 
     @method async supplyLiquidityFromTokenA(amountToken: UInt64, maxAmountMina: UInt64) {
@@ -96,7 +100,9 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.transfer(sender, this.address, amountToken);
         await senderUpdate.send({ to: this.address, amount: amountMina });
 
-        const actualSupply = this.liquiditySupply.getAndRequireEquals();
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
+
+        const actualSupply = circulationUpdate.account.balance.getAndRequireEquals();
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
         // => maintains ratio a/l, b/l
@@ -105,7 +111,7 @@ export class PoolMina extends TokenContractV2 {
         this.internal.mint({ address: sender, amount: liquidityAmount });
 
         // set new supply
-        this.liquiditySupply.set(actualSupply.add(liquidityAmount));
+        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount)
     }
 
     @method async supplyLiquidityFromMina(amountMina: UInt64, maxAmountToken: UInt64) {
@@ -130,7 +136,7 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.transfer(sender, this.address, amountToken);
         await senderUpdate.send({ to: this.address, amount: amountMina });
 
-        const actualSupply = this.liquiditySupply.getAndRequireEquals();
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
         // => maintains ratio a/l, b/l
@@ -139,7 +145,7 @@ export class PoolMina extends TokenContractV2 {
         this.internal.mint({ address: sender, amount: liquidityAmount });
 
         // set new supply      
-        this.liquiditySupply.set(actualSupply.add(liquidityAmount));
+        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount);
     }
 
     @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64) {
