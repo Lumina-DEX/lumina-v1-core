@@ -67,9 +67,15 @@ export class MinaTokenHolder extends SmartContract {
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
+        // check if we can spoof the public key
+        poolAccount.publicKey.assertEquals(this.address);
+
         const balanceMina = poolAccount.account.balance.getAndRequireEquals();
         const balanceToken = this.account.balance.getAndRequireEquals();
 
+        let sender = this.sender.getUnconstrained();
+        let senderSigned = AccountUpdate.createSigned(sender);
+        senderSigned.balance.subInPlace(amountIn);
 
         // this account = Address + derive token
         const reserveIn = balanceMina;

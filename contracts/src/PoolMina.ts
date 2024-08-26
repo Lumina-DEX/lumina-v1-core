@@ -187,10 +187,7 @@ export class PoolMina extends TokenContractV2 {
 
         await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
 
-
-        // transfer token in to this pool
-        let senderSigned = AccountUpdate.createSigned(sender);
-        senderSigned.balance.subInPlace(amountIn);
+        // transfer token in to this pool      
         this.self.balance.addInPlace(amountIn);
     }
 
