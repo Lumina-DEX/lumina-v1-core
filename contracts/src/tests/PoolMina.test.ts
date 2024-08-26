@@ -193,8 +193,8 @@ describe('Pool Mina', () => {
     const expectedOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn))
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await tokenHolder0.swap(senderAccount, amountIn, UInt64.from(1));
-      await zkToken0.approveAccountUpdate(tokenHolder0.self);
+      await zkApp.swapFromMina(amountIn, UInt64.from(1));
+      //await zkToken0.approveAccountUpdate(zkApp.self);
     });
     console.log("swap from mina", txn2.toPretty());
     await txn2.prove();
