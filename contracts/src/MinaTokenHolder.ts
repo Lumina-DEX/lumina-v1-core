@@ -63,12 +63,11 @@ export class MinaTokenHolder extends SmartContract {
     // swap from mina to this token directly through the pool
     @method.returns(UInt64)
     async swap(
+        poolAccount: AccountUpdate,
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
-        const poolMina = AccountUpdate.create(this.address);
-
-        const balanceMina = poolMina.account.balance.getAndRequireEquals();
+        const balanceMina = poolAccount.account.balance.getAndRequireEquals();
         const balanceToken = this.account.balance.getAndRequireEquals();
 
 

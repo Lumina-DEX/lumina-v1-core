@@ -262,6 +262,7 @@ describe('Pool Mina', () => {
       //await zkToken0.approveAccountUpdate(zkApp.self);
     });
     console.log("swap from mina", txn2.toPretty());
+    console.log("swap from mina au", txn2.transaction.accountUpdates.length);
     await txn2.prove();
     await txn2.sign([senderKey]).send();
 
@@ -290,7 +291,7 @@ describe('Pool Mina', () => {
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder0.swap(amountIn, UInt64.from(1));
+      await tokenHolder0.swap(AccountUpdate.create(zkAppAddress), amountIn, UInt64.from(1));
       await zkToken0.approveAccountUpdate(zkApp.self);
     });
     await txn2.prove();
@@ -330,6 +331,7 @@ describe('Pool Mina', () => {
       await zkApp.swapFromToken(amountIn, minOut, balanceMin, balanceMax);
     });
     console.log("swap from token", txn2.toPretty());
+    console.log("swap from token au", txn2.transaction.accountUpdates.length);
     await txn2.prove();
     await txn2.sign([senderKey]).send();
 
