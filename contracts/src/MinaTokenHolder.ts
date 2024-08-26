@@ -63,19 +63,13 @@ export class MinaTokenHolder extends SmartContract {
     // swap from mina to this token directly through the pool
     @method.returns(UInt64)
     async swap(
-        poolAccount: AccountUpdate,
         amountIn: UInt64,
         amountOutMin: UInt64
     ) {
-        // check if we can spoof the public key
-        poolAccount.publicKey.assertEquals(this.address);
+        const poolAccount = AccountUpdate.create(this.address);
 
         const balanceMina = poolAccount.account.balance.getAndRequireEquals();
         const balanceToken = this.account.balance.getAndRequireEquals();
-
-        let sender = this.sender.getUnconstrained();
-        let senderSigned = AccountUpdate.createSigned(sender);
-        senderSigned.balance.subInPlace(amountIn);
 
         // this account = Address + derive token
         const reserveIn = balanceMina;
@@ -91,6 +85,13 @@ export class MinaTokenHolder extends SmartContract {
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
         reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
+
+        let sender = this.sender.getUnconstrained();
+        let senderSigned = AccountUpdate.createSigned(sender);
+        senderSigned.balance.subInPlace(amountIn);
+
+        // transfer token in to this pool      
+        poolAccount.balance.addInPlace(amountIn);
 
         // send token to the user
         this.balance.subInPlace(amountOut);

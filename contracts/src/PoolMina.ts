@@ -177,7 +177,7 @@ export class PoolMina extends TokenContractV2 {
         let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
 
         // calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(this.self, amountIn, amountOutMin);
+        const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin);
 
         // transfer In before transfer out        
         let sender = this.sender.getUnconstrained();
@@ -186,9 +186,6 @@ export class PoolMina extends TokenContractV2 {
         userAccount.balance.addInPlace(amountOut);
 
         await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
-
-        // transfer token in to this pool      
-        this.self.balance.addInPlace(amountIn);
     }
 
     @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {

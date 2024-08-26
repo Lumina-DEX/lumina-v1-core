@@ -291,7 +291,7 @@ describe('Pool Mina', () => {
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder0.swap(AccountUpdate.create(zkAppAddress), amountIn, UInt64.from(1));
+      await tokenHolder0.swap(amountIn, UInt64.from(1));
       await zkToken0.approveAccountUpdate(zkApp.self);
     });
     await txn2.prove();
