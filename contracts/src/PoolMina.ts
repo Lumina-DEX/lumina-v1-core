@@ -168,7 +168,7 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
 
-    @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64) {
+    @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
 
@@ -177,7 +177,7 @@ export class PoolMina extends TokenContractV2 {
         let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
 
         // calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin);
+        const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin, balanceMin, balanceMax);
 
         // transfer In before transfer out        
         let sender = this.sender.getUnconstrained();
@@ -196,11 +196,8 @@ export class PoolMina extends TokenContractV2 {
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        const balanceToken = tokenAccount.account.balance.requireBetween(UInt64.one, balanceMax);
-        const balanceMina = this.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
-
-        Provable.log("swapFromToken balance token", balanceToken);
-        Provable.log("swapFromToken balance mina", balanceMina);
+        tokenAccount.account.balance.requireBetween(UInt64.one, balanceMax);
+        this.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
 
         balanceMin.assertGreaterThan(amountIn, "Insufficient reserve in");
 

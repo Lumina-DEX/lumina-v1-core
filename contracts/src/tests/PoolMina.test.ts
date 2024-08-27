@@ -290,10 +290,17 @@ describe('Pool Mina', () => {
 
     const balBefore = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
 
-    const expectedOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn))
+    const balanceMin = reserveOut.sub(reserveOut.div(100));
+    const balanceMax = reserveIn.add(reserveIn.div(100));
+
+    const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
+    const optimalOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
+
+    const minOut = optimalOut.sub(optimalOut.div(50)); // 2 % dif 
+
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.swapFromMina(amountIn, UInt64.from(1));
+      await zkApp.swapFromMina(amountIn, minOut, balanceMin, balanceMax);
       //await zkToken0.approveAccountUpdate(zkApp.self);
     });
     console.log("swap from mina", txn2.toPretty());
@@ -326,7 +333,7 @@ describe('Pool Mina', () => {
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder0.swap(amountIn, UInt64.from(1));
+      await tokenHolder0.swap(amountIn, UInt64.from(1), UInt64.from(1), UInt64.from(1));
       await zkToken0.approveAccountUpdate(zkApp.self);
     });
     await txn2.prove();
@@ -390,9 +397,9 @@ describe('Pool Mina', () => {
   });
   /*
     it('supply liquidity', async () => {
-  
+   
       await mintToken(bobAccount);
-  
+   
       let amt = UInt64.from(10 * 10 ** 9);
       const txn = await Mina.transaction(senderAccount, async () => {
         AccountUpdate.fundNewAccount(senderAccount, 1);
@@ -400,7 +407,7 @@ describe('Pool Mina', () => {
       });
       await txn.prove();
       await txn.sign([senderKey]).send();
-  
+   
       showBalanceToken0();
       showBalanceToken1();
       let amtLiquidity = UInt64.from(1 * 10 ** 9);
@@ -410,10 +417,10 @@ describe('Pool Mina', () => {
       });
       await txn2.prove();
       await txn2.sign([bobKey]).send();
-  
+   
       showBalanceToken0();
       showBalanceToken1();
-  
+   
       const liquidityUser = Mina.getBalance(bobAccount, zkApp.deriveTokenId());
       console.log("liquidity bob", liquidityUser.toString());
     });

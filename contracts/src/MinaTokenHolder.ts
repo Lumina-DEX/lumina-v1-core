@@ -64,27 +64,18 @@ export class MinaTokenHolder extends SmartContract {
     @method.returns(UInt64)
     async swap(
         amountIn: UInt64,
-        amountOutMin: UInt64
+        amountOutMin: UInt64,
+        balanceMin: UInt64,
+        balanceMax: UInt64
     ) {
         const poolAccount = AccountUpdate.create(this.address);
 
-        const balanceMina = poolAccount.account.balance.getAndRequireEquals();
-        const balanceToken = this.account.balance.getAndRequireEquals();
-
-        // this account = Address + derive token
-        const reserveIn = balanceMina;
-        const reserveOut = balanceToken;
-
-        Provable.log("reserveIn", reserveIn);
-        Provable.log("reserveOut", reserveOut);
-
-        reserveIn.assertGreaterThan(amountIn, "Insufficient reserve in");
+        poolAccount.account.balance.requireBetween(UInt64.one, balanceMax);
+        this.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
 
         // No tax for the moment (probably in a next version), todo check overflow     
-        let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
+        let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
-
-        reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
 
         let sender = this.sender.getUnconstrained();
         let senderSigned = AccountUpdate.createSigned(sender);
