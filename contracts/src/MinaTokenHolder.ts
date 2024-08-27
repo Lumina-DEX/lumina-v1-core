@@ -60,7 +60,7 @@ export class MinaTokenHolder extends SmartContract {
         return amountOutMin;
     }
 
-    // swap from mina to this token directly through the pool
+    // swap from mina to this token through the pool
     @method.returns(UInt64)
     async swap(
         amountIn: UInt64,
@@ -105,29 +105,31 @@ export class MinaTokenHolder extends SmartContract {
     // check if they are no exploit possible
     @method.returns(UInt64)
     async withdrawLiquidity(
-        poolAddress: PublicKey,
         liquidityAmount: UInt64
     ) {
-        let pm = new PoolMina(poolAddress);
-        const poolMina = AccountUpdate.create(this.address, pm.deriveTokenId());
-        const totalSupply = poolMina.account.balance.getAndRequireEquals();
+        let pool = new PoolMina(this.address);
 
-        const tokenA = new FungibleToken(pm.token.getAndRequireEquals());
+        const balanceToken = this.account.balance.getAndRequireEquals();
 
-        const holderA = new MinaTokenHolder(poolAddress, tokenA.deriveTokenId());
+        const liquidityAccount = AccountUpdate.create(this.address, pool.deriveTokenId());
 
-        // prevent from swap from bad pool, address holderA need to match this address
-        this.address.equals(holderA.address).assertTrue("Incorrect token address");
+        const totalSupply = liquidityAccount.account.balance.getAndRequireEquals();
 
-        const reserve = holderA.account.balance.getAndRequireEquals();
+
+        const sender = this.sender.getUnconstrained();
+
+        const senderLiquidity = AccountUpdate.create(sender, pool.deriveTokenId());
+
 
         // todo overflow check
-        const amountOut = mulDiv(liquidityAmount, reserve, totalSupply);
+        const amountToken = mulDiv(liquidityAmount, balanceToken, totalSupply);
+
+        senderLiquidity.balance.subInPlace(liquidityAmount);
 
         // send token to the user
-        this.balance.subInPlace(amountOut);
+        this.balance.subInPlace(amountToken);
         this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
-        return amountOut;
+        return amountToken;
     }
 }
