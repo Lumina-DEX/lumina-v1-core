@@ -237,9 +237,11 @@ export class PoolMina extends TokenContractV2 {
         const userAccount = AccountUpdate.create(sender, tokenContractOut.deriveTokenId());
         userAccount.balance.addInPlace(amountOut);
 
+        await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
+
         // burn liquidity from user and current supply
-        await this.internal.burn({ address: this.address, amount: liquidityAmount });
-        await this.internal.burn({ address: sender, amount: liquidityAmount });
+        //  await this.internal.burn({ address: this.address, amount: liquidityAmount });
+        // await this.internal.burn({ address: sender, amount: liquidityAmount });
 
         // send mina to user
         await this.send({ to: sender, amount: amountMina });
