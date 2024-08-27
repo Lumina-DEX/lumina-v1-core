@@ -207,12 +207,15 @@ export class PoolMina extends TokenContractV2 {
         let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
-        await tokenContract.approveAccountUpdate(tokenAccount);
-
         let sender = this.sender.getUnconstrained();
+        let usertokenAccount = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
 
-        // send token A to contract
-        await tokenContract.transfer(sender, this.address, amountIn);
+        // send token from user to contract
+        usertokenAccount.balance.subInPlace(amountIn);
+        tokenAccount.balance.addInPlace(amountIn);
+
+        await tokenContract.approveAccountUpdates([usertokenAccount, tokenAccount]);
+
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
 
