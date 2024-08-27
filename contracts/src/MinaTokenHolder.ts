@@ -115,21 +115,28 @@ export class MinaTokenHolder extends SmartContract {
 
         const totalSupply = liquidityAccount.account.balance.getAndRequireEquals();
 
-
-        const sender = this.sender.getUnconstrained();
-
-        const senderLiquidity = AccountUpdate.create(sender, pool.deriveTokenId());
-
-
         // todo overflow check
         const amountToken = mulDiv(liquidityAmount, balanceToken, totalSupply);
-
-        senderLiquidity.balance.subInPlace(liquidityAmount);
 
         // send token to the user
         this.balance.subInPlace(amountToken);
         this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
+        await pool.burnLiquidity(this.sender.getUnconstrained(), liquidityAmount);
+
         return amountToken;
+    }
+
+    /**
+     * Not secure at the moment
+     * @param amount 
+     */
+    @method
+    async moveAmount(
+        amount: UInt64
+    ) {
+        // send token to the user
+        this.balance.subInPlace(amount);
+        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
     }
 }

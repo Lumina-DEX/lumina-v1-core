@@ -231,20 +231,28 @@ export class PoolMina extends TokenContractV2 {
 
         const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
         const totalSupply = liquidityAccount.account.balance.getAndRequireEquals();
+
         const amountMina = mulDiv(liquidityAmount, balanceMina, totalSupply);
-        const amountOut = await tokenHolderOut.withdrawLiquidity(liquidityAmount);
+        await tokenHolderOut.moveAmount(UInt64.from(10000));
 
         const userAccount = AccountUpdate.create(sender, tokenContractOut.deriveTokenId());
-        userAccount.balance.addInPlace(amountOut);
+        userAccount.balance.addInPlace(10000);
 
         await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
 
         // burn liquidity from user and current supply
         //  await this.internal.burn({ address: this.address, amount: liquidityAmount });
-        // await this.internal.burn({ address: sender, amount: liquidityAmount });
+        //await this.internal.burn({ address: sender, amount: liquidityAmount });
 
         // send mina to user
         await this.send({ to: sender, amount: amountMina });
+    }
+
+    @method
+    async burnLiquidity(user: PublicKey, dl: UInt64) {
+        // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
+        this.internal.burn({ address: user, amount: dl });
+
     }
 
 }
