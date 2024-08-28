@@ -1,5 +1,5 @@
 import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64 } from 'o1js';
-import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
+import { FungibleToken, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
@@ -238,52 +238,32 @@ export class PoolMina extends TokenContractV2 {
     @method async withdrawLiquidity(liquidityAmount: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "No amount supplied");
 
-        const balanceMina = this.account.balance.getAndRequireEquals();
-
         // we request token out because this is the token holder who update his balance to transfer out
-        let tokenContractOut = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
 
         const sender = this.sender.getUnconstrained();
+        const balanceMina = this.account.balance.getAndRequireEquals();
+        const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
 
-        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
         const totalSupply = liquidityAccount.account.balance.getAndRequireEquals();
 
         const amountMina = mulDiv(liquidityAmount, balanceMina, totalSupply);
-        await tokenHolderOut.moveAmount(UInt64.from(10000));
+        const amountToken = mulDiv(liquidityAmount, balanceToken, totalSupply);
 
-        const userAccount = AccountUpdate.create(sender, tokenContractOut.deriveTokenId());
-        userAccount.balance.addInPlace(10000);
+        // burn liquidity from user and ciculation supply
+        // this.internal.burn({ address: sender, amount: liquidityAmount });
+        // this.internal.burn({ address: this, amount: liquidityAmount });
 
-        await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
-
-        // burn liquidity from user and current supply
-        //  await this.internal.burn({ address: this.address, amount: liquidityAmount });
-        //await this.internal.burn({ address: sender, amount: liquidityAmount });
+        // send token to user
+        const userAccount = AccountUpdate.create(sender, tokenContract.deriveTokenId());
+        tokenAccount.balance.subInPlace(amountToken);
+        userAccount.balance.addInPlace(amountToken);
+        await tokenContract.approveAccountUpdates([tokenAccount, userAccount]);
 
         // send mina to user
         await this.send({ to: sender, amount: amountMina });
-    }
-
-    @method
-    async transferToken() {
-        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
-        let subAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
-        const sender = this.sender.getUnconstrained();
-        let receiver = AccountUpdate.create(sender, tokenContract.deriveTokenId());
-
-        subAccount.balance.subInPlace(UInt64.from(1));
-        receiver.balance.addInPlace(UInt64.from(1));
-
-        await tokenContract.approveAccountUpdates([subAccount, receiver]);
-    }
-
-
-    @method
-    async burnLiquidity(user: PublicKey, dl: UInt64) {
-        // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
-        this.internal.burn({ address: user, amount: dl });
-
     }
 
 }

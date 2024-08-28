@@ -113,7 +113,7 @@ export class MinaTokenHolder extends SmartContract {
         this.balance.subInPlace(amountToken);
         this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
-        await pool.burnLiquidity(this.sender.getUnconstrained(), liquidityAmount);
+        //await pool.burnLiquidity(this.sender.getUnconstrained(), liquidityAmount);
 
         return amountToken;
     }
