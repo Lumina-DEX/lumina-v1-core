@@ -203,14 +203,10 @@ describe('Pool Mina', () => {
     txn = await Mina.transaction(senderAccount, async () => {
       await zkToken0.transfer(zkApp.address, senderAccount, UInt64.from(10));
     });
-    console.log("transferToken", txn.toPretty());
-    console.log("transferToken au", txn.transaction.accountUpdates.length);
 
     await txn.prove();
-    await txn.sign([senderKey]).send();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
   });
-
-  return;
 
 
   it('withdraw liquidity', async () => {

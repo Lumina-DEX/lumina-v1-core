@@ -181,23 +181,28 @@ export class PoolMina extends TokenContractV2 {
     }
 
     @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {
-        amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
-        amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        // we request token out because this is the token holder who update his balance to transfer out
-        let tokenContractOut = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
+        this.account.balance.requireBetween(UInt64.one, balanceMax);
+        tokenAccount.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
 
-        // calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin, balanceMin, balanceMax);
+        // No tax for the moment (probably in a next version), todo check overflow     
+        let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
+        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
-        // transfer In before transfer out        
+        // transfer mina in
         let sender = this.sender.getUnconstrained();
+        let senderSigned = AccountUpdate.createSigned(sender);
+        senderSigned.balance.subInPlace(amountIn);
+        this.balance.addInPlace(amountIn);
 
-        const userAccount = AccountUpdate.create(sender, tokenContractOut.deriveTokenId());
+        // send token to the user        
+        tokenAccount.balance.subInPlace(amountOut);
+        const userAccount = AccountUpdate.create(sender, tokenContract.deriveTokenId());
         userAccount.balance.addInPlace(amountOut);
 
-        await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
+        await tokenContract.approveAccountUpdates([tokenAccount, userAccount]);
     }
 
     @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {
