@@ -32,6 +32,18 @@ export class PoolMina extends TokenContractV2 {
         });
     }
 
+    async initialize() {
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
+        const accountUpdate = AccountUpdate.createSigned(this.address, tokenContract.deriveTokenId())
+        let permissions = Permissions.default()
+        // permission none to send directly from main contract
+        permissions.send = Permissions.none()
+        permissions.setPermissions = Permissions.impossible()
+        accountUpdate.account.permissions.set(permissions);
+
+        await tokenContract.approveAccountUpdate(accountUpdate);
+    }
+
     @method
     async approveBase(forest: AccountUpdateForest) {
         this.checkZeroBalanceChange(forest);
@@ -247,6 +259,20 @@ export class PoolMina extends TokenContractV2 {
         // send mina to user
         await this.send({ to: sender, amount: amountMina });
     }
+
+    @method
+    async transferToken() {
+        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
+        let subAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        const sender = this.sender.getUnconstrained();
+        let receiver = AccountUpdate.create(sender, tokenContract.deriveTokenId());
+
+        subAccount.balance.subInPlace(UInt64.from(1));
+        receiver.balance.addInPlace(UInt64.from(1));
+
+        await tokenContract.approveAccountUpdates([subAccount, receiver]);
+    }
+
 
     @method
     async burnLiquidity(user: PublicKey, dl: UInt64) {
