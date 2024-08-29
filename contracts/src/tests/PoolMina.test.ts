@@ -219,55 +219,6 @@ describe('Pool Mina', () => {
 
   });
 
-  it('withdraw liquidity action', async () => {
-
-    const minaUser = Mina.getBalance(senderAccount);
-    console.log("mina before", minaUser.toBigInt());
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.supplyFirstLiquidities(amtToken, amt);
-    });
-    await txn.prove();
-    await txn.sign([senderKey, zkAppPrivateKey]).send();
-
-    const minaUserAfterDeposit = Mina.getBalance(senderAccount);
-    const expectedMina = minaUser.sub(amt);
-    //expect(minaUserAfterDeposit.value).toEqual(expectedMina.value);
-    console.log("mina after deposit", minaUserAfterDeposit.toBigInt());
-
-    const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
-
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      await zkApp.depositLiquidity(liquidityUser);
-    });
-    console.log("Deposit liquidity", txn.toPretty());
-    console.log("Deposit liquidity au", txn.transaction.accountUpdates.length);
-
-    await txn.prove();
-    await txn.sign([senderKey, zkAppPrivateKey]).send();
-
-    const supply = Mina.getBalance(zkAppAddress, zkApp.deriveTokenId());
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder0.redeemLiquidityFinalize(supply);
-      await zkToken0.approveAccountUpdate(tokenHolder0.self);
-    });
-    console.log("Redeem liquidity", txn.toPretty());
-    console.log("Redeem liquidity au", txn.transaction.accountUpdates.length);
-
-    await txn.prove();
-    await txn.sign([senderKey, zkAppPrivateKey]).send();
-
-
-    const minaUserAfter = Mina.getBalance(senderAccount);
-    console.log("mina after", minaUserAfter.toBigInt());
-
-  });
-
   it('add liquidity from mina ', async () => {
 
     let amt = UInt64.from(10 * 10 ** 9);

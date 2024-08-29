@@ -6,9 +6,6 @@ import { PoolMina, FungibleToken, mulDiv } from './indexmina.js';
  */
 export class MinaTokenHolder extends SmartContract {
 
-    @state(Field) redeemActionState = State<Field>();
-    static redeemActionBatchSize = 1;
-
     init() {
         super.init();
 
@@ -19,8 +16,6 @@ export class MinaTokenHolder extends SmartContract {
                 Permissions.VerificationKey.impossibleDuringCurrentVersion(),
             setPermissions: Permissions.impossible(),
         });
-
-        this.redeemActionState.set(Reducer.initialActionState);
     }
 
     // swap from mina to this token directly
@@ -123,54 +118,4 @@ export class MinaTokenHolder extends SmartContract {
         return amountToken;
     }
 
-
-    @method async redeemLiquidityFinalize(totalSupply: UInt64) {
-        // get redeem actions
-        let pool = new PoolMina(this.address);
-
-        let fromActionState = this.redeemActionState.getAndRequireEquals();
-        let actions = pool.reducer.getActions();
-
-        // get our token balance
-        let balanceToken = this.account.balance.getAndRequireEquals();
-
-        pool.reducer.forEach(
-            actions,
-            ({ owner, amount }) => {
-                // for every user that redeemed liquidity, we calculate the token output
-                // and create a child account update which pays the user
-                const amountToken = mulDiv(amount, balanceToken, totalSupply);
-                let receiver = this.send({ to: owner, amount: amountToken });
-                // note: this should just work when the reducer gives us dummy data
-                Provable.log("amounttoken", amountToken);
-                // important: these child account updates inherit token permission from us
-                receiver.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-            },
-            {
-                maxUpdatesWithActions: MinaTokenHolder.redeemActionBatchSize,
-                // DEX contract doesn't allow setting preconditions from outside (= w/o proof)
-                skipActionStatePrecondition: true,
-            }
-        );
-
-        // update action state so these payments can't be triggered a 2nd time
-        this.redeemActionState.set(actions.hash);
-
-        // precondition on the DEX contract, to prove we used the right actions & token supply
-        await pool.redeemLiquidityFinalize(actions.hash, totalSupply, fromActionState);
-    }
-
-
-    /**
-     * Not secure at the moment
-     * @param amount 
-     */
-    @method
-    async moveAmount(
-        amount: UInt64
-    ) {
-        // send token to the user
-        this.balance.subInPlace(amount);
-        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-    }
 }
