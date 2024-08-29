@@ -253,31 +253,21 @@ export class PoolMina extends TokenContractV2 {
     //     this.reducer.dispatch(depositInfo);
     // }
 
-    @method async withdrawLiquidity(liquidityAmount: UInt64) {
+    @method async withdrawLiquidity(liquidityAmount: UInt64, totalSupply: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "No amount supplied");
 
         const balanceMina = this.account.balance.getAndRequireEquals();
 
-        // we request token out because this is the token holder who update his balance to transfer out
-        let tokenContractOut = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
-
         const sender = this.sender.getUnconstrained();
 
         const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
-        const totalSupply = liquidityAccount.account.balance.getAndRequireEquals();
+        liquidityAccount.account.balance.requireEquals(totalSupply);
 
         const amountMina = mulDiv(liquidityAmount, balanceMina, totalSupply);
-        await tokenHolderOut.moveAmount(UInt64.from(10000));
-
-        const userAccount = AccountUpdate.create(sender, tokenContractOut.deriveTokenId());
-        userAccount.balance.addInPlace(10000);
-
-        await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
 
         // burn liquidity from user and current supply
-        //  await this.internal.burn({ address: this.address, amount: liquidityAmount });
-        //await this.internal.burn({ address: sender, amount: liquidityAmount });
+        await this.internal.burn({ address: liquidityAccount, amount: liquidityAmount });
+        await this.internal.burn({ address: sender, amount: liquidityAmount });
 
         // send mina to user
         await this.send({ to: sender, amount: amountMina });

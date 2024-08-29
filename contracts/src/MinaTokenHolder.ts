@@ -102,24 +102,23 @@ export class MinaTokenHolder extends SmartContract {
     // check if they are no exploit possible
     @method.returns(UInt64)
     async withdrawLiquidity(
-        liquidityAmount: UInt64
+        liquidityAmount: UInt64,
+        totalSupply: UInt64
     ) {
         let pool = new PoolMina(this.address);
 
         const balanceToken = this.account.balance.getAndRequireEquals();
 
-        const liquidityAccount = AccountUpdate.create(this.address, pool.deriveTokenId());
-
-        const totalSupply = liquidityAccount.account.balance.getAndRequireEquals();
-
         // todo overflow check
         const amountToken = mulDiv(liquidityAmount, balanceToken, totalSupply);
 
+        const sender = this.sender.getUnconstrained();
         // send token to the user
-        this.balance.subInPlace(amountToken);
-        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+        let receiverUpdate = this.send({ to: sender, amount: amountToken })
+        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent
+        receiverUpdate.body.useFullCommitment = Bool(true)
 
-        await pool.burnLiquidity(this.sender.getUnconstrained(), liquidityAmount);
+        await pool.withdrawLiquidity(liquidityAmount, totalSupply);
 
         return amountToken;
     }
