@@ -23,16 +23,10 @@ describe('Pool Mina', () => {
     zkTokenAdminAddress: PublicKey,
     zkTokenAdminPrivateKey: PrivateKey,
     zkTokenAdmin: FungibleTokenAdmin,
-    zkToken0Address: PublicKey,
-    zkToken0PrivateKey: PrivateKey,
-    zkToken0: FungibleToken,
-    zkLiquidityTokenAdminAddress: PublicKey,
-    zkLiquidityTokenAdminPrivateKey: PrivateKey,
-    zkLiquidityTokenAdmin: FungibleTokenAdmin,
-    zkLiquidityTokenAddress: PublicKey,
-    zkLiquidityTokenPrivateKey: PrivateKey,
-    zkLiquidityToken: FungibleToken,
-    tokenHolder0: MinaTokenHolder;
+    zkTokenAddress: PublicKey,
+    zkTokenPrivateKey: PrivateKey,
+    zkToken: FungibleToken,
+    tokenHolder: MinaTokenHolder;
 
   beforeAll(async () => {
     const analyze = await PoolMina.analyzeMethods();
@@ -76,43 +70,11 @@ describe('Pool Mina', () => {
     zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
     zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
 
-    zkToken0PrivateKey = PrivateKey.random();
-    zkToken0Address = zkToken0PrivateKey.toPublicKey();
-    zkToken0 = new FungibleToken(zkToken0Address);
+    zkTokenPrivateKey = PrivateKey.random();
+    zkTokenAddress = zkTokenPrivateKey.toPublicKey();
+    zkToken = new FungibleToken(zkTokenAddress);
 
-    zkLiquidityTokenAdminPrivateKey = PrivateKey.random();
-    zkLiquidityTokenAdminAddress = zkLiquidityTokenAdminPrivateKey.toPublicKey();
-    zkLiquidityTokenAdmin = new FungibleTokenAdmin(zkLiquidityTokenAdminAddress);
-
-    zkLiquidityTokenPrivateKey = PrivateKey.random();
-    zkLiquidityTokenAddress = zkLiquidityTokenPrivateKey.toPublicKey();
-    zkLiquidityToken = new FungibleToken(zkLiquidityTokenAddress);
-
-
-    // deploy liquidity token
-    const txn0 = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 3);
-      await zkLiquidityTokenAdmin.deploy({
-        adminPublicKey: zkAppAddress,
-      });
-      await zkLiquidityToken.deploy({
-        symbol: "lma",
-        src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
-      });
-      await zkLiquidityToken.initialize(
-        zkLiquidityTokenAdminAddress,
-        UInt8.from(9),
-        Bool(false),
-      )
-    });
-    await txn0.prove();
-    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn0.sign([deployerKey, zkLiquidityTokenAdminPrivateKey, zkLiquidityTokenPrivateKey]).send();
-
-
-    const args: PoolMinaDeployProps = { token: zkToken0Address };
-
-    await fetchAccount({ publicKey: zkLiquidityTokenAddress });
+    const args: PoolMinaDeployProps = { token: zkTokenAddress };
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
@@ -120,11 +82,11 @@ describe('Pool Mina', () => {
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,
       });
-      await zkToken0.deploy({
+      await zkToken.deploy({
         symbol: "tokA",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
       });
-      await zkToken0.initialize(
+      await zkToken.initialize(
         zkTokenAdminAddress,
         UInt8.from(9),
         Bool(false),
@@ -134,14 +96,14 @@ describe('Pool Mina', () => {
     });
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkToken0PrivateKey]).send();
+    await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
 
-    tokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken0.deriveTokenId());
+    tokenHolder = new MinaTokenHolder(zkAppAddress, zkToken.deriveTokenId());
 
     const txn2 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await tokenHolder0.deploy();
-      await zkToken0.approveAccountUpdate(tokenHolder0.self);
+      await tokenHolder.deploy();
+      await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     await txn2.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
@@ -172,7 +134,7 @@ describe('Pool Mina', () => {
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
 
-    const balanceToken = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    const balanceToken = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
     expect(balanceToken.value).toEqual(amtToken.value);
 
     const balanceMina = Mina.getBalance(zkAppAddress);
@@ -204,8 +166,8 @@ describe('Pool Mina', () => {
     const supply = Mina.getBalance(zkAppAddress, zkApp.deriveTokenId());
 
     txn = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder0.withdrawLiquidity(liquidityUser, supply);
-      await zkToken0.approveAccountUpdate(tokenHolder0.self);
+      await tokenHolder.withdrawLiquidity(liquidityUser, supply);
+      await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     console.log("Withdraw liquidity", txn.toPretty());
     console.log("Withdraw liquidity au", txn.transaction.accountUpdates.length);
@@ -290,9 +252,9 @@ describe('Pool Mina', () => {
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
     const reserveIn = Mina.getBalance(zkAppAddress);
-    const reserveOut = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    const reserveOut = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
 
-    const balBefore = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+    const balBefore = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
 
     const balanceMin = reserveOut.sub(reserveOut.div(100));
     const balanceMax = reserveIn.add(reserveIn.div(100));
@@ -305,8 +267,8 @@ describe('Pool Mina', () => {
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await tokenHolder0.swapFromMina(amountIn, expectedOut, balanceMin, balanceMax);
-      await zkToken0.approveAccountUpdate(tokenHolder0.self);
+      await tokenHolder.swapFromMina(amountIn, expectedOut, balanceMin, balanceMax);
+      await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     console.log("swap from mina", txn2.toPretty());
     console.log("swap from mina au", txn2.transaction.accountUpdates.length);
@@ -317,11 +279,11 @@ describe('Pool Mina', () => {
     const resOut = reserveOut.sub(expectedOut);
 
     const reserveIn2 = Mina.getBalance(zkAppAddress);
-    const reserveOut2 = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    const reserveOut2 = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
     expect(reserveIn2.value).toEqual(resIN.value);
     expect(reserveOut2.value).toEqual(resOut.value);
 
-    const balAfter = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+    const balAfter = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
     expect(balAfter.value).toEqual(balBefore.add(expectedOut).value);
   });
 
@@ -335,7 +297,7 @@ describe('Pool Mina', () => {
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    const reserveIn = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
+    const reserveIn = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
     const reserveOut = Mina.getBalance(zkAppAddress);
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
@@ -347,7 +309,7 @@ describe('Pool Mina', () => {
 
     const minOut = optimalOut.sub(optimalOut.div(50)); // 2 % dif 
 
-    const balBefore = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+    const balBefore = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
 
     const userMinaBalBefore = Mina.getBalance(senderAccount);
 
@@ -375,12 +337,12 @@ describe('Pool Mina', () => {
     // expect(reserveIn2.value).toEqual(resIN.value);
     // expect(reserveOut2.value).toEqual(resOut.value);
 
-    const balAfter = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+    const balAfter = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
     expect(balAfter.value).toEqual(balBefore.sub(amountIn).value);
   });
 
   function showBalanceToken0() {
-    let bal = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
+    let bal = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
     console.log("balance user 0", bal.toBigInt());
     return bal;
   }
@@ -395,10 +357,10 @@ describe('Pool Mina', () => {
     // token are minted to original deployer, so just transfer it for test
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkToken0.mint(user, UInt64.from(1000 * 10 ** 9));
+      await zkToken.mint(user, UInt64.from(1000 * 10 ** 9));
     });
     await txn.prove();
-    await txn.sign([deployerKey, zkToken0PrivateKey]).send();
+    await txn.sign([deployerKey, zkTokenPrivateKey]).send();
 
   }
 
