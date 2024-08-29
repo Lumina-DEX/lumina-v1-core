@@ -238,7 +238,6 @@ describe('Pool Mina', () => {
     console.log("liquidity user", liquidityUser.toString());
   });
 
-
   it('swap from mina', async () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);

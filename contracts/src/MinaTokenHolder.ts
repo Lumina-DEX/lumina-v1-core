@@ -30,28 +30,23 @@ export class MinaTokenHolder extends SmartContract {
         poolAccount.account.balance.requireBetween(UInt64.one, balanceMax);
         this.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
 
-        // No tax for the moment (probably in a next version), todo check overflow     
+        // calculate amount token out, No tax for the moment (probably in a next version),   
         let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
         amountOut.equals(amountOutExpected).assertTrue("Incorrect amount out calculation");
 
+        // transfer token in to this pool      
         let sender = this.sender.getUnconstrained();
         let senderSigned = AccountUpdate.createSigned(sender);
-        senderSigned.balance.subInPlace(amountIn);
-
-        // transfer token in to this pool      
-        poolAccount.balance.addInPlace(amountIn);
+        senderSigned.send({ to: poolAccount, amount: amountIn });
 
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })
-        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent
-        receiverUpdate.body.useFullCommitment = Bool(true)
-
+        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
     }
 
 
-    // check if they are no exploit possible
-    @method.returns(UInt64)
-    async withdrawLiquidity(
+    // check if they are no exploit possible  
+    @method async withdrawLiquidity(
         liquidityAmount: UInt64,
         totalSupply: UInt64
     ) {
@@ -59,18 +54,15 @@ export class MinaTokenHolder extends SmartContract {
 
         const balanceToken = this.account.balance.getAndRequireEquals();
 
-        // todo overflow check
+        // calculate amount token out
         const amountToken = mulDiv(liquidityAmount, balanceToken, totalSupply);
 
         const sender = this.sender.getUnconstrained();
         // send token to the user
-        let receiverUpdate = this.send({ to: sender, amount: amountToken })
-        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent
-        receiverUpdate.body.useFullCommitment = Bool(true)
+        let receiverUpdate = this.send({ to: sender, amount: amountToken });
+        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
         await pool.withdrawLiquidity(liquidityAmount, totalSupply);
-
-        return amountToken;
     }
 
 }

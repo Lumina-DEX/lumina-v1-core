@@ -59,8 +59,8 @@ export class PoolMina extends TokenContractV2 {
         const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
         balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
 
-        amountToken.assertGreaterThan(UInt64.zero, "No amount A supplied");
-        amountMina.assertGreaterThan(UInt64.zero, "No amount Mina supplied");
+        amountToken.assertGreaterThan(UInt64.zero, "No token amount supplied");
+        amountMina.assertGreaterThan(UInt64.zero, "No mina amount supplied");
         const liquidityAmount = amountToken.add(amountMina);
 
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
@@ -69,26 +69,21 @@ export class PoolMina extends TokenContractV2 {
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        // create custom account update to optimize the number of account update
+        // send mina to the pool
         let sender = this.sender.getUnconstrained();
         let senderUpdate = AccountUpdate.createSigned(sender);
+        senderUpdate.send({ to: this.self, amount: amountMina });
 
-        senderUpdate.balance.subInPlace(amountMina);
-        this.self.balance.addInPlace(amountMina);
-
+        // send token to the pool
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        //await tokenContract.transfer(senderUpdate.publicKey, this.address, amountToken);
-        senderToken.balance.subInPlace(amountToken);
-        tokenAccount.balance.addInPlace(amountToken);
+        senderToken.send({ to: tokenAccount, amount: amountToken });
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
         // => maintains ratio a/l, b/l       
         const liquidityUser = liquidityAmount.sub(minimunLiquidity);
         // mint token
         this.internal.mint({ address: sender, amount: liquidityUser });
-
-        // keep circulation supply info to calculate next liquidity add/remove
-        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount);
+        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
@@ -109,17 +104,14 @@ export class PoolMina extends TokenContractV2 {
         amountMina.assertGreaterThan(UInt64.zero, "No Mina amount to supply");
         amountMina.assertLessThanOrEqual(maxAmountMina, "Mina amount greater than desired amount");
 
-        // require signature on transfer, so don't need to request it now
+        // send mina to the pool
         let sender = this.sender.getUnconstrained();
         let senderUpdate = AccountUpdate.createSigned(sender);
+        senderUpdate.send({ to: this.self, amount: amountMina });
 
-        senderUpdate.balance.subInPlace(amountMina);
-        this.self.balance.addInPlace(amountMina);
-
+        // send token to the pool
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        //await tokenContract.transfer(senderUpdate.publicKey, this.address, amountToken);
-        senderToken.balance.subInPlace(amountToken);
-        tokenAccount.balance.addInPlace(amountToken);
+        senderToken.send({ to: tokenAccount, amount: amountToken });
 
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
 
@@ -128,9 +120,7 @@ export class PoolMina extends TokenContractV2 {
         let liquidityAmount = amountToken.add(amountMina);
         // mint token
         this.internal.mint({ address: sender, amount: liquidityAmount });
-
-        // set new supply
-        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount);
+        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
@@ -150,17 +140,14 @@ export class PoolMina extends TokenContractV2 {
         amountToken.assertGreaterThan(UInt64.zero, "No token amount to supply");
         amountToken.assertLessThanOrEqual(maxAmountToken, "Token Amount greater than desired amount");
 
-        // require signature on transfer, so don't need to request it now
+        // send mina to the pool
         let sender = this.sender.getUnconstrained();
         let senderUpdate = AccountUpdate.createSigned(sender);
+        senderUpdate.send({ to: this.self, amount: amountMina });
 
-        senderUpdate.balance.subInPlace(amountMina);
-        this.self.balance.addInPlace(amountMina);
-
+        // send token to the pool
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        //await tokenContract.transfer(senderUpdate.publicKey, this.address, amountToken);
-        senderToken.balance.subInPlace(amountToken);
-        tokenAccount.balance.addInPlace(amountToken);
+        senderToken.send({ to: tokenAccount, amount: amountToken });
 
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
 
@@ -169,9 +156,7 @@ export class PoolMina extends TokenContractV2 {
         let liquidityAmount = amountToken.add(amountMina);
         // mint token
         this.internal.mint({ address: sender, amount: liquidityAmount });
-
-        // set new supply      
-        circulationUpdate.balanceChange = Int64.fromUnsigned(liquidityAmount);
+        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
@@ -192,14 +177,12 @@ export class PoolMina extends TokenContractV2 {
         let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
         amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
 
+        // send token to the pool
         let sender = this.sender.getUnconstrained();
-        let usertokenAccount = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
+        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
+        senderToken.send({ to: tokenAccount, amount: amountIn });
 
-        // send token from user to contract
-        usertokenAccount.balance.subInPlace(amountIn);
-        tokenAccount.balance.addInPlace(amountIn);
-
-        await tokenContract.approveAccountUpdates([usertokenAccount, tokenAccount]);
+        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
 
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
