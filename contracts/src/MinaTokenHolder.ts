@@ -18,54 +18,10 @@ export class MinaTokenHolder extends SmartContract {
         });
     }
 
-    // swap from mina to this token directly
-    @method.returns(UInt64)
-    async swapFromMina(
-        amountIn: UInt64,
-        amountOutMin: UInt64
-    ) {
-        const poolMina = AccountUpdate.create(this.address).account;
-
-        const balanceMina = poolMina.balance.getAndRequireEquals();
-        const balanceToken = this.account.balance.getAndRequireEquals();
-        balanceToken.greaterThan(UInt64.zero);
-
-        const accountUser = this.sender.getUnconstrained();
-        const sender = AccountUpdate.createSigned(accountUser);
-
-        sender.send({ to: this.address, amount: amountIn });
-
-
-        // this account = Address + derive token
-        const reserveIn = balanceMina;
-        const reserveOut = balanceToken;
-
-        Provable.log("reserveIn", reserveIn);
-        Provable.log("reserveOut", reserveOut);
-
-        reserveIn.assertGreaterThan(amountIn, "Insufficient reserve in");
-
-        // No tax for the moment (probably in a next version), todo check overflow     
-        let amountOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
-        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
-
-        reserveOut.assertGreaterThan(amountOut, "Insufficient reserve out");
-
-
-        // send token to the user
-        let receiverUpdate = this.send({ to: accountUser, amount: amountOutMin })
-        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent
-        receiverUpdate.body.useFullCommitment = Bool(true)
-
-
-        return amountOutMin;
-    }
-
     // swap from mina to this token through the pool
-    @method.returns(UInt64)
-    async swap(
+    @method async swapFromMina(
         amountIn: UInt64,
-        amountOutMin: UInt64,
+        amountOutExpected: UInt64,
         balanceMin: UInt64,
         balanceMax: UInt64
     ) {
@@ -76,7 +32,7 @@ export class MinaTokenHolder extends SmartContract {
 
         // No tax for the moment (probably in a next version), todo check overflow     
         let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
-        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
+        amountOut.equals(amountOutExpected).assertTrue("Incorrect amount out calculation");
 
         let sender = this.sender.getUnconstrained();
         let senderSigned = AccountUpdate.createSigned(sender);
@@ -86,13 +42,12 @@ export class MinaTokenHolder extends SmartContract {
         poolAccount.balance.addInPlace(amountIn);
 
         // send token to the user
-        this.balance.subInPlace(amountOut);
-        this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-
-
-        return amountOut;
+        let receiverUpdate = this.send({ to: sender, amount: amountOut })
+        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent
+        receiverUpdate.body.useFullCommitment = Bool(true)
 
     }
+
 
     // check if they are no exploit possible
     @method.returns(UInt64)

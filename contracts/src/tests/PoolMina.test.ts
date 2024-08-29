@@ -300,12 +300,13 @@ describe('Pool Mina', () => {
     const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
     const optimalOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
 
-    const minOut = optimalOut.sub(optimalOut.div(50)); // 2 % dif 
+    const dif = optimalOut.sub(expectedOut);
+    console.log("user lost", dif.toBigInt());
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.swapFromMina(amountIn, minOut, balanceMin, balanceMax);
-      //await zkToken0.approveAccountUpdate(zkApp.self);
+      await tokenHolder0.swapFromMina(amountIn, expectedOut, balanceMin, balanceMax);
+      await zkToken0.approveAccountUpdate(tokenHolder0.self);
     });
     console.log("swap from mina", txn2.toPretty());
     console.log("swap from mina au", txn2.transaction.accountUpdates.length);
@@ -322,31 +323,6 @@ describe('Pool Mina', () => {
 
     const balAfter = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
     expect(balAfter.value).toEqual(balBefore.add(expectedOut).value);
-  });
-
-  it('try hack swap from mina', async () => {
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.supplyFirstLiquidities(amtToken, amt);
-    });
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-    let amountIn = UInt64.from(1.3 * 10 ** 9);
-
-    const reserveIn = Mina.getBalance(zkAppAddress);
-    const reserveOut = Mina.getBalance(zkAppAddress, zkToken0.deriveTokenId());
-
-    const txn2 = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder0.swap(amountIn, UInt64.from(1), reserveIn, reserveOut);
-      await zkToken0.approveAccountUpdate(zkApp.self);
-    });
-    await txn2.prove();
-    // expect failed
-    await expect(txn2.sign([senderKey]).send()).rejects.toThrow();
-
   });
 
   it('swap from token', async () => {

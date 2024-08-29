@@ -176,26 +176,6 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
 
-    @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {
-        amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
-        amountOutMin.assertGreaterThan(UInt64.zero, "No amount out supplied");
-
-        // we request token out because this is the token holder who update his balance to transfer out
-        let tokenContractOut = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenHolderOut = new MinaTokenHolder(this.address, tokenContractOut.deriveTokenId());
-
-        // calculate correct amount out to transfer the token out
-        const amountOut = await tokenHolderOut.swap(amountIn, amountOutMin, balanceMin, balanceMax);
-
-        // transfer In before transfer out        
-        let sender = this.sender.getUnconstrained();
-
-        const userAccount = AccountUpdate.create(sender, tokenContractOut.deriveTokenId());
-        userAccount.balance.addInPlace(amountOut);
-
-        await tokenContractOut.approveAccountUpdates([tokenHolderOut.self, userAccount]);
-    }
-
     @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {
         amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
         balanceMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
