@@ -1,12 +1,23 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64 } from 'o1js';
+import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct } from 'o1js';
 import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
 export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
 
+export class depositiInfo extends Struct({
+    owner: PublicKey,
+    amount: UInt64
+}) {
+    constructor(value: {
+        owner: PublicKey,
+        amount: UInt64
+    }) {
+        super(value);
+    }
+}
+
 export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
     token: PublicKey;
-    liquidityToken: PublicKey;
 }
 
 
@@ -16,14 +27,13 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
-    @state(PublicKey) liquidityToken = State<PublicKey>();
+
+    reducer = Reducer({ actionType: depositiInfo });
 
     async deploy(args: PoolMinaDeployProps) {
         await super.deploy(args);
         args.token.isEmpty().assertFalse("Token empty");
-        args.liquidityToken.isEmpty().assertFalse("Liquidity token empty");
         this.token.set(args.token);
-        this.liquidityToken.set(args.liquidityToken);
 
         this.account.permissions.set({
             ...Permissions.default(),
@@ -218,6 +228,31 @@ export class PoolMina extends TokenContractV2 {
 
     }
 
+    @method async depositLiquidity(liquidityAmount: UInt64) {
+        liquidityAmount.assertGreaterThan(UInt64.zero, "No amount supplied");
+
+        const sender = this.sender.getUnconstrained();
+
+        // burn liquidity from sender and store it
+        await this.internal.burn({ address: sender, amount: liquidityAmount });
+
+        const depositInfo: depositiInfo = new depositiInfo({ owner: sender, amount: liquidityAmount });
+        this.reducer.dispatch(depositInfo);
+    }
+
+    // @method async withdraw() {
+    //     const sender = this.sender.getUnconstrained();
+
+    //     let actions = this.reducer.getActions();
+    //     const action = this.reducer.reduce()
+
+    //     // burn liquidity from sender and store it
+    //     await this.internal.burn({ address: sender, amount: liquidityAmount });
+
+    //     const depositInfo: depositiInfo = new depositiInfo({ owner: sender, amount: liquidityAmount });
+    //     this.reducer.dispatch(depositInfo);
+    // }
+
     @method async withdrawLiquidity(liquidityAmount: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "No amount supplied");
 
@@ -252,6 +287,48 @@ export class PoolMina extends TokenContractV2 {
     async burnLiquidity(user: PublicKey, dl: UInt64) {
         // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
         this.internal.burn({ address: user, amount: dl });
+
+    }
+
+    /**
+ * Helper for `DexTokenHolder.redeemFinalize()` which adds preconditions on
+ * the current action state and token supply
+ */
+    @method async redeemLiquidityFinalize(
+        actionState: Field,
+        totalSupply: UInt64,
+        fromActionState: Field
+    ) {
+        this.account.actionState.requireEquals(actionState);
+
+        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
+        liquidityAccount.account.balance.requireEquals(totalSupply);
+
+        let actions = this.reducer.getActions();
+        let balanceMina = this.account.balance.getAndRequireEquals();
+
+        this.reducer.forEach(
+            actions,
+            ({ owner, amount }) => {
+                // for every user that redeemed liquidity, we calculate the token output
+                // and create a child account update which pays the user
+                const amountToken = mulDiv(amount, balanceMina, totalSupply);
+                let receiver = this.send({ to: owner, amount: amountToken });
+                // note: this should just work when the reducer gives us dummy data
+
+                // important: these child account updates inherit token permission from us
+                receiver.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+
+                // burn liquidity from circulation supply
+                this.internal.burn({ address: liquidityAccount, amount: amount });
+            },
+            {
+                maxUpdatesWithActions: MinaTokenHolder.redeemActionBatchSize,
+                // DEX contract doesn't allow setting preconditions from outside (= w/o proof)
+                skipActionStatePrecondition: true,
+            }
+        );
+
 
     }
 
