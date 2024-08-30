@@ -34,8 +34,8 @@ export class PoolMina extends TokenContractV2 {
         await super.deploy(args);
         args.token.isEmpty().assertFalse("Token empty");
         this.token.set(args.token);
-        this.account.zkappUri.set(args.src)
-        this.account.tokenSymbol.set(args.symbol)
+        this.account.zkappUri.set(args.src);
+        this.account.tokenSymbol.set(args.symbol);
 
         this.account.permissions.set({
             ...Permissions.default(),
@@ -51,10 +51,11 @@ export class PoolMina extends TokenContractV2 {
 
     /**
      * Upgrade to a new version
-     * @param verificationKey new verification key
+     * @param vk new verification key
      */
-    @method async upgrade(verificationKey: VerificationKey) {
-        this.account.verificationKey.set(verificationKey);
+    @method async updateVerificationKey(vk: VerificationKey) {
+        // todo implement check
+        this.account.verificationKey.set(vk);
     }
 
 

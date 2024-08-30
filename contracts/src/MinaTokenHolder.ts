@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer } from 'o1js';
+import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
 import { PoolMina, FungibleToken, mulDiv } from './indexmina.js';
 
 /**
@@ -15,6 +15,16 @@ export class MinaTokenHolder extends SmartContract {
             setVerificationKey: Permissions.VerificationKey.proofOrSignature()
         });
     }
+
+    /**
+ * Upgrade to a new version
+ * @param vk new verification key
+ */
+    @method async updateVerificationKey(vk: VerificationKey) {
+        // todo implement check
+        this.account.verificationKey.set(vk);
+    }
+
 
     // swap from mina to this token through the pool
     @method async swapFromMina(
