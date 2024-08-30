@@ -88,21 +88,23 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
 
+    @method async supplyLiquidity(amountMina: UInt64, amountToken: UInt64) {
+        amountMina.assertGreaterThan(UInt64.zero, "Amount Mina can't be zero");
+        amountToken.assertGreaterThan(UInt64.zero, "Amount Token can't be zero");
 
-    @method async supplyLiquidityFromToken(amountToken: UInt64, maxAmountMina: UInt64) {
-        amountToken.assertGreaterThan(UInt64.zero, "No token amount supplied");
 
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
         const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
         const balanceMina = this.account.balance.getAndRequireEquals();
+        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
 
-        // amount Y to supply
-        const amountMina = mulDiv(amountToken, balanceMina, balanceToken);
-
-        amountMina.assertGreaterThan(UInt64.zero, "No Mina amount to supply");
-        amountMina.assertLessThanOrEqual(maxAmountMina, "Mina amount greater than desired amount");
+        // calculate liquidity token output simply as amountX * liquiditySupply / reserveX 
+        const liquidityMina = mulDiv(amountMina, balanceLiquidity, balanceMina);
+        const liquidityToken = mulDiv(amountToken, balanceLiquidity, balanceToken);
+        liquidityMina.equals(liquidityToken).assertTrue("Incorrect amount of token");
 
         // send mina to the pool
         let sender = this.sender.getUnconstrained();
@@ -113,50 +115,9 @@ export class PoolMina extends TokenContractV2 {
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amountToken });
 
-        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
-
-        // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
-        // => maintains ratio a/l, b/l
-        let liquidityAmount = amountToken.add(amountMina);
         // mint token
-        this.internal.mint({ address: sender, amount: liquidityAmount });
-        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
-
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
-    }
-
-    @method async supplyLiquidityFromMina(amountMina: UInt64, maxAmountToken: UInt64) {
-        amountMina.assertGreaterThan(UInt64.zero, "No Mina amount supplied");
-
-        let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
-
-        const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
-        const balanceMina = this.account.balance.getAndRequireEquals();
-
-        // amount Y to supply
-        const amountToken = mulDiv(amountMina, balanceToken, balanceMina);
-
-        amountToken.assertGreaterThan(UInt64.zero, "No token amount to supply");
-        amountToken.assertLessThanOrEqual(maxAmountToken, "Token Amount greater than desired amount");
-
-        // send mina to the pool
-        let sender = this.sender.getUnconstrained();
-        let senderUpdate = AccountUpdate.createSigned(sender);
-        senderUpdate.send({ to: this.self, amount: amountMina });
-
-        // send token to the pool
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amountToken });
-
-        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId())
-
-        // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
-        // => maintains ratio a/l, b/l
-        let liquidityAmount = amountToken.add(amountMina);
-        // mint token
-        this.internal.mint({ address: sender, amount: liquidityAmount });
-        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
+        this.internal.mint({ address: sender, amount: liquidityMina });
+        this.internal.mint({ address: circulationUpdate, amount: liquidityMina });
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
