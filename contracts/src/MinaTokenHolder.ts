@@ -54,21 +54,27 @@ export class MinaTokenHolder extends SmartContract {
     // check if they are no exploit possible  
     @method async withdrawLiquidity(
         liquidityAmount: UInt64,
-        totalSupply: UInt64
+        reserveMinaMin: UInt64,
+        reserveTokenMin: UInt64,
+        supplyMax: UInt64
     ) {
+        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
+        reserveTokenMin.assertGreaterThan(UInt64.zero, "Reserve token min can't be zero");
+        supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
+
         let pool = new PoolMina(this.address);
 
-        const balanceToken = this.account.balance.getAndRequireEquals();
+        this.account.balance.requireBetween(reserveTokenMin, UInt64.MAXINT());
 
         // calculate amount token out
-        const amountToken = mulDiv(liquidityAmount, balanceToken, totalSupply);
+        const amountToken = mulDiv(liquidityAmount, reserveTokenMin, supplyMax);
 
         const sender = this.sender.getUnconstrained();
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        await pool.withdrawLiquidity(liquidityAmount, totalSupply);
+        await pool.withdrawLiquidity(liquidityAmount, reserveMinaMin, supplyMax);
     }
 
 }

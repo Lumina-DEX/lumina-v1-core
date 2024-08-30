@@ -166,7 +166,7 @@ describe('Pool Mina', () => {
     const supply = Mina.getBalance(zkAppAddress, zkApp.deriveTokenId());
 
     txn = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder.withdrawLiquidity(liquidityUser, supply);
+      await tokenHolder.withdrawLiquidity(liquidityUser, amt, amtToken, supply);
       await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     console.log("Withdraw liquidity", txn.toPretty());
@@ -202,7 +202,7 @@ describe('Pool Mina', () => {
     let amtToken2 = UInt64.from(5 * 10 ** 9);
     txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkApp.supplyLiquidity(amtMina, amtToken2);
+      await zkApp.supplyLiquidity(amtMina, amtToken2, amt, amtToken, liquidityUser);
     });
     console.log("add liquidity from mina", txn.toPretty());
     console.log("add liquidity from mina au", txn.transaction.accountUpdates.length);

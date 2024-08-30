@@ -88,22 +88,24 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
 
-    @method async supplyLiquidity(amountMina: UInt64, amountToken: UInt64) {
+    @method async supplyLiquidity(amountMina: UInt64, amountToken: UInt64, reserveMinaMax: UInt64, reserveTokenMax: UInt64, supplyMin: UInt64) {
         amountMina.assertGreaterThan(UInt64.zero, "Amount Mina can't be zero");
         amountToken.assertGreaterThan(UInt64.zero, "Amount Token can't be zero");
-
+        reserveTokenMax.assertGreaterThan(UInt64.zero, "Reserve Token max can't be zero");
+        reserveMinaMax.assertGreaterThan(UInt64.zero, "Reserve Mina max can't be zero");
+        supplyMin.assertGreaterThan(UInt64.zero, "Supply mi, can't be zero");
 
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        const balanceToken = tokenAccount.account.balance.getAndRequireEquals();
-        const balanceMina = this.account.balance.getAndRequireEquals();
-        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
+        tokenAccount.account.balance.requireBetween(UInt64.one, reserveTokenMax);
+        this.account.balance.requireBetween(UInt64.one, reserveMinaMax);
+        circulationUpdate.account.balance.requireBetween(supplyMin, UInt64.MAXINT());
 
         // calculate liquidity token output simply as amountX * liquiditySupply / reserveX 
-        const liquidityMina = mulDiv(amountMina, balanceLiquidity, balanceMina);
-        const liquidityToken = mulDiv(amountToken, balanceLiquidity, balanceToken);
+        const liquidityMina = mulDiv(amountMina, supplyMin, reserveMinaMax);
+        const liquidityToken = mulDiv(amountToken, supplyMin, reserveTokenMax);
         liquidityMina.equals(liquidityToken).assertTrue("Incorrect amount of token");
 
         // send mina to the pool
@@ -150,17 +152,19 @@ export class PoolMina extends TokenContractV2 {
 
     }
 
-    @method async withdrawLiquidity(liquidityAmount: UInt64, totalSupply: UInt64) {
-        liquidityAmount.assertGreaterThan(UInt64.zero, "No amount supplied");
+    @method async withdrawLiquidity(liquidityAmount: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
+        reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
+        supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
-        const balanceMina = this.account.balance.getAndRequireEquals();
+        this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
         const sender = this.sender.getUnconstrained();
 
         const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
-        liquidityAccount.account.balance.requireEquals(totalSupply);
+        liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
 
-        const amountMina = mulDiv(liquidityAmount, balanceMina, totalSupply);
+        const amountMina = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
 
         // burn liquidity from user and current supply
         await this.internal.burn({ address: liquidityAccount, amount: liquidityAmount });
