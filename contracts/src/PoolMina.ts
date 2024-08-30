@@ -161,21 +161,21 @@ export class PoolMina extends TokenContractV2 {
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
 
-    @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64, balanceMin: UInt64, balanceMax: UInt64) {
-        amountIn.assertGreaterThan(UInt64.zero, "No amount in supplied");
-        balanceMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
-        balanceMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
+    @method async swapFromToken(amountIn: UInt64, amountOutExpected: UInt64, balanceOutMin: UInt64, balanceInMax: UInt64) {
+        amountIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
+        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
+        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
+        amountOutExpected.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
+        amountOutExpected.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
-        tokenAccount.account.balance.requireBetween(UInt64.one, balanceMax);
-        this.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
+        tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
+        this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
-        balanceMin.assertGreaterThan(amountIn, "Insufficient reserve in");
-
-        let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
-        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amout out");
+        let amountOut = mulDiv(balanceOutMin, amountIn, balanceInMax.add(amountIn));
+        amountOut.equals(amountOutExpected).assertTrue("Incorrect amount out calculation");
 
         // send token to the pool
         let sender = this.sender.getUnconstrained();

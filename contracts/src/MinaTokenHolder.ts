@@ -22,16 +22,22 @@ export class MinaTokenHolder extends SmartContract {
     @method async swapFromMina(
         amountIn: UInt64,
         amountOutExpected: UInt64,
-        balanceMin: UInt64,
-        balanceMax: UInt64
+        balanceOutMin: UInt64,
+        balanceInMax: UInt64
     ) {
+        amountIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
+        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
+        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
+        amountOutExpected.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
+        amountOutExpected.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
+
         const poolAccount = AccountUpdate.create(this.address);
 
-        poolAccount.account.balance.requireBetween(UInt64.one, balanceMax);
-        this.account.balance.requireBetween(balanceMin, UInt64.MAXINT());
+        poolAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
+        this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         // calculate amount token out, No tax for the moment (probably in a next version),   
-        let amountOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
+        let amountOut = mulDiv(balanceOutMin, amountIn, balanceInMax.add(amountIn));
         amountOut.equals(amountOutExpected).assertTrue("Incorrect amount out calculation");
 
         // transfer token in to this pool      

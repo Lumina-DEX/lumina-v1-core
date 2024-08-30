@@ -314,7 +314,7 @@ describe('Pool Mina', () => {
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.swapFromToken(amountIn, minOut, balanceMin, balanceMax);
+      await zkApp.swapFromToken(amountIn, expectedOut, balanceMin, balanceMax);
     });
     console.log("swap from token", txn2.toPretty());
     console.log("swap from token au", txn2.transaction.accountUpdates.length);
