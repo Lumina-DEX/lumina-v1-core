@@ -23,7 +23,9 @@ const Account = ({ accountState }) => {
   }, [])
 
   useEffect(() => {
-    getUserInformation(mina).then(x => setInformation(x));
+    if (mina && zkState) {
+      getUserInformation(mina).then(x => setInformation(x))
+    }
     const intervalID = setInterval(() => {
       if (mina && zkState) {
         getUserInformation(mina).then(x => setInformation(x))
