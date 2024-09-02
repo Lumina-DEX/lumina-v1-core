@@ -7,7 +7,7 @@ export function getAmountOut(amountIn: number, balanceIn: number, balanceOut: nu
     const balanceInMax = balanceIn + balanceIn * percent / 100;
     const balanceOutMin = balanceOut - balanceOut * percent / 100;
 
-    const amountOut = balanceOutMin * amountIn / (balanceInMax + amountIn);
+    const amountOut = Math.trunc(balanceOutMin * amountIn / (balanceInMax + amountIn));
 
     return { amountIn, amountOut, balanceOutMin, balanceInMax };
 }

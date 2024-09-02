@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, PoolMina, mulDiv, PoolMinaDeployProps, minimunLiquidity } from '../indexmina';
+import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, PoolMina, mulDiv, minimunLiquidity } from '../indexmina';
 
 let proofsEnabled = true;
 
@@ -71,7 +71,7 @@ describe('Pool Mina', () => {
     zkTokenAddress = zkTokenPrivateKey.toPublicKey();
     zkToken = new FungibleToken(zkTokenAddress);
 
-    const args: PoolMinaDeployProps = { token: zkTokenAddress, symbol: "LDA", src: "https://luminadex.com/" };
+    const args = { token: zkTokenAddress, symbol: "LDA", src: "https://luminadex.com/" };
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
@@ -240,7 +240,7 @@ describe('Pool Mina', () => {
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await tokenHolder.swapFromMina(amountIn, expectedOut, balanceMin, balanceMax);
+      await tokenHolder.swapFromMina(amountIn, expectedOut, balanceMax, balanceMin);
       await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     console.log("swap from mina", txn2.toPretty());
@@ -288,7 +288,7 @@ describe('Pool Mina', () => {
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       //AccountUpdate.fundNewAccount(senderAccount, 2);
-      await zkApp.swapFromToken(amountIn, expectedOut, balanceMin, balanceMax);
+      await zkApp.swapFromToken(amountIn, expectedOut, balanceMax, balanceMin);
     });
     console.log("swap from token", txn2.toPretty());
     console.log("swap from token au", txn2.transaction.accountUpdates.length);

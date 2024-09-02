@@ -2,7 +2,7 @@ import { Field, SmartContract, Permissions, state, State, method, TokenContractV
 import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
-export const minimunLiquidity: UInt64 = new UInt64(10 ** 3);
+export const MINIMUM_LIQUIDITY: UInt64 = new UInt64(10 ** 3);
 
 export class depositiInfo extends Struct({
     owner: PublicKey,
@@ -70,7 +70,7 @@ export class PoolMina extends TokenContractV2 {
         const liquidityAmount = amountToken.add(amountMina);
 
         // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
-        liquidityAmount.assertGreaterThan(minimunLiquidity, "Insufficient amount to mint liquidities");
+        liquidityAmount.assertGreaterThan(MINIMUM_LIQUIDITY, "Insufficient amount to mint liquidities");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -86,7 +86,7 @@ export class PoolMina extends TokenContractV2 {
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
         // => maintains ratio a/l, b/l       
-        const liquidityUser = liquidityAmount.sub(minimunLiquidity);
+        const liquidityUser = liquidityAmount.sub(MINIMUM_LIQUIDITY);
         // mint token
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
@@ -134,12 +134,12 @@ export class PoolMina extends TokenContractV2 {
         return liquidityMina;
     }
 
-    @method async swapFromToken(amountIn: UInt64, amountOutExpected: UInt64, balanceOutMin: UInt64, balanceInMax: UInt64) {
+    @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
         amountIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-        amountOutExpected.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
-        amountOutExpected.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
+        amountOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
+        amountOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -148,7 +148,7 @@ export class PoolMina extends TokenContractV2 {
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         let amountOut = mulDiv(balanceOutMin, amountIn, balanceInMax.add(amountIn));
-        amountOut.equals(amountOutExpected).assertTrue("Incorrect amount mina out");
+        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amount out");
 
         // send token to the pool
         let sender = this.sender.getUnconstrained();
@@ -162,10 +162,10 @@ export class PoolMina extends TokenContractV2 {
 
     }
 
-    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaExpected: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
-        amountMinaExpected.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
+        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
@@ -176,7 +176,7 @@ export class PoolMina extends TokenContractV2 {
         liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
 
         const amountMina = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
-        amountMina.equals(amountMinaExpected).assertTrue("Incorrect amount mina out");
+        amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
 
         // burn liquidity from user and current supply
         await this.internal.burn({ address: liquidityAccount, amount: liquidityAmount });

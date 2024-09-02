@@ -1,7 +1,7 @@
 import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount } from "o1js";
 console.log('Load Web Worker.');
 
-import type { PoolMina, PoolMinaDeployProps, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
+import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -66,13 +66,16 @@ const functions = {
     const token = await state.zkapp.token.fetch();
     await fetchAccount({ publicKey: token })
     state.zkToken = new state.TokenStandard!(token);
+
+    await fetchAccount({ publicKey: token, tokenId: state.zkToken.deriveTokenId() });
+    state.zkHolder = new state.PoolMinaHolder!(token, state.zkToken.deriveTokenId());
   },
   deployPoolInstance: async (args: { tokenX: string }) => {
     const poolKey = PrivateKey.random();
     const pool = new state.PoolMina!(poolKey.toPublicKey());
     console.log("appkey", poolKey.toBase58());
     const tokenKey = PublicKey.fromBase58(args.tokenX);
-    const depArgs: PoolMinaDeployProps = { token: tokenKey, symbol: "", src: "" };
+    const depArgs = { token: tokenKey, symbol: "LUM", src: "https://luminadex.com/" };
     const tokenX = new state.TokenStandard!(tokenKey);
     const holderX = new state.PoolMinaHolder!(poolKey.toPublicKey(), tokenX.deriveTokenId());
 
@@ -96,11 +99,10 @@ const functions = {
     return JSON.stringify({ amountToken, amountMina });
   },
   swapFromMinaTransaction: async (args: { user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
-    const amtIn = Math.trunc(args.amt * 10 ** 9);
-    const amtOut = Math.trunc(args.minOut * 10 ** 9);
-
-    const balanceOut = Math.trunc(args.balanceOutMin * 10 ** 9);
-    const balanceIn = Math.trunc(args.balanceInMax * 10 ** 9);
+    const amtIn = Math.trunc(args.amt);
+    const amtOut = Math.trunc(args.minOut);
+    const balanceOut = Math.trunc(args.balanceOutMin);
+    const balanceIn = Math.trunc(args.balanceInMax);
 
     const publicKey = PublicKey.fromBase58(args.user);
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
@@ -116,10 +118,10 @@ const functions = {
     await state.transaction!.prove();
   },
   swapFromTokenTransaction: async (args: { user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
-    const amtIn = Math.trunc(args.amt * 10 ** 9);
-    const amtOut = Math.trunc(args.minOut * 10 ** 9);
-    const balanceOut = Math.trunc(args.balanceOutMin * 10 ** 9);
-    const balanceIn = Math.trunc(args.balanceInMax * 10 ** 9);
+    const amtIn = Math.trunc(args.amt);
+    const amtOut = Math.trunc(args.minOut);
+    const balanceOut = Math.trunc(args.balanceOutMin);
+    const balanceIn = Math.trunc(args.balanceInMax);
 
     const publicKey = PublicKey.fromBase58(args.user);
 

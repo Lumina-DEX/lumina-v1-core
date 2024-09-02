@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
-import { getAmountOut } from "../../../contracts/src/indexmina";
 
 type Percent = number | string;
 
@@ -44,6 +43,8 @@ const Swap = ({ accountState }) => {
 
 
   const getSwapAmount = async () => {
+
+    const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
     const reserves = await zkState?.zkappWorkerClient?.getReserves();
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
     const slippage = slippagePercent;
@@ -55,11 +56,13 @@ const Swap = ({ accountState }) => {
       if (!toDai) {
         calcul = getAmountOut(amt, amountToken, amountMina, slippage);
         console.log("calcul from dai", calcul);
-        setToAmount(calcul.toString());
+        let amtOut = calcul.amountOut / 10**9;
+        setToAmount(amtOut.toString());
       } else {
         calcul = getAmountOut(amt, amountMina, amountToken, slippage);
         console.log("calcul from mina", calcul);
-        setToAmount(calcul.toString());
+        let amtOut = calcul.amountOut / 10**9;
+        setToAmount(amtOut.toString());
       }
     }
     return calcul;
@@ -74,9 +77,9 @@ const Swap = ({ accountState }) => {
         console.log("zkState", zkState)
         const user: string = (await mina.requestAccounts())[0];
         if (!toDai) {
-          const create = await zkState.zkappWorkerClient?.swapFromToken(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
+          await zkState.zkappWorkerClient?.swapFromToken(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
         } else {
-          const create = await zkState.zkappWorkerClient?.swapFromMina(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
+          await zkState.zkappWorkerClient?.swapFromMina(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
         }
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
         await mina.sendTransaction({ transaction: json });
@@ -93,7 +96,7 @@ const Swap = ({ accountState }) => {
   return (
     <>
       <div className="flex flex-row justify-center w-screen ">
-        <div style={{ backgroundColor: "rgba(0,0,0,0.2)" }} className="flex flex-col p-5 gap-5 rounded w-[300px] h-[300px] items-center">
+        <div style={{ backgroundColor: "rgba(120,120,120,0.4)" }} className="flex flex-col p-5 gap-5 rounded w-[300px] h-[400px] items-center">
           <div className="text-xl">
             Swap
           </div>
