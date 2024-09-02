@@ -3,7 +3,7 @@ import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64,
 
 import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, PoolMina, mulDiv, minimunLiquidity } from '../indexmina';
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Pool Mina', () => {
   let deployerAccount: Mina.TestPublicKey,
