@@ -60,12 +60,12 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
     await fs.readFile(config.feepayerKeyPath, 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-// B62qjUjDYeLkqxDqZz2KXKAwibQVxzUsNZWv9adCoRuh3WyAUDRiR9U
-let zkAppKey = PrivateKey.fromBase58("EKEivFDroLTRS2iKDmrC7BmSmJDvrFm1mxhCZYhCsdCrsuteRUpw");
-// B62qkd5DaM1gfdzrZJ1WSWkPxQcgDyc6jqip34Jhm33XSXnyY5c965y
-let zkTokenPrivateKey = PrivateKey.fromBase58("EKFGrwjUFmGLQLMkjsn7SjDxAQLT2eTJVdWoB66HTZqbPKpDqNSc");
-// B62qkugC9aZhdh2y6J3tbihvXGxk8d5mpcfLwYGJiKJNQz5cEiKUviV
-let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKEqWvqQkifspmEYZc9mqPP9ABZYLPMDL6hDdgQbt8tWynQnwYQC");
+// B62qrn4bTWsKGddKeLGzriYVQF23fNF4tCnACKawP7ySJfH7zFmd2u6
+let zkAppKey = PrivateKey.fromBase58("EKFR61nPLgsRYV2fULL1n1QpGxjjAxXJRrgse43fPvwJsdFS6PRM");
+// B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w
+let zkTokenPrivateKey = PrivateKey.fromBase58("EKDpsCUu1roVtrqoprUyseGZVKbPLZMvGagBoN7WRUVHzDWBUWFj");
+// B62qmZpuEkuf3MeH2WAkxzXRJMBMmZHb1JxSZqqQR8T3jtt2FUTy9wK
+let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKDym4pZnbRVmWtubWaBgEeQ5GHrhtQc1KyD6sJm5cFaDWcj3vai");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
