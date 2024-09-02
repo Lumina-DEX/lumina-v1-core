@@ -17,21 +17,39 @@ const state = {
   zkToken: null as null | FungibleToken,
   transaction: null as null | Transaction,
   key: null as null | string,
+  isZeko: false,
 };
 
 // ---------------------------------------------------------------------------------------
 
 const functions = {
-  setActiveInstanceToBerkeley: async (args: {}) => {
-    const Berkeley = Mina.Network(
+  setActiveInstanceToDevnet: async (args: {}) => {
+    const devnet = Mina.Network(
+      {
+        networkId: "testnet",
+        mina: "https://api.minascan.io/node/devnet/v1/graphql",
+        archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
+      }
+    );
+    state.isZeko = false;
+    Mina.setActiveInstance(devnet);
+  },
+  setActiveInstanceToZeko: async (args: {}) => {
+    const zeko = Mina.Network(
       {
         networkId: "testnet",
         mina: "https://devnet.zeko.io/graphql",
         //archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
       }
     );
-    Mina.setActiveInstance(Berkeley);
+    state.isZeko = true;
+    Mina.setActiveInstance(zeko);
   },
+
+  getActiveInstance: async (args: {}) => {
+    return JSON.stringify({ isZeko: state.isZeko });
+  },
+
   loadContract: async (args: {}) => {
     const { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } = await import("../../../contracts/build/src/indexmina");
 
@@ -93,10 +111,10 @@ const functions = {
   },
   getBalances: async (args: { user: string }) => {
     const publicKey = PublicKey.fromBase58(args.user);
-    await fetchAccount({ publicKey });
-    await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
-    const bal = Mina.getBalance(publicKey);
-    const balToken = Mina.getBalance(publicKey, state.zkToken.deriveTokenId());
+    const accMina = await fetchAccount({ publicKey });
+    const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+    const bal = accMina.account ? accMina.account.balance : 0;
+    const balToken = acc.account ? acc.account.balance : 0;
 
     return JSON.stringify({ mina: bal, token: balToken });
   },
@@ -120,12 +138,6 @@ const functions = {
     await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken.deriveTokenId() });
     await fetchAccount({ publicKey });
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
-
-    const bal = Mina.getBalance(state.zkapp.address);
-    const balToken = Mina.getBalance(state.zkapp.address, state.zkToken.deriveTokenId());
-    console.log("mina zkapp", bal.toBigInt());
-    console.log("token zkapp", balToken.toBigInt());
-
 
     let newAcc = acc.account ? 0 : 1;
     const token = await state.zkapp?.token.fetch();

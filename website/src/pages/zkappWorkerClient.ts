@@ -9,9 +9,19 @@ import type {
 export default class ZkappWorkerClient {
   // ---------------------------------------------------------------------------------------
 
-  setActiveInstanceToBerkeley() {
-    return this._call("setActiveInstanceToBerkeley", {});
+  setActiveInstanceToDevnet() {
+    return this._call("setActiveInstanceToDevnet", {});
   }
+
+  setActiveInstanceToZeko() {
+    return this._call("setActiveInstanceToZeko", {});
+  }
+
+  async getActiveInstance(): Promise<any> {
+    const result = await this._call("getActiveInstance", {}) as unknown as string;
+    return JSON.parse(result);
+  }
+
 
   loadContract() {
     return this._call("loadContract", {});

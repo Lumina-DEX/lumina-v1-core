@@ -10,6 +10,7 @@ import CurrencyFormat from "react-currency-format";
 const Account = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
   const [information, setInformation] = useState<any>({ account: "", network: "", mina: 0, token: 0 });
+  const [isZeko, setIsZeko] = useState(false);
 
   const zkState = accountState;
 
@@ -17,23 +18,24 @@ const Account = ({ accountState }) => {
     if (window && (window as any).mina) {
       setMina((window as any).mina);
     }
+    zkState?.zkappWorkerClient?.getActiveInstance().then(x => setIsZeko(x.isZeko));
 
   }, [])
 
   useEffect(() => {
+    getUserInformation(mina).then(x => setInformation(x));
     const intervalID = setInterval(() => {
       if (mina && zkState) {
         getUserInformation(mina).then(x => setInformation(x))
       }
-    }, 3000);
+    }, 10000);
 
     return () => clearInterval(intervalID);
-  }, [mina]);
+  }, [mina, isZeko]);
 
 
   const getUserInformation = async (auroMina) => {
     try {
-
       const accounts = await auroMina.getAccounts();
       console.log("accounts");
       const account = accounts[0];
@@ -42,6 +44,20 @@ const Account = ({ accountState }) => {
       const mina = parseInt(balances.mina) / 10 ** 9;
       const token = parseInt(balances.token) / 10 ** 9;
       return { account, network: newtwork.networkID, mina, token };
+    } catch (error) {
+      console.error("getUserInformation", error);
+    }
+  }
+
+  const switchNetwork = async (zeko: boolean) => {
+    try {
+      if (zeko) {
+        await zkState?.zkappWorkerClient?.setActiveInstanceToZeko();
+      } else {
+        await zkState?.zkappWorkerClient?.setActiveInstanceToDevnet();
+      }
+      setInformation({ ...information });
+      setIsZeko(zeko);
     } catch (error) {
       console.error("getUserInformation", error);
     }
@@ -57,11 +73,17 @@ const Account = ({ accountState }) => {
           Network : {information.network}
         </div>
         <div>
+          ZkApp Network : {isZeko ? "Zeko" : "testnet"}
+          <button className="bg-cyan-500 text-lg text-white p-1 rounded m-1" onClick={() => switchNetwork(false)}>Testnet</button>
+          <button className="bg-cyan-500 text-lg text-white p-1 rounded  m-1" onClick={() => switchNetwork(true)}>Zeko</button>
+        </div>
+        <div>
           Balance mina : {information.mina}
         </div>
         <div>
           Balance Token : {information.token}
         </div>
+
       </div>
     </>
   );

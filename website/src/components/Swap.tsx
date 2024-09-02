@@ -101,7 +101,7 @@ const Swap = ({ accountState }) => {
             Swap
           </div>
           <div>
-            <span>Slippage (%) : </span><input type="number" defaultValue={slippagePercent} onChange={(event) => setSlippagePercent(event.target.value)}></input>
+            <span>Slippage (%) : </span><input type="number" defaultValue={slippagePercent} onChange={(event) => setSlippagePercent(event.target.valueAsNumber)}></input>
           </div>
           <div className="flex flex-row w-full">
             <CurrencyFormat
@@ -112,7 +112,7 @@ const Swap = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Dai</span>}
+            {toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Lum</span>}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -128,7 +128,7 @@ const Swap = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Dai</span>}
+            {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Lum</span>}
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap
