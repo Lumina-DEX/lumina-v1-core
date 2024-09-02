@@ -1,12 +1,9 @@
 import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
-import { PoolMina, PoolMinaDeployProps, minimunLiquidity } from '../PoolMina';
-import { MinaTokenHolder } from '../MinaTokenHolder';
-import { FungibleToken } from '../FungibleToken';
-import { mulDiv } from '../MathLibrary';
-import { FungibleTokenAdmin } from '../FungibleTokenAdmin';
 
-let proofsEnabled = false;
+import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, PoolMina, mulDiv, PoolMinaDeployProps, minimunLiquidity } from '../indexmina';
+
+let proofsEnabled = true;
 
 describe('Pool Mina', () => {
   let deployerAccount: Mina.TestPublicKey,

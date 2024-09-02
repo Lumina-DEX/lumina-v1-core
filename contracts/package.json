@@ -43,6 +43,7 @@
     "node": ">=18.14.0"
   },
   "dependencies": {
+    "mina-fungible-token": "^1.0.0",
     "o1js": "^1.6.0"
   }
 }

@@ -1,9 +1,5 @@
 import { mulDiv } from './MathLibrary.js';
-import { FungibleToken, FungibleTokenErrors } from './FungibleToken.js';
-import {
-    FungibleTokenAdmin, FungibleTokenAdminBase,
-    FungibleTokenAdminDeployProps,
-} from './FungibleTokenAdmin.js';
+import { FungibleTokenAdmin, FungibleTokenAdminBase, FungibleToken, FungibleTokenErrors, FungibleTokenAdminDeployProps } from 'mina-fungible-token';
 import { ShowBalance } from './ShowBalance.js';
 import { MinaTokenHolder } from './MinaTokenHolder.js';
 import { PoolMina, PoolMinaDeployProps } from './PoolMina.js';
