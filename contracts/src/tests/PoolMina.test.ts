@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, PoolMina, mulDiv, minimunLiquidity } from '../indexmina';
+import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, PoolMina, mulDiv, MINIMUM_LIQUIDITY } from '../indexmina';
 
 let proofsEnabled = false;
 
@@ -127,7 +127,7 @@ describe('Pool Mina', () => {
 
 
     const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(MINIMUM_LIQUIDITY.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
 
@@ -158,7 +158,7 @@ describe('Pool Mina', () => {
     console.log("mina after deposit", minaUserAfterDeposit.toBigInt());
 
     const liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(MINIMUM_LIQUIDITY.value);
 
     const supply = Mina.getBalance(zkAppAddress, zkApp.deriveTokenId());
 
@@ -194,7 +194,7 @@ describe('Pool Mina', () => {
     await txn.sign([senderKey]).send();
 
     let liquidityUser = Mina.getBalance(senderAccount, zkApp.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(MINIMUM_LIQUIDITY.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
 

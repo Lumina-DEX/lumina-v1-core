@@ -1,10 +1,15 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
-import { PoolMina, FungibleToken, mulDiv } from './indexmina.js';
+import { PoolMina, FungibleToken, mulDiv, SwapEvent } from './indexmina.js';
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
  */
 export class MinaTokenHolder extends SmartContract {
+
+    events = {
+        swap: SwapEvent,
+        upgrade: Field
+    };
 
     init() {
         super.init();
@@ -23,17 +28,18 @@ export class MinaTokenHolder extends SmartContract {
     @method async updateVerificationKey(vk: VerificationKey) {
         // todo implement check
         this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", vk.hash);
     }
 
 
     // swap from mina to this token through the pool
-    @method async swapFromMina(amountIn: UInt64, amountOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
+    @method async swapFromMina(amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
-        amountIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
+        amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-        amountOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
-        amountOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
+        amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
+        amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
 
         const poolAccount = AccountUpdate.create(this.address);
 
@@ -41,17 +47,19 @@ export class MinaTokenHolder extends SmartContract {
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         // calculate amount token out, No tax for the moment (probably in a next version),   
-        let amountOut = mulDiv(balanceOutMin, amountIn, balanceInMax.add(amountIn));
-        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amount out");
+        let amountOut = mulDiv(balanceOutMin, amountMinaIn, balanceInMax.add(amountMinaIn));
+        amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
         // transfer token in to this pool      
         let sender = this.sender.getUnconstrained();
         let senderSigned = AccountUpdate.createSigned(sender);
-        senderSigned.send({ to: poolAccount, amount: amountIn });
+        senderSigned.send({ to: poolAccount, amount: amountMinaIn });
 
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+
+        this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }
 
 
@@ -75,7 +83,7 @@ export class MinaTokenHolder extends SmartContract {
         let receiverUpdate = this.send({ to: sender, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, reserveMinaMin, supplyMax);
+        await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
     }
 
 }

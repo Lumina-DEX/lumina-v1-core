@@ -4,13 +4,47 @@ import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
 // minimum liquidity permanently locked in the pool
 export const MINIMUM_LIQUIDITY: UInt64 = new UInt64(10 ** 3);
 
-export class depositiInfo extends Struct({
-    owner: PublicKey,
-    amount: UInt64
+export class SwapEvent extends Struct({
+    sender: PublicKey,
+    amountIn: UInt64,
+    amountOut: UInt64
 }) {
     constructor(value: {
-        owner: PublicKey,
-        amount: UInt64
+        sender: PublicKey,
+        amountIn: UInt64,
+        amountOut: UInt64,
+    }) {
+        super(value);
+    }
+}
+
+export class AddLiquidityEvent extends Struct({
+    sender: PublicKey,
+    amountMinaIn: UInt64,
+    amountTokenIn: UInt64,
+    amountLiquidityOut: UInt64
+}) {
+    constructor(value: {
+        sender: PublicKey,
+        amountMinaIn: UInt64,
+        amountTokenIn: UInt64,
+        amountLiquidityOut: UInt64
+    }) {
+        super(value);
+    }
+}
+
+export class WithdrawLiquidityEvent extends Struct({
+    sender: PublicKey,
+    amountLiquidityIn: UInt64,
+    amountMinaOut: UInt64,
+    amountTokenOut: UInt64,
+}) {
+    constructor(value: {
+        sender: PublicKey,
+        amountLiquidityIn: UInt64,
+        amountMinaOut: UInt64,
+        amountTokenOut: UInt64,
     }) {
         super(value);
     }
@@ -29,6 +63,13 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
+
+    events = {
+        swap: SwapEvent,
+        addLiquidity: AddLiquidityEvent,
+        withdrawLiquidity: WithdrawLiquidityEvent,
+        upgrade: Field
+    };
 
     async deploy(args: PoolMinaDeployProps) {
         await super.deploy(args);
@@ -56,6 +97,7 @@ export class PoolMina extends TokenContractV2 {
     @method async updateVerificationKey(vk: VerificationKey) {
         // todo implement check
         this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", vk.hash);
     }
 
 
@@ -93,6 +135,8 @@ export class PoolMina extends TokenContractV2 {
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
 
+        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountMina, amountTokenIn: amountToken, amountLiquidityOut: liquidityUser }));
+
         return liquidityUser;
     }
 
@@ -114,7 +158,15 @@ export class PoolMina extends TokenContractV2 {
         // calculate liquidity token output simply as amountX * liquiditySupply / reserveX 
         const liquidityMina = mulDiv(amountMina, supplyMin, reserveMinaMax);
         const liquidityToken = mulDiv(amountToken, supplyMin, reserveTokenMax);
-        liquidityMina.equals(liquidityToken).assertTrue("Incorrect amount of token");
+        // 0.1 % of error max between these 2 liquidities, prevent to send too much token or mina 
+        const percentError = liquidityMina.div(1000);
+        const liquidityMin = liquidityMina.sub(percentError);
+        const liquidityMax = liquidityMina.add(percentError);
+        liquidityMin.assertLessThanOrEqual(liquidityToken, "Too much mina supplied");
+        liquidityMax.assertGreaterThanOrEqual(liquidityToken, "Too much token supplied");
+
+        const liquidityUser = Provable.if(liquidityMina.lessThan(liquidityToken), liquidityMina, liquidityToken);
+        liquidityUser.assertGreaterThan(UInt64.zero, "Liquidity out can't be zero");
 
         // send mina to the pool
         let sender = this.sender.getUnconstrained();
@@ -126,20 +178,22 @@ export class PoolMina extends TokenContractV2 {
         senderToken.send({ to: tokenAccount, amount: amountToken });
 
         // mint token
-        this.internal.mint({ address: sender, amount: liquidityMina });
-        this.internal.mint({ address: circulationUpdate, amount: liquidityMina });
+        this.internal.mint({ address: sender, amount: liquidityUser });
+        this.internal.mint({ address: circulationUpdate, amount: liquidityUser });
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
 
-        return liquidityMina;
+        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountMina, amountTokenIn: amountToken, amountLiquidityOut: liquidityUser }));
+
+        return liquidityUser;
     }
 
-    @method async swapFromToken(amountIn: UInt64, amountOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
-        amountIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
+    @method async swapFromToken(amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
+        amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-        amountOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
-        amountOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
+        amountMinaOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
+        amountMinaOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -147,22 +201,23 @@ export class PoolMina extends TokenContractV2 {
         tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
-        let amountOut = mulDiv(balanceOutMin, amountIn, balanceInMax.add(amountIn));
-        amountOut.assertGreaterThanOrEqual(amountOutMin, "Insufficient amount out");
+        let amountOut = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
+        amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
         let sender = this.sender.getUnconstrained();
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amountIn });
+        senderToken.send({ to: tokenAccount, amount: amountTokenIn });
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
 
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
 
+        this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
     }
 
-    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
         amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
@@ -184,5 +239,8 @@ export class PoolMina extends TokenContractV2 {
 
         // send mina to user
         await this.send({ to: sender, amount: amountMina });
+
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMina, amountTokenOut, amountLiquidityIn: liquidityAmount }));
+
     }
 }

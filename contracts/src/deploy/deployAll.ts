@@ -195,12 +195,11 @@ async function deployToken() {
 async function deployPool() {
     try {
         console.log("deploy pool");
-        const args: PoolMinaDeployProps = { token: zkTokenAddress, symbol: "LDA", src: "https://luminadex.com/" };
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await zkApp.deploy(args);
+                await zkApp.deploy({ token: zkTokenAddress, symbol: "LUM", src: "https://luminadex.com/" });
             }
         );
         await tx.prove();
@@ -243,7 +242,6 @@ async function deployTokenHolder() {
 async function deployAll() {
     try {
         console.log("deploy all");
-        const args: PoolMinaDeployProps = { token: zkTokenAddress, symbol: "LDA", src: "https://luminadex.com/" };
         let dexTokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken.deriveTokenId());
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
@@ -253,7 +251,7 @@ async function deployAll() {
                     adminPublicKey: feepayerAddress,
                 });
                 await zkToken.deploy({
-                    symbol: "LTA",
+                    symbol: "TOKA",
                     src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
                 });
                 await zkToken.initialize(
@@ -262,7 +260,7 @@ async function deployAll() {
                     Bool(false),
                 );
 
-                await zkApp.deploy(args);
+                await zkApp.deploy({ token: zkTokenAddress, symbol: "LUM", src: "https://luminadex.com/" });
                 // await dexTokenHolder0.deploy();
                 // await zkToken.approveAccountUpdate(dexTokenHolder0.self);
             }
