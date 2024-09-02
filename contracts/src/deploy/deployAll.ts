@@ -307,6 +307,8 @@ async function swapMina() {
 
         await fetchAccount({ publicKey: zkAppAddress });
         await fetchAccount({ publicKey: zkAppAddress, tokenId: zkToken.deriveTokenId() });
+        await fetchAccount({ publicKey: feepayerAddress });
+        await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToken.deriveTokenId() });
 
         let amountIn = UInt64.from(1.3 * 10 ** 9);
         let dexTokenHolder = new MinaTokenHolder(zkAppAddress, zkToken.deriveTokenId());
@@ -320,7 +322,7 @@ async function swapMina() {
         const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
 
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await dexTokenHolder.swapFromMina(amountIn, expectedOut, balanceMin, balanceMax);
+            await dexTokenHolder.swapFromMina(amountIn, expectedOut, balanceMax, balanceMin);
             await zkToken.approveAccountUpdate(dexTokenHolder.self);
         });
         await tx.prove();
@@ -337,15 +339,23 @@ async function swapMina() {
 async function swapToken() {
     try {
         console.log("swap Token");
-        let amtSwap = UInt64.from(20 * 10 ** 9);
-        let dexTokenHolder0 = new MinaTokenHolder(zkAppAddress, zkToken.deriveTokenId());
-        const mina = await Mina.getBalance(zkAppAddress);
-        const token = await Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
+        let amountIn = UInt64.from(20 * 10 ** 9);
+
+        await fetchAccount({ publicKey: zkAppAddress });
+        await fetchAccount({ publicKey: zkAppAddress, tokenId: zkToken.deriveTokenId() });
+        await fetchAccount({ publicKey: feepayerAddress });
         await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToken.deriveTokenId() });
-        let from = Mina.getBalance(feepayerAddress, zkToken.deriveTokenId());
-        console.log("from balance", from.value.toString());
+
+        const reserveOut = Mina.getBalance(zkAppAddress);
+        const reserveIn = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
+
+        const balanceMin = reserveOut.sub(reserveOut.div(100));
+        const balanceMax = reserveIn.add(reserveIn.div(100));
+
+        const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
+
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            // await zkApp.swapFromToken(amtSwap, UInt64.from(1000));
+            await zkApp.swapFromToken(amountIn, expectedOut, balanceMax, balanceMin);
         });
         await tx.prove();
         console.log("swap token proof", tx.toPretty());

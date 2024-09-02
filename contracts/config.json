@@ -12,7 +12,7 @@
     },
     "tokena": {
       "networkId": "testnet",
-      "url": "https://devnet.zeko.io/graphq",
+      "url": "https://devnet.zeko.io/graphql",
       "keyPath": "keys/tokenA.json",
       "feepayerKeyPath": "C:\\Users\\EddyB/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1",
