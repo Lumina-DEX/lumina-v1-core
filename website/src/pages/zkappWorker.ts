@@ -1,19 +1,20 @@
 import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount } from "o1js";
 console.log('Load Web Worker.');
 
-import type { PoolMina, PoolMinaDeployProps, MinaTokenHolder, TokenStandard } from "../../../contracts/src/indexmina";
+import type { PoolMina, PoolMinaDeployProps, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
 // ---------------------------------------------------------------------------------------
 
 const state = {
-  TokenStandard: null as null | typeof TokenStandard,
+  TokenAdmin: null as null | typeof FungibleTokenAdmin,
+  TokenStandard: null as null | typeof FungibleToken,
   PoolMina: null as null | typeof PoolMina,
   PoolMinaHolder: null as null | typeof MinaTokenHolder,
   zkapp: null as null | PoolMina,
   zkHolder: null as null | MinaTokenHolder,
-  zkToken: null as null | TokenStandard,
+  zkToken: null as null | FungibleToken,
   transaction: null as null | Transaction,
   key: null as null | string,
 };
@@ -32,13 +33,15 @@ const functions = {
     Mina.setActiveInstance(Berkeley);
   },
   loadContract: async (args: {}) => {
-    const { PoolMina, MinaTokenHolder, TokenStandard } = await import("../../../contracts/build/src/indexmina");
+    const { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } = await import("../../../contracts/build/src/indexmina");
 
     state.PoolMina = PoolMina;
     state.PoolMinaHolder = MinaTokenHolder;
-    state.TokenStandard = TokenStandard;
+    state.TokenStandard = FungibleToken;
+    state.TokenAdmin = FungibleTokenAdmin;
   },
   compileContract: async (args: {}) => {
+    await state.TokenAdmin?.compile();
     await state.TokenStandard?.compile();
     await state.PoolMinaHolder!.compile();
     await state.PoolMina!.compile();
@@ -69,7 +72,7 @@ const functions = {
     const pool = new state.PoolMina!(poolKey.toPublicKey());
     console.log("appkey", poolKey.toBase58());
     const tokenKey = PublicKey.fromBase58(args.tokenX);
-    const depArgs: PoolMinaDeployProps = { token: tokenKey };
+    const depArgs: PoolMinaDeployProps = { token: tokenKey, symbol: "", src: "" };
     const tokenX = new state.TokenStandard!(tokenKey);
     const holderX = new state.PoolMinaHolder!(poolKey.toPublicKey(), tokenX.deriveTokenId());
 
@@ -82,17 +85,22 @@ const functions = {
     state.key = poolKey.toBase58();
   },
   getSupply: async (args: {}) => {
-    const currentNum = await state.zkapp!.liquiditySupply.get();
-    return JSON.stringify(currentNum.toJSON());
+    const acc = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkapp?.deriveTokenId() });
+    return JSON.stringify(acc.account.balance.toJSON());
   },
   getReserves: async (args: {}) => {
-    const amountToken = await state.zkapp!.reserveToken.get();
-    const amountMina = await state.zkapp!.reserveMina.get();
+    const acc = await fetchAccount({ publicKey: state.zkapp.address });
+    const accToken = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken?.deriveTokenId() });
+    const amountToken = await accToken.account.balance;
+    const amountMina = await acc.account.balance;
     return JSON.stringify({ amountToken, amountMina });
   },
-  swapFromMinaTransaction: async (args: { user: string, amt: number, minOut: number }) => {
+  swapFromMinaTransaction: async (args: { user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
     const amtIn = Math.trunc(args.amt * 10 ** 9);
     const amtOut = Math.trunc(args.minOut * 10 ** 9);
+
+    const balanceOut = Math.trunc(args.balanceOutMin * 10 ** 9);
+    const balanceIn = Math.trunc(args.balanceInMax * 10 ** 9);
 
     const publicKey = PublicKey.fromBase58(args.user);
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
@@ -101,21 +109,24 @@ const functions = {
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, newAcc);
-      await state.zkapp!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut));
+      await state.zkHolder!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceOut), UInt64.from(balanceIn));
     });
     state.transaction = transaction;
 
     await state.transaction!.prove();
   },
-  swapFromTokenTransaction: async (args: { user: string, amt: number, minOut: number }) => {
+  swapFromTokenTransaction: async (args: { user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
     const amtIn = Math.trunc(args.amt * 10 ** 9);
     const amtOut = Math.trunc(args.minOut * 10 ** 9);
+    const balanceOut = Math.trunc(args.balanceOutMin * 10 ** 9);
+    const balanceIn = Math.trunc(args.balanceInMax * 10 ** 9);
+
     const publicKey = PublicKey.fromBase58(args.user);
 
     const token = await state.zkapp?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      await state.zkapp!.swapFromToken(UInt64.from(amtIn), UInt64.from(amtOut));
+      await state.zkapp!.swapFromToken(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceOut), UInt64.from(balanceIn));
     });
     state.transaction = transaction;
 

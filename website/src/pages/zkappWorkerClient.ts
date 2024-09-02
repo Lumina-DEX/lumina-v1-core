@@ -59,12 +59,12 @@ export default class ZkappWorkerClient {
     return JSON.parse(result);
   }
 
-  async swapFromMina(user: string, amt: number, minOut: number) {
-    return await this._call("swapFromMinaTransaction", { user, amt, minOut });
+  async swapFromMina(user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
+    return await this._call("swapFromMinaTransaction", { user, amt, minOut, balanceOutMin, balanceInMax });
   }
 
-  async swapFromToken(user: string, amt: number, minOut: number) {
-    return await this._call("swapFromTokenTransaction", { user, amt, minOut });
+  async swapFromToken(user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
+    return await this._call("swapFromTokenTransaction", { user, amt, minOut, balanceOutMin, balanceInMax });
   }
 
   async deployPoolInstance(tokenX: string) {
