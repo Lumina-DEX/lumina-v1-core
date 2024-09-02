@@ -26,8 +26,8 @@ const functions = {
     const Berkeley = Mina.Network(
       {
         networkId: "testnet",
-        mina: "https://api.minascan.io/node/devnet/v1/graphql",
-        archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
+        mina: "https://devnet.zeko.io/graphql",
+        //archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
       }
     );
     Mina.setActiveInstance(Berkeley);
@@ -133,6 +133,7 @@ const functions = {
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, newAcc);
       await state.zkHolder!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+      await state.zkToken?.approveAccountUpdate(state.zkHolder.self);
     });
     state.transaction = transaction;
 
