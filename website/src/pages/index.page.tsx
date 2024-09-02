@@ -5,9 +5,11 @@ import styles from '../styles/Home.module.css';
 import './reactCOIServiceWorker';
 import ZkappWorkerClient from './zkappWorkerClient';
 import Swap from '@/components/Swap';
+import Account from '@/components/Account';
 
 let transactionFee = 0.1;
-const ZKAPP_ADDRESS = 'B62qjBPtgWypGa5W6kwdUFhH5WKRKVb3UJPXVGhrkPz28juJriPpf3u';
+const ZKAPP_ADDRESS = 'B62qrn4bTWsKGddKeLGzriYVQF23fNF4tCnACKawP7ySJfH7zFmd2u6';
+const ZKTOKEN_ADDRESS = 'B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w';
 
 export default function Home() {
   const [state, setState] = useState({
@@ -238,20 +240,8 @@ export default function Home() {
   if (state.hasBeenSetup && state.accountExists) {
     mainContent = (
       <div style={{ justifyContent: 'center', alignItems: 'center' }}>
-        {/* <div className={styles.center} style={{ padding: 0 }}>
-        Current state in zkApp: {JSON.stringify(state.currentNum!)}{' '}
-      </div> */}
-        {/* <button
-        className={styles.card}
-        onClick={onSendTransaction}
-        disabled={state.creatingTransaction}
-      >
-        Send Transaction
-      </button> */}
+        <Account accountState={state}></Account>
         <Swap accountState={state}></Swap>
-        {/* <button className={styles.card} onClick={onRefreshCurrentNum}>
-        Get Latest State
-      </button> */}
       </div>
     );
   }

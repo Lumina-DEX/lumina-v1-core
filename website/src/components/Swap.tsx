@@ -36,32 +36,32 @@ const Swap = ({ accountState }) => {
 
   useEffect(() => {
     if (parseFloat(fromAmount)) {
-      getSwapAmount().then(x => setData(x));
+      getSwapAmount(fromAmount, slippagePercent).then(x => setData(x));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromAmount, slippagePercent]);
 
 
-  const getSwapAmount = async () => {
+  const getSwapAmount = async (fromAmt, slippagePcent) => {
 
     const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
     const reserves = await zkState?.zkappWorkerClient?.getReserves();
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
-    const slippage = slippagePercent;
+    const slippage = slippagePcent;
     if (reserves?.amountMina && reserves?.amountToken) {
       const amountMina = parseInt(reserves?.amountMina);
       const amountToken = parseInt(reserves?.amountToken);
-      let amt = parseFloat(fromAmount) * 10 ** 9;
+      let amt = parseFloat(fromAmt) * 10 ** 9;
       console.log("amtIn", amt);
       if (!toDai) {
         calcul = getAmountOut(amt, amountToken, amountMina, slippage);
         console.log("calcul from dai", calcul);
-        let amtOut = calcul.amountOut / 10**9;
+        let amtOut = calcul.amountOut / 10 ** 9;
         setToAmount(amtOut.toString());
       } else {
         calcul = getAmountOut(amt, amountMina, amountToken, slippage);
         console.log("calcul from mina", calcul);
-        let amtOut = calcul.amountOut / 10**9;
+        let amtOut = calcul.amountOut / 10 ** 9;
         setToAmount(amtOut.toString());
       }
     }
@@ -130,11 +130,10 @@ const Swap = ({ accountState }) => {
             />
             {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Dai</span>}
           </div>
-          {loading ? <p>Creating transaction ...</p> : <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
+          <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap
           </button>
-
-          }
+          {loading && <p>Creating transaction ...</p>}
 
         </div>
       </div>

@@ -59,6 +59,11 @@ export default class ZkappWorkerClient {
     return JSON.parse(result);
   }
 
+  async getBalances(user: string): Promise<any> {
+    const result = await this._call("getBalances", { user }) as string;
+    return JSON.parse(result);
+  }
+
   async swapFromMina(user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
     return await this._call("swapFromMinaTransaction", { user, amt, minOut, balanceOutMin, balanceInMax });
   }

@@ -67,8 +67,8 @@ const functions = {
     await fetchAccount({ publicKey: token })
     state.zkToken = new state.TokenStandard!(token);
 
-    await fetchAccount({ publicKey: token, tokenId: state.zkToken.deriveTokenId() });
-    state.zkHolder = new state.PoolMinaHolder!(token, state.zkToken.deriveTokenId());
+    await fetchAccount({ publicKey, tokenId: state.zkToken.deriveTokenId() });
+    state.zkHolder = new state.PoolMinaHolder!(publicKey, state.zkToken.deriveTokenId());
   },
   deployPoolInstance: async (args: { tokenX: string }) => {
     const poolKey = PrivateKey.random();
@@ -91,6 +91,15 @@ const functions = {
     const acc = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkapp?.deriveTokenId() });
     return JSON.stringify(acc.account.balance.toJSON());
   },
+  getBalances: async (args: { user: string }) => {
+    const publicKey = PublicKey.fromBase58(args.user);
+    await fetchAccount({ publicKey });
+    await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+    const bal = Mina.getBalance(publicKey);
+    const balToken = Mina.getBalance(publicKey, state.zkToken.deriveTokenId());
+
+    return JSON.stringify({ mina: bal, token: balToken });
+  },
   getReserves: async (args: {}) => {
     const acc = await fetchAccount({ publicKey: state.zkapp.address });
     const accToken = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken?.deriveTokenId() });
@@ -104,14 +113,26 @@ const functions = {
     const balanceOut = Math.trunc(args.balanceOutMin);
     const balanceIn = Math.trunc(args.balanceInMax);
 
+
+
     const publicKey = PublicKey.fromBase58(args.user);
+    await fetchAccount({ publicKey: state.zkapp.address });
+    await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken.deriveTokenId() });
+    await fetchAccount({ publicKey });
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+
+    const bal = Mina.getBalance(state.zkapp.address);
+    const balToken = Mina.getBalance(state.zkapp.address, state.zkToken.deriveTokenId());
+    console.log("mina zkapp", bal.toBigInt());
+    console.log("token zkapp", balToken.toBigInt());
+
+
     let newAcc = acc.account ? 0 : 1;
     const token = await state.zkapp?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, newAcc);
-      await state.zkHolder!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceOut), UInt64.from(balanceIn));
+      await state.zkHolder!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
     });
     state.transaction = transaction;
 
@@ -125,10 +146,15 @@ const functions = {
 
     const publicKey = PublicKey.fromBase58(args.user);
 
+    await fetchAccount({ publicKey: state.zkapp.address });
+    await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken.deriveTokenId() });
+    await fetchAccount({ publicKey });
+    await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+
     const token = await state.zkapp?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      await state.zkapp!.swapFromToken(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceOut), UInt64.from(balanceIn));
+      await state.zkapp!.swapFromToken(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
     });
     state.transaction = transaction;
 
@@ -163,6 +189,7 @@ if (typeof window !== "undefined") {
     async (event: MessageEvent<ZkappWorkerRequest>) => {
       const returnData = await functions[event.data.fn](event.data.args);
 
+      console.log("worker return data", returnData);
       const message: ZkappWorkerReponse = {
         id: event.data.id,
         data: returnData,
