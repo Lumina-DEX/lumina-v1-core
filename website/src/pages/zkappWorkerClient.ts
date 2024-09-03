@@ -82,6 +82,14 @@ export default class ZkappWorkerClient {
     return await this._call("swapFromTokenTransaction", { user, amt, minOut, balanceOutMin, balanceInMax });
   }
 
+  async addLiquidity(user: string, amtMina: number, amtToken: number, reserveMinaMax: number, reserveTokenMax: number, supplyMin: number) {
+    return await this._call("addLiquidity", { user, amtMina, amtToken, reserveMinaMax, reserveTokenMax, supplyMin });
+  }
+
+  async withdrawLiquidity(user: string, liquidityAmount: number, amountMinaMin: number, amountTokenMin: number, reserveMinaMin: number, reserveTokenMin: number, supplyMax: number) {
+    return await this._call("withdrawLiquidity", { user, liquidityAmount, amountMinaMin, amountTokenMin, reserveMinaMin, reserveTokenMin, supplyMax });
+  }
+
   async deployPoolInstance(tokenX: string) {
     return await this._call("deployPoolInstance", {
       tokenX

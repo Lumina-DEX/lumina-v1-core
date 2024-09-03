@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Bool, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from '../index.js';
 import readline from "readline/promises";
 
@@ -115,6 +115,7 @@ async function ask() {
             7 updgrade
             8 deploy all
             9 mint token
+            10 show event
             `);
         switch (result) {
             case "1":
@@ -143,6 +144,9 @@ async function ask() {
                 break;
             case "9":
                 await mintToken();
+                break;
+            case "10":
+                await getEvent();
                 break;
             default:
                 await ask();
@@ -402,6 +406,28 @@ async function mintToken() {
     } catch (err) {
         console.log(err);
     }
+}
+
+
+async function getEvent() {
+    try {
+        console.log("show event");
+        await displayEvents(zkApp);
+        let dexTokenHolder = new MinaTokenHolder(zkAppAddress, zkToken.deriveTokenId());
+        await displayEvents(dexTokenHolder);
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+async function displayEvents(contract: SmartContract) {
+    let events = await contract.fetchEvents();
+    console.log(
+        `events on ${contract.address.toBase58()} ${contract.tokenId}`,
+        events.map((e) => {
+            return { type: e.type, data: JSON.stringify(e.event) };
+        })
+    );
 }
 
 

@@ -173,6 +173,58 @@ const functions = {
 
     await state.transaction!.prove();
   },
+  addLiquidity: async (args: { user: string, amtMina: number, amtToken: number, reserveMinaMax: number, reserveTokenMax: number, supplyMin: number }) => {
+    const amtMinaIn = Math.trunc(args.amtMina);
+    const amtTokenIn = Math.trunc(args.amtToken);
+    const reserveMina = Math.trunc(args.reserveMinaMax);
+    const reserveToken = Math.trunc(args.reserveTokenMax);
+    const supply = Math.trunc(args.supplyMin);
+
+    const publicKey = PublicKey.fromBase58(args.user);
+
+    await fetchAccount({ publicKey: state.zkapp.address });
+    await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken.deriveTokenId() });
+    await fetchAccount({ publicKey });
+    await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+
+    console.log("add liquidity");
+    const acc = await fetchAccount({ publicKey, tokenId: state.zkapp?.deriveTokenId() });
+    let newAcc = acc.account ? 0 : 1;
+    const transaction = await Mina.transaction(publicKey, async () => {
+      AccountUpdate.fundNewAccount(publicKey, newAcc);
+      await state.zkapp!.supplyLiquidity(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn), UInt64.from(reserveMina), UInt64.from(reserveToken), UInt64.from(supply));
+    });
+    state.transaction = transaction;
+
+    await state.transaction!.prove();
+  },
+
+  withdrawLiquidity: async (args: { user: string, liquidityAmount: number, amountMinaMin: number, amountTokenMin: number, reserveMinaMin: number, reserveTokenMin: number, supplyMax: number }) => {
+    const liquidityAmountIn = Math.trunc(args.liquidityAmount);
+    const amountMinaOut = Math.trunc(args.amountMinaMin);
+    const amountTokenOut = Math.trunc(args.amountTokenMin);
+    const reserveMina = Math.trunc(args.reserveMinaMin);
+    const reserveToken = Math.trunc(args.reserveTokenMin);
+    const supply = Math.trunc(args.supplyMax);
+
+    const publicKey = PublicKey.fromBase58(args.user);
+
+    await fetchAccount({ publicKey: state.zkapp.address });
+    await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken.deriveTokenId() });
+    await fetchAccount({ publicKey });
+    await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+    await fetchAccount({ publicKey, tokenId: state.zkapp?.deriveTokenId() });
+
+    console.log("withdraw liquidity");
+
+    const transaction = await Mina.transaction(publicKey, async () => {
+      await state.zkHolder!.withdrawLiquidity(UInt64.from(liquidityAmountIn), UInt64.from(amountMinaOut), UInt64.from(amountTokenOut), UInt64.from(reserveMina), UInt64.from(reserveToken), UInt64.from(supply));
+      await state.zkToken.approveAccountUpdate(state.zkHolder.self);
+    });
+    state.transaction = transaction;
+
+    await state.transaction!.prove();
+  },
   getTransactionJSON: async (args: {}) => {
     return state.transaction!.toJSON();
   },
