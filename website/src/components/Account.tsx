@@ -9,7 +9,7 @@ import CurrencyFormat from "react-currency-format";
 // @ts-ignore
 const Account = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
-  const [information, setInformation] = useState<any>({ account: "", network: "", mina: 0, token: 0 });
+  const [information, setInformation] = useState<any>({ account: "", network: "", mina: 0, token: 0, liquidity: 0 });
   const [isZeko, setIsZeko] = useState(false);
 
   const zkState = accountState;
@@ -45,7 +45,8 @@ const Account = ({ accountState }) => {
       const balances = await zkState?.zkappWorkerClient?.getBalances(account);
       const mina = parseInt(balances.mina) / 10 ** 9;
       const token = parseInt(balances.token) / 10 ** 9;
-      return { account, network: newtwork.networkID, mina, token };
+      const liquidity = parseInt(balances.liquidity) / 10 ** 9;
+      return { account, network: newtwork.networkID, mina, token, liquidity };
     } catch (error) {
       console.error("getUserInformation", error);
     }
@@ -67,7 +68,7 @@ const Account = ({ accountState }) => {
 
   return (
     <>
-      <div className="flex flex-col justify-center w-screen p-5 " style={{ position: "fixed", top: "0", backgroundColor: "rgba(120,120,120,0.4)" }} >
+      <div className="flex flex-col justify-center w-screen p-5 " style={{ position: "fixed", top: "0", left: "0", backgroundColor: "rgba(120,120,120,0.4)" }} >
         <div>
           Account : {information.account}
         </div>
@@ -83,9 +84,11 @@ const Account = ({ accountState }) => {
           Balance mina : {information.mina}
         </div>
         <div>
-          Balance Token : {information.token}
+          Balance Token (TOKA) : {information.token}
         </div>
-
+        <div>
+          Balance Liquidity (LUM) : {information.liquidity}
+        </div>
       </div>
     </>
   );

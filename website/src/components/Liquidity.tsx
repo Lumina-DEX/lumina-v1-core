@@ -29,44 +29,46 @@ const Liquidity = ({ accountState }) => {
 
   const [slippagePercent, setSlippagePercent] = useState<number>(1);
 
-  const [data, setData] = useState({ amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 });
+  const [data, setData] = useState({ amountAIn: 0, amountBIn: 0, balanceAMax: 0, balanceBMax: 0, supplyMin: 0 });
 
 
   useEffect(() => {
     if (parseFloat(fromAmount)) {
-      getSwapAmount(fromAmount, slippagePercent).then(x => setData(x));
+      getLiquidityAmount(fromAmount, slippagePercent).then(x => setData(x));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromAmount, slippagePercent]);
 
 
-  const getSwapAmount = async (fromAmt, slippagePcent) => {
-
-    const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
+  const getLiquidityAmount = async (fromAmt, slippagePcent) => {
+    console.log("getLiquidityAmount", fromAmt);
+    const { getAmountLiquidityOut } = await import("../../../contracts/build/src/indexmina");
     const reserves = await zkState?.zkappWorkerClient?.getReserves();
-    let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
+    console.log("reserve", reserves);
+    let calcul = { amountAIn: 0, amountBIn: 0, balanceAMax: 0, balanceBMax: 0, supplyMin: 0 };
     const slippage = slippagePcent;
     if (reserves?.amountMina && reserves?.amountToken) {
       const amountMina = parseInt(reserves?.amountMina);
       const amountToken = parseInt(reserves?.amountToken);
+      const liquidity = parseInt(reserves?.liquidity);
       let amt = parseFloat(fromAmt) * 10 ** 9;
       console.log("amtIn", amt);
       if (!toDai) {
-        calcul = getAmountOut(amt, amountToken, amountMina, slippage);
+        calcul = getAmountLiquidityOut(amt, amountToken, amountMina, liquidity, slippage);
         console.log("calcul from dai", calcul);
-        let amtOut = calcul.amountOut / 10 ** 9;
+        let amtOut = calcul.amountBIn / 10 ** 9;
         setToAmount(amtOut.toString());
       } else {
-        calcul = getAmountOut(amt, amountMina, amountToken, slippage);
+        calcul = getAmountLiquidityOut(amt, amountMina, amountToken, liquidity, slippage);
         console.log("calcul from mina", calcul);
-        let amtOut = calcul.amountOut / 10 ** 9;
+        let amtOut = calcul.amountBIn / 10 ** 9;
         setToAmount(amtOut.toString());
       }
     }
     return calcul;
   }
 
-  const swap = async () => {
+  const addLiquidity = async () => {
     try {
       setLoading(true);
       console.log("infos", { fromAmount, toAmount });
@@ -75,9 +77,9 @@ const Liquidity = ({ accountState }) => {
         console.log("zkState", zkState)
         const user: string = (await mina.requestAccounts())[0];
         if (!toDai) {
-          await zkState.zkappWorkerClient?.swapFromToken(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
+          await zkState.zkappWorkerClient?.addLiquidity(user, data.amountBIn, data.amountAIn, data.balanceBMax, data.balanceAMax, data.supplyMin);
         } else {
-          await zkState.zkappWorkerClient?.swapFromMina(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
+          await zkState.zkappWorkerClient?.addLiquidity(user, data.amountAIn, data.amountBIn, data.balanceAMax, data.balanceBMax, data.supplyMin);
         }
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
         await mina.sendTransaction({ transaction: json });
@@ -93,10 +95,10 @@ const Liquidity = ({ accountState }) => {
 
   return (
     <>
-      <div className="flex flex-row justify-center w-screen ">
-        <div style={{ backgroundColor: "rgba(120,120,120,0.4)" }} className="flex flex-col p-5 gap-5 rounded w-[300px] h-[400px] items-center">
+      <div className="flex flex-row justify-center w-full ">
+        <div className="flex flex-col p-5 gap-5 items-center">
           <div className="text-xl">
-            Swap
+            Add liquidity
           </div>
           <div>
             <span>Slippage (%) : </span><input type="number" defaultValue={slippagePercent} onChange={(event) => setSlippagePercent(event.target.valueAsNumber)}></input>
@@ -110,7 +112,7 @@ const Liquidity = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Lum</span>}
+            {toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">TOKA</span>}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -126,10 +128,13 @@ const Liquidity = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Lum</span>}
+            {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">TOKA</span>}
           </div>
-          <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
-            Swap
+          {/* <div>
+            <span>Liquidity minted :</span>
+          </div> */}
+          <button onClick={addLiquidity} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
+            Add Liquidity
           </button>
           {loading && <p>Creating transaction ...</p>}
 

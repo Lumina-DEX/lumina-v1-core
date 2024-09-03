@@ -95,8 +95,8 @@ const Swap = ({ accountState }) => {
 
   return (
     <>
-      <div className="flex flex-row justify-center w-screen ">
-        <div style={{ backgroundColor: "rgba(120,120,120,0.4)" }} className="flex flex-col p-5 gap-5 rounded w-[300px] h-[400px] items-center">
+      <div className="flex flex-row justify-center w-full ">
+        <div  className="flex flex-col p-5 gap-5  items-center">
           <div className="text-xl">
             Swap
           </div>
@@ -112,7 +112,7 @@ const Swap = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Lum</span>}
+            {toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">TOKA</span>}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -128,7 +128,7 @@ const Swap = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">Lum</span>}
+            {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">TOKA</span>}
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap

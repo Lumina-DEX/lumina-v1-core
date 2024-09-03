@@ -6,6 +6,7 @@ import './reactCOIServiceWorker';
 import ZkappWorkerClient from './zkappWorkerClient';
 import Swap from '@/components/Swap';
 import Account from '@/components/Account';
+import Tab from '@/components/Tab';
 
 let transactionFee = 0.1;
 const ZKAPP_ADDRESS = 'B62qrn4bTWsKGddKeLGzriYVQF23fNF4tCnACKawP7ySJfH7zFmd2u6';
@@ -241,7 +242,7 @@ export default function Home() {
     mainContent = (
       <div style={{ justifyContent: 'center', alignItems: 'center' }}>
         <Account accountState={state}></Account>
-        <Swap accountState={state}></Swap>
+        <Tab accountState={state}></Tab>
       </div>
     );
   }

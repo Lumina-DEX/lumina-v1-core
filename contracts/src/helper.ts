@@ -22,3 +22,15 @@ export function getAmountOutUint(amountIn: UInt64, balanceIn: UInt64, balanceOut
 
     return { amountIn, amountOut, balanceOutMin, balanceInMax };
 }
+
+export function getAmountLiquidityOut(amountAIn: number, balanceA: number, balanceB: number, supply: number, percent: number) {
+
+    const balanceAMax = balanceA + balanceA * percent / 100;
+    const balanceBMax = balanceB + balanceB * percent / 100;
+    const supplyMin = supply - supply * percent / 100;
+
+    const liquidityA = Math.trunc(amountAIn * supplyMin / balanceAMax);
+    const amountBIn = Math.trunc(liquidityA * balanceBMax / supplyMin);
+
+    return { amountAIn, amountBIn, balanceAMax, balanceBMax, supplyMin };
+}

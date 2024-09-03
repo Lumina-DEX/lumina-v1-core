@@ -2,6 +2,7 @@ import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt
 console.log('Load Web Worker.');
 
 import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
+import Liquidity from "@/components/Liquidity";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -113,17 +114,21 @@ const functions = {
     const publicKey = PublicKey.fromBase58(args.user);
     const accMina = await fetchAccount({ publicKey });
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+    const accLiquidity = await fetchAccount({ publicKey, tokenId: state.zkapp?.deriveTokenId() });
     const bal = accMina.account ? accMina.account.balance : 0;
     const balToken = acc.account ? acc.account.balance : 0;
+    const balLiquidity = accLiquidity.account ? accLiquidity.account.balance : 0;
 
-    return JSON.stringify({ mina: bal, token: balToken });
+    return JSON.stringify({ mina: bal, token: balToken, liquidity: balLiquidity });
   },
   getReserves: async (args: {}) => {
     const acc = await fetchAccount({ publicKey: state.zkapp.address });
     const accToken = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkToken?.deriveTokenId() });
+    const accLiquidity = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkapp?.deriveTokenId() });
     const amountToken = await accToken.account.balance;
     const amountMina = await acc.account.balance;
-    return JSON.stringify({ amountToken, amountMina });
+    const liquidity = await accLiquidity.account.balance;
+    return JSON.stringify({ amountToken, amountMina, liquidity });
   },
   swapFromMinaTransaction: async (args: { user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
     const amtIn = Math.trunc(args.amt);
