@@ -129,64 +129,6 @@ export default function Home() {
   }, [state.hasBeenSetup]);
 
   // -------------------------------------------------------
-  // Send a transaction
-
-  const onSendTransaction = async () => {
-    setState({ ...state, creatingTransaction: true });
-
-    setDisplayText('Creating a transaction...');
-    console.log('Creating a transaction...');
-
-    await state.zkappWorkerClient!.fetchAccount({
-      publicKeyBase58: state.publicKey!.toBase58(),
-    });
-
-    // await state.zkappWorkerClient!.createUpdateTransaction();
-
-    // setDisplayText('Creating proof...');
-    // console.log('Creating proof...');
-    // await state.zkappWorkerClient!.proveUpdateTransaction();
-
-    console.log('Requesting send transaction...');
-    setDisplayText('Requesting send transaction...');
-    const transactionJSON = await state.zkappWorkerClient!.getTransactionJSON();
-
-    setDisplayText('Getting transaction JSON...');
-    console.log('Getting transaction JSON...');
-    const { hash } = await (window as any).mina.sendTransaction({
-      transaction: transactionJSON,
-      feePayer: {
-        fee: transactionFee,
-        memo: '',
-      },
-    });
-
-    const transactionLink = `https://minascan.io/devnet/tx/${hash}`;
-    console.log(`View transaction at ${transactionLink}`);
-
-    setTransactionLink(transactionLink);
-    setDisplayText(transactionLink);
-
-    setState({ ...state, creatingTransaction: false });
-  };
-
-  // -------------------------------------------------------
-  // Refresh the current state
-
-  const onRefreshCurrentNum = async () => {
-    console.log('Getting zkApp state...');
-    setDisplayText('Getting zkApp state...');
-
-    await state.zkappWorkerClient!.fetchAccount({
-      publicKeyBase58: state.zkappPublicKey!.toBase58(),
-    });
-    const currentNum = await state.zkappWorkerClient!.getReserves();
-    setState({ ...state, currentNum });
-    console.log(`Current state in zkApp:`, currentNum);
-    setDisplayText('');
-  };
-
-  // -------------------------------------------------------
   // Create UI elements
 
   let hasWallet;

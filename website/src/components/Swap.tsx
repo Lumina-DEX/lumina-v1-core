@@ -75,6 +75,8 @@ const Swap = ({ accountState }) => {
 
       if (mina) {
         console.log("zkState", zkState)
+        // get time proof generation
+        console.time("swap");
         const user: string = (await mina.requestAccounts())[0];
         if (!toDai) {
           await zkState.zkappWorkerClient?.swapFromToken(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
@@ -82,6 +84,7 @@ const Swap = ({ accountState }) => {
           await zkState.zkappWorkerClient?.swapFromMina(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
         }
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
+        console.timeEnd("swap");
         await mina.sendTransaction({ transaction: json });
       }
     } catch (error) {
