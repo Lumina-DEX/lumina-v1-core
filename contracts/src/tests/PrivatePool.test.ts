@@ -319,6 +319,36 @@ describe('Private Pool Mina', () => {
     expect(balAfter.value).toEqual(balBefore.sub(amountIn).value);
   });
 
+  it('swap from token Unhautorized', async () => {
+    let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
+    const txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 2);
+      await zkApp.supplyFirstLiquidities(amt, amtToken);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    const reserveIn = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
+    const reserveOut = Mina.getBalance(zkAppAddress);
+    let amountIn = UInt64.from(1.3 * 10 ** 9);
+
+    const balanceMin = reserveOut.sub(reserveOut.div(100));
+    const balanceMax = reserveIn.add(reserveIn.div(100));
+
+    const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
+    const optimalOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
+
+    const minOut = optimalOut.sub(optimalOut.div(50)); // 2 % dif 
+
+    const balBefore = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
+
+    const userMinaBalBefore = Mina.getBalance(senderAccount);
+
+    const sign = Signature.create(authorizeSigner, senderAccount.toFields().concat(Bool(false).toField()));
+    const proof = await expect(KYCProgram.checkKyc(senderAccount, sign)).rejects.toThrow("Invalid Signer");
+  });
+
   function showBalanceToken0() {
     let bal = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
     console.log("balance user 0", bal.toBigInt());
