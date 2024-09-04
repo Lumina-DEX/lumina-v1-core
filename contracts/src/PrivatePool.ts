@@ -57,10 +57,10 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 }
 
 // B62qoHtRmvtiZrsWFZDUxgiJ98DcWbvva5D31iDXKFGbCUqFEwtxBrw
-const authorizeSigner = PrivateKey.fromBase58("EKE2f1KypNKvwd19SpvBhtkackD44JrKBomdvPERQsbxDiUE8Big");
+export const authorizeSigner = PrivateKey.fromBase58("EKE2f1KypNKvwd19SpvBhtkackD44JrKBomdvPERQsbxDiUE8Big");
 const aurthorizedPublicKey = authorizeSigner.toPublicKey();
 
-const KYCProgram = ZkProgram({
+export const KYCProgram = ZkProgram({
     name: "kyc",
     publicInput: PublicKey,
 
@@ -88,7 +88,7 @@ export class MainProof extends MainProof_ { }
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class Private extends TokenContractV2 {
+export class PrivatePoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
 
