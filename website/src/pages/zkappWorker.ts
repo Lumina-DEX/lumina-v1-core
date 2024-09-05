@@ -31,7 +31,7 @@ const functions = {
     const devnet = Mina.Network(
       {
         networkId: "testnet",
-        mina: currentLocation + "/api/graphql",
+        mina: currentLocation + "/graphql",
         archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
       }
     );

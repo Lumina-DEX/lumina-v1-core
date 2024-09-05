@@ -42,7 +42,7 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/graphql/:path*',
+        source: '/graphql/:path*',
         destination: `https://devnet.minaprotocol.network/graphql/:path*`,
       },
     ]

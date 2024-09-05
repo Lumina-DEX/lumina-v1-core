@@ -58,6 +58,15 @@ export default function Home() {
           return;
         }
 
+        await zkappWorkerClient.loadContract();
+
+
+        console.log('Compiling zkApp...');
+        setDisplayText('Compiling zkApp...');
+        await zkappWorkerClient.compileContract();
+        console.log('zkApp compiled');
+        setDisplayText('zkApp compiled...');
+
         const publicKeyBase58: string = (await mina.requestAccounts())[0];
         const publicKey = PublicKey.fromBase58(publicKeyBase58);
 
@@ -71,14 +80,6 @@ export default function Home() {
           publicKeyBase58: publicKey!.toBase58(),
         });
         const accountExists = res.error == null;
-
-        await zkappWorkerClient.loadContract();
-
-        console.log('Compiling zkApp...');
-        setDisplayText('Compiling zkApp...');
-        await zkappWorkerClient.compileContract();
-        console.log('zkApp compiled');
-        setDisplayText('zkApp compiled...');
 
         const zkappPublicKey = PublicKey.fromBase58(ZKAPP_ADDRESS);
 
