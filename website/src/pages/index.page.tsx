@@ -49,7 +49,7 @@ export default function Home() {
         setDisplayText('Done loading web worker');
         console.log('Done loading web worker');
 
-        await zkappWorkerClient.setActiveInstanceToDevnet();
+        await zkappWorkerClient.setActiveInstanceToZeko();
 
         const mina = (window as any).mina;
 

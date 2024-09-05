@@ -4,13 +4,14 @@ import {
 
 export const fetchFiles = async () => {
     let currentLocation = self.location.origin;
-    const filesResponse = await fetch(`${currentLocation}/compiled.json`);
+    var headers = new Headers();
+    headers.append('Content-Encoding', 'br, gzip, deflate');
+
+    const filesResponse = await fetch(`${currentLocation}/compiled.json`, { headers });
     const json = await filesResponse.json();
     return Promise.all(json.map((file) => {
-        var headers = new Headers();
-        headers.append('Accept-Encoding', 'gzip, deflate, br');
         return Promise.all([
-            fetch(`${currentLocation}/cache/${file}`, {
+            fetch(`${currentLocation}/cache/${file}.txt`, {
                 cache: "force-cache",
                 headers
             }).then(res => res.text())

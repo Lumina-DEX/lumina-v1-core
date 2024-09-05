@@ -30,7 +30,7 @@ const Account = ({ accountState }) => {
       if (mina && zkState) {
         getUserInformation(mina).then(x => setInformation(x))
       }
-    }, 10000);
+    }, 15000);
 
     return () => clearInterval(intervalID);
   }, [mina, isZeko]);
