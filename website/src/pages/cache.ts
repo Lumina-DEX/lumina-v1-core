@@ -45,5 +45,5 @@ export const readCache = (files: any): Cache => ({
         console.log('write');
         console.log({ persistentId, uniqueId, dataType });
     },
-    canWrite: true,
+    canWrite: false,
 });
