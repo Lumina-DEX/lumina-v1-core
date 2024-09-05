@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "postinstall": "cd ../contracts && npm install",
-    "prebuild": "cd ../contracts && npm run build",
+    "prebuild": "cd ../contracts && npm run build && npm run cache",
     "build": "next build --no-lint",
     "start": "next start",
     "lint": "next lint",

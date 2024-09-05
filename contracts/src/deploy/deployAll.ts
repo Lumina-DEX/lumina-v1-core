@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Bool, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from '../indexmina.js';
 import readline from "readline/promises";
 
@@ -97,10 +97,11 @@ console.log("zkTokenAdmin", zkTokenAdminPrivateKey.toBase58());
 // compile the contract to create prover keys
 console.log('compile the contract...');
 
-const key = await PoolMina.compile();
-await FungibleToken.compile();
-await FungibleTokenAdmin.compile();
-await MinaTokenHolder.compile();
+const cache: Cache = Cache.FileSystem('./cache');
+const key = await PoolMina.compile({ cache });
+await FungibleToken.compile({ cache });
+await FungibleTokenAdmin.compile({ cache });
+await MinaTokenHolder.compile({ cache });
 
 async function ask() {
     try {

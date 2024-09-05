@@ -3,6 +3,7 @@ console.log('Load Web Worker.');
 
 import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
 import Liquidity from "@/components/Liquidity";
+import { fetchFiles, readCache } from "./cache";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -28,7 +29,7 @@ const functions = {
     const devnet = Mina.Network(
       {
         networkId: "testnet",
-        mina: "https://api.minascan.io/node/devnet/v1/graphql",
+        mina: "http://localhost:3000/api/graphql",
         archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
       }
     );
@@ -60,10 +61,15 @@ const functions = {
     state.TokenAdmin = FungibleTokenAdmin;
   },
   compileContract: async (args: {}) => {
-    await state.TokenAdmin?.compile();
-    await state.TokenStandard?.compile();
-    await state.PoolMinaHolder!.compile();
-    await state.PoolMina!.compile();
+    console.time("compile");
+    const cacheFiles = await fetchFiles();
+    const cache = readCache(cacheFiles);
+
+    await state.TokenAdmin?.compile({ cache });
+    await state.TokenStandard?.compile({ cache });
+    await state.PoolMinaHolder!.compile({ cache });
+    await state.PoolMina!.compile({ cache });
+    console.timeEnd("compile");
   },
   fetchAccount: async (args: { publicKey58: string }) => {
     const publicKey = PublicKey.fromBase58(args.publicKey58);
