@@ -6,6 +6,11 @@ Adding/withdrawing liquidities, or swapping, each action requires only one trans
 
 These actions can be performed concurrently with other users.
 
+## Licensing
+
+Business Source License 1.1
+
+Licensor: Lumina Labs
 
 ## Test
 
