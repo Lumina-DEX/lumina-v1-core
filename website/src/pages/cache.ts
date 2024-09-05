@@ -3,13 +3,12 @@ import {
 } from "o1js";
 
 export const fetchFiles = async () => {
-    const filesResponse = await fetch("http://localhost:3000/compiled.json");
+    let currentLocation = self.location.origin;
+    const filesResponse = await fetch(`${currentLocation}/compiled.json`);
     const json = await filesResponse.json();
-    //const files = JSON.parse(json);
-    console.log("json");
     return Promise.all(json.map((file) => {
         return Promise.all([
-            fetch(`http://localhost:3000/cache/${file}`).then(res => res.text())
+            fetch(`${currentLocation}/cache/${file}`).then(res => res.text())
         ]).then(([data]) => ({ file, data }));
     }))
         .then((cacheList) => cacheList.reduce((acc: any, { file, data }) => {

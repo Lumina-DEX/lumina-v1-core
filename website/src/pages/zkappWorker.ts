@@ -1,4 +1,5 @@
 import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount } from "o1js";
+
 console.log('Load Web Worker.');
 
 import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
@@ -26,10 +27,11 @@ const state = {
 
 const functions = {
   setActiveInstanceToDevnet: async (args: {}) => {
+    let currentLocation = self.location.origin;
     const devnet = Mina.Network(
       {
         networkId: "testnet",
-        mina: "http://localhost:3000/api/graphql",
+        mina: currentLocation + "/api/graphql",
         archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
       }
     );
