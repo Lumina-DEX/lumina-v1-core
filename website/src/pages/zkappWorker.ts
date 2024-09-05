@@ -64,13 +64,18 @@ const functions = {
   },
   compileContract: async (args: {}) => {
     console.time("compile");
-    const cacheFiles = await fetchFiles();
-    const cache = readCache(cacheFiles);
+    try {
+      const cacheFiles = await fetchFiles();
+      const cache = readCache(cacheFiles);
 
-    await state.TokenAdmin?.compile({ cache });
-    await state.TokenStandard?.compile({ cache });
-    await state.PoolMinaHolder!.compile({ cache });
-    await state.PoolMina!.compile({ cache });
+      await state.TokenAdmin?.compile({ cache });
+      await state.TokenStandard?.compile({ cache });
+      await state.PoolMinaHolder!.compile({ cache });
+      await state.PoolMina!.compile({ cache });
+    } catch (error) {
+      console.error("compileContract", error);
+    }
+
     console.timeEnd("compile");
   },
   fetchAccount: async (args: { publicKey58: string }) => {
