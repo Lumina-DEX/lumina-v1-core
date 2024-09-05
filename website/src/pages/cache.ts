@@ -7,8 +7,13 @@ export const fetchFiles = async () => {
     const filesResponse = await fetch(`${currentLocation}/compiled.json`);
     const json = await filesResponse.json();
     return Promise.all(json.map((file) => {
+        var headers = new Headers();
+        headers.append('Accept-Encoding', 'gzip, deflate, br');
         return Promise.all([
-            fetch(`${currentLocation}/cache/${file}`).then(res => res.text())
+            fetch(`${currentLocation}/cache/${file}`, {
+                cache: "force-cache",
+                headers
+            }).then(res => res.text())
         ]).then(([data]) => ({ file, data }));
     }))
         .then((cacheList) => cacheList.reduce((acc: any, { file, data }) => {
