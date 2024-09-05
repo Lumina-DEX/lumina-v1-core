@@ -68,7 +68,7 @@ const Account = ({ accountState }) => {
 
   return (
     <>
-      <div className="flex flex-col justify-center w-screen p-5 " style={{ position: "fixed", top: "0", left: "0", backgroundColor: "rgba(120,120,120,0.4)" }} >
+      <div className="flex flex-col justify-center w-screen p-5 " style={{ position: "fixed", top: "0", left: "0", backgroundColor: "white" }} >
         <div>
           Account : {information.account}
         </div>

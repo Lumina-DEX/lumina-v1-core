@@ -145,14 +145,6 @@ export default function GradientBG({ children }) {
 
   return (
     <>
-      <div className={styles.background}>
-        <canvas
-          className={styles.backgroundGradients}
-          width="6"
-          height="6"
-          ref={canvasRef}
-        />
-      </div>
       <div className={styles.container}>{children}</div>
     </>
   );

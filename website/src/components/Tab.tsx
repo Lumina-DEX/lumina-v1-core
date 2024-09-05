@@ -18,7 +18,7 @@ const Tab = ({ accountState }) => {
     return (
         <>
             <div>
-                <div className="flex flex-col  w-[400px]  h-[400px]  rounded" style={{ backgroundColor: "rgba(120,120,120,0.4)" }}>
+                <div className="flex flex-col  w-[400px]  h-[400px]  rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
                     <div className="flex flex-row justify-around items-stretch w-full p-2" style={{ borderBottom: "white 1px solid" }} >
                         <button style={{ textDecoration: tab === "swap" ? "underline" : "none" }} className="text-lg text-black p-1 " onClick={() => setTab("swap")}>Swap</button>
                         <button style={{ textDecoration: tab === "liquidity" ? "underline" : "none" }} className="text-lg text-black p-1 " onClick={() => setTab("liquidity")}>Liquidity</button>
