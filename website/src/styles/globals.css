@@ -132,3 +132,25 @@ a:hover {
 a[target="_blank"]:hover {
   text-decoration: underline;
 }
+
+.menu button {
+  cursor: pointer;
+  border-radius: 5px;
+  padding: 5px 12px;
+  margin: 5px;
+  background-color: rgb(53, 28, 115);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.menu button:hover {
+  background-color: rgb(39, 21, 86);
+}
+
+.menu select {
+  cursor: pointer;
+  border: rgb(31, 41, 55) 1px solid;
+  border-radius: 5px;
+  color: rgb(31, 41, 55);
+}
