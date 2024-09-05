@@ -180,26 +180,22 @@ export default function Home() {
     );
   }
 
-  let mainContent;
-  if (state.hasBeenSetup && state.accountExists) {
-    mainContent = (
-      <div style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <Account accountState={state}></Account>
-        <Tab accountState={state}></Tab>
-      </div>
-    );
-  }
+  let mainContent = (
+    <div style={{ justifyContent: 'center', alignItems: 'center' }}>
+      <Account accountState={state}></Account>
+      {state.hasBeenSetup && state.accountExists && <Tab accountState={state}></Tab>}
+    </div>
+  );
+
 
 
   return (
-    <GradientBG>
-      <div className={styles.main} style={{ padding: 0 }}>
-        <div className={styles.center} style={{ padding: 0 }}>
-          {setup}
-          {accountDoesNotExist}
-          {mainContent}
-        </div>
+    <div className={styles.main} style={{ padding: 0 }}>
+      <div className={styles.center} style={{ padding: 0 }}>
+        {setup}
+        {accountDoesNotExist}
+        {mainContent}
       </div>
-    </GradientBG>
+    </div>
   );
 }

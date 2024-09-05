@@ -10,7 +10,8 @@ import CurrencyFormat from "react-currency-format";
 const Account = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
   const [information, setInformation] = useState<any>({ account: "", network: "", mina: 0, token: 0, liquidity: 0 });
-  const [isZeko, setIsZeko] = useState(false);
+  const [isZeko, setIsZeko] = useState(true);
+  const [network, setNetwork] = useState("zeko");
 
   const zkState = accountState;
 
@@ -24,7 +25,8 @@ const Account = ({ accountState }) => {
 
   useEffect(() => {
     if (mina && zkState) {
-      getUserInformation(mina).then(x => setInformation(x))
+      getUserInformation(mina).then(x => setInformation(x));
+      switchNetwork(isZeko).then();
     }
     const intervalID = setInterval(() => {
       if (mina && zkState) {
@@ -38,10 +40,11 @@ const Account = ({ accountState }) => {
 
   const getUserInformation = async (auroMina) => {
     try {
-      const accounts = await auroMina.getAccounts();
+      const accounts = await auroMina?.getAccounts();
       console.log("accounts");
-      const account = accounts[0];
-      const newtwork = await auroMina.requestNetwork();
+      const account = accounts?.length ? accounts[0] : "";
+      const newtwork = await auroMina?.requestNetwork();
+      console.log("newtwork", newtwork);
       const balances = await zkState?.zkappWorkerClient?.getBalances(account);
       const mina = parseInt(balances.mina) / 10 ** 9;
       const token = parseInt(balances.token) / 10 ** 9;
@@ -52,12 +55,23 @@ const Account = ({ accountState }) => {
     }
   }
 
+  useEffect(() => {
+
+    switchNetwork(network === "zeko").then();
+
+  }, [network])
+
   const switchNetwork = async (zeko: boolean) => {
     try {
       if (zeko) {
         await zkState?.zkappWorkerClient?.setActiveInstanceToZeko();
       } else {
         await zkState?.zkappWorkerClient?.setActiveInstanceToDevnet();
+      }
+      const desiredNetwork = zeko ? "zeko:testnet" : "mina:testnet";
+      const network = await mina?.requestNetwork();
+      if (network != desiredNetwork) {
+        await mina?.switchChain({ networkID: desiredNetwork }).catch((err: any) => console.error(err));
       }
       setInformation({ ...information });
       setIsZeko(zeko);
@@ -66,10 +80,14 @@ const Account = ({ accountState }) => {
     }
   }
 
+  const trimText = (text: string) => {
+    return text.substring(0, 4) + "..." + text.substring(text.length - 4, text.length);
+  }
+
   return (
     <>
-      <div className="flex flex-col justify-center w-screen p-5 " style={{ position: "fixed", top: "0", left: "0", backgroundColor: "white" }} >
-        <div>
+      <div className="flex flex-row justify-between items-center w-screen menu" style={{ position: "fixed", top: "0", left: "0", backgroundColor: "white" }} >
+        {/* <div>
           Account : {information.account}
         </div>
         <div>
@@ -88,6 +106,34 @@ const Account = ({ accountState }) => {
         </div>
         <div>
           Balance Liquidity (LUM) : {information.liquidity}
+        </div> */}
+
+        <div>
+          <img className="w-52 h-12" src="/assets/logo/logo.png" />
+        </div>
+        <div>
+
+        </div>
+        <div className="flex flex-row">
+
+          <div>
+            <span>{Math.trunc(information.mina)} Mina</span>
+          </div>
+          <div>
+            <span title="Token">{Math.trunc(information.token)} TOKA</span>
+          </div>
+          <div>
+            <span title="Liquidity">{Math.trunc(information.liquidity)} LUM</span>
+          </div>
+          <div>
+            <span title={information.account}>{trimText(information.account)}</span>
+          </div>
+          <div>
+            <select defaultValue={network} onChange={(ev) => setNetwork(ev.target.value)}>
+              <option value="zeko">Zeko</option>
+              <option value="devnet">Devnet</option>
+            </select>
+          </div>
         </div>
       </div>
     </>

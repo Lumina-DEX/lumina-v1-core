@@ -10,6 +10,11 @@ module.exports = {
   ],
   theme: {
     extend: {
+
+      fontFamily: {
+        primary: ["Orbitron"],
+        secondary: ["Cutive Mono"],
+      },
       backgroundImage: {
         lumina: "url(/assets/backgrounds/holo.png)",
       },
