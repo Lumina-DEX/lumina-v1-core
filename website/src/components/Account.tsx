@@ -117,7 +117,7 @@ const Account = ({ accountState }) => {
         <div>
 
         </div>
-        {information?.account && <div className="flex flex-row">
+        <div className="flex flex-row">
           <div>
             <span>{Math.trunc(balances?.mina)} Mina</span>
           </div>
@@ -136,10 +136,10 @@ const Account = ({ accountState }) => {
               <option value="devnet">Devnet</option>
             </select>
           </div>
-        </div>}
-        {!information?.account &&
+        </div>
+        {/* {!information?.account &&
           <button onClick={() => mina?.requestAccounts()}>Connect Wallet</button>
-        }
+        } */}
       </div>
     </>
   );
