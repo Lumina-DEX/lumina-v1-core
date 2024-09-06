@@ -35,10 +35,22 @@ const Account = ({ accountState }) => {
   }, [])
 
   useEffect(() => {
+
     if (mina) {
       getUserInformation(mina).then(x => setInformation(x));
     }
+    console.log("mina", mina);
+
+    const intervalID = setInterval(() => {
+      if (!information.account && window && (window as any).mina) {
+        const windowMina = (window as any).mina;
+        getUserInformation(windowMina).then(x => setInformation(x));
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalID);
   }, [mina]);
+
 
   const getBalances = async (user: string, graphUrl: string) => {
     const publicKey = PublicKey.fromBase58(user);

@@ -1,5 +1,5 @@
 // Importing 'crypto' module
-import crypto from 'crypto';
+// import crypto from 'crypto';
 
 export const fetchFiles = async () => {
     let currentLocation = self.location.origin;
@@ -33,9 +33,8 @@ export const readCache = (files: any): any => ({
 
         if (dataType === 'string') {
             const data = files[persistentId].data;
-
-            const hash = crypto.createHash('sha1').update(data).digest('hex');
-            console.log(persistentId + " hash", hash);
+            // const hash = crypto.createHash('sha1').update(data).digest('hex');
+            // console.log(persistentId + " hash", hash);
             return new TextEncoder().encode(data);
         }
         // else {
