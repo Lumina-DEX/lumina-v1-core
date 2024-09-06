@@ -1,7 +1,3 @@
-import {
-    Cache,
-} from "o1js";
-
 export const fetchFiles = async () => {
     let currentLocation = self.location.origin;
     var headers = new Headers();
@@ -24,7 +20,7 @@ export const fetchFiles = async () => {
         }, {}));
 }
 
-export const readCache = (files: any): Cache => ({
+export const readCache = (files: any): any => ({
     read({ persistentId, uniqueId, dataType }: any) {
         // read current uniqueId, return data if it matches
         if (!files[persistentId]) {

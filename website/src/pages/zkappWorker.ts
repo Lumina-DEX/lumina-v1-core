@@ -3,7 +3,6 @@ import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt
 console.log('Load Web Worker.');
 
 import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
-import Liquidity from "@/components/Liquidity";
 import { fetchFiles, readCache } from "./cache";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -64,17 +63,13 @@ const functions = {
   },
   compileContract: async (args: {}) => {
     console.time("compile");
-    try {
-      const cacheFiles = await fetchFiles();
-      const cache = readCache(cacheFiles);
+    const cacheFiles = await fetchFiles();
+    const cache = readCache(cacheFiles);
 
-      await state.TokenAdmin?.compile({ cache, forceRecompile: true });
-      await state.TokenStandard?.compile({ cache, forceRecompile: true });
-      await state.PoolMinaHolder!.compile({ cache, forceRecompile: true });
-      await state.PoolMina!.compile({ cache, forceRecompile: true });
-    } catch (error) {
-      console.error("compileContract", error);
-    }
+    await state.TokenAdmin?.compile({ cache });
+    await state.TokenStandard?.compile({ cache });
+    await state.PoolMinaHolder!.compile({ cache });
+    await state.PoolMina!.compile({ cache });
 
     console.timeEnd("compile");
   },

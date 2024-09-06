@@ -126,7 +126,14 @@ export default class ZkappWorkerClient {
       this.promises[event.data.id].resolve(event.data.data);
       delete this.promises[event.data.id];
     };
+
+
+    this.worker.onerror = (event: ErrorEvent) => {
+      console.error("worker error", event);
+    };
+
   }
+
 
   _call(fn: WorkerFunctions, args: any) {
     return new Promise((resolve, reject) => {
