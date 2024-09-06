@@ -21,8 +21,14 @@ const Account = ({ accountState }) => {
 
   useEffect(() => {
     if (window && (window as any).mina) {
-      setMina((window as any).mina);
+      const windowMina = (window as any).mina;
+      setMina(windowMina);
+      windowMina.requestAccounts().then(x => {
+        switchChain(windowMina, "zeko").then();
+        getUserInformation(windowMina).then(x => setInformation(x))
+      })
     }
+
 
     const intervalID = setInterval(() => {
       if (mina) {
@@ -33,12 +39,6 @@ const Account = ({ accountState }) => {
     return () => clearInterval(intervalID);
 
   }, [])
-
-  useEffect(() => {
-    if (mina) {
-      getUserInformation(mina).then(x => setInformation(x));
-    }
-  }, [mina]);
 
 
   const getBalances = async (user: string, graphUrl: string) => {
@@ -75,7 +75,7 @@ const Account = ({ accountState }) => {
   }
 
 
-  const switchNetwork = useCallback(async (newNetwork: string) => {
+  const switchNetwork = async (newNetwork: string) => {
     setNetwork(newNetwork);
     const zeko = newNetwork === "zeko";
     try {
@@ -90,17 +90,27 @@ const Account = ({ accountState }) => {
         const newBalances = await getBalances(information?.account, devnetGraph);
         setBalances(newBalances);
       }
-      const desiredNetwork = zeko ? "zeko:testnet" : "mina:testnet";
-      const network = await mina?.requestNetwork();
-      if (network != desiredNetwork) {
-        await mina?.switchChain({ networkID: desiredNetwork }).catch((err: any) => console.error(err));
-      }
+      await switchChain(mina, newNetwork);
       setIsZeko(zeko);
 
     } catch (error) {
       console.error("getUserInformation", error);
     }
-  }, [zekoGraph, information, network,])
+  };
+
+  const switchChain = async (auroMina: any, newNetwork: string) => {
+    setNetwork(newNetwork);
+    const zeko = newNetwork === "zeko";
+    try {
+      const desiredNetwork = zeko ? "zeko:testnet" : "mina:testnet";
+      const network = await auroMina?.requestNetwork();
+      if (network != desiredNetwork) {
+        await auroMina?.switchChain({ networkID: desiredNetwork }).catch((err: any) => console.error(err));
+      }
+    } catch (error) {
+      console.error("getUserInformation", error);
+    }
+  };
 
   const trimText = (text: string) => {
     if (!text) {
@@ -140,7 +150,7 @@ const Account = ({ accountState }) => {
             <span title={information?.account}>{trimText(information?.account)}</span>
           </div>
           <div>
-            <select defaultValue={network} onChange={(ev) => switchNetwork(ev.target.value)}>
+            <select defaultValue={network} onChange={async (ev) => await switchNetwork(ev.target.value)}>
               <option value="zeko">Zeko</option>
               <option value="devnet">Devnet</option>
             </select>
