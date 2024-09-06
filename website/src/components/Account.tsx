@@ -108,6 +108,14 @@ const Account = ({ accountState }) => {
     return text.substring(0, 4) + "..." + text.substring(text.length - 4, text.length);
   }
 
+  const connect = async () => {
+    if (mina) {
+      await mina.requestAccounts();
+      const info = await getUserInformation(mina);
+      setInformation(info);
+    }
+  }
+
   return (
     <>
       <div className="flex flex-row justify-between items-center w-screen menu" style={{ position: "fixed", top: "0", left: "0", backgroundColor: "white" }} >
@@ -117,7 +125,7 @@ const Account = ({ accountState }) => {
         <div>
 
         </div>
-        <div className="flex flex-row">
+        {information?.account && <div className="flex flex-row">
           <div>
             <span>{Math.trunc(balances?.mina)} Mina</span>
           </div>
@@ -136,10 +144,10 @@ const Account = ({ accountState }) => {
               <option value="devnet">Devnet</option>
             </select>
           </div>
-        </div>
-        {/* {!information?.account &&
-          <button onClick={() => mina?.requestAccounts()}>Connect Wallet</button>
-        } */}
+        </div>}
+        {!information?.account &&
+          <button onClick={() => connect().then()}>Connect Wallet</button>
+        }
       </div>
     </>
   );
