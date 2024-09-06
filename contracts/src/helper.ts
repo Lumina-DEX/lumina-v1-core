@@ -31,6 +31,22 @@ export function getAmountLiquidityOut(amountAIn: number, balanceA: number, balan
 
     const liquidityA = Math.trunc(amountAIn * supplyMin / balanceAMax);
     const amountBIn = Math.trunc(liquidityA * balanceBMax / supplyMin);
+    const liquidityB = Math.trunc(amountBIn * supplyMin / balanceBMax);
 
-    return { amountAIn, amountBIn, balanceAMax, balanceBMax, supplyMin };
+    const liquidity = Math.min(liquidityA, liquidityB);
+
+    return { amountAIn, amountBIn, balanceAMax, balanceBMax, supplyMin, liquidity };
+}
+
+
+export function getAmountOutFromLiquidity(liquidity: number, balanceA: number, balanceB: number, supply: number, percent: number) {
+
+    const balanceAMin = balanceA - balanceA * percent / 100;
+    const balanceBMin = balanceB - balanceB * percent / 100;
+    const supplyMax = supply + supply * percent / 100;
+
+    const amountAOut = Math.trunc(liquidity * balanceAMin / supplyMax);
+    const amountBOut = Math.trunc(liquidity * balanceBMin / supplyMax);
+
+    return { amountAOut, amountBOut, balanceAMin, balanceBMin, supplyMax, liquidity };
 }

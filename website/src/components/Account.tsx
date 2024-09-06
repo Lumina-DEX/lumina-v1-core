@@ -35,20 +35,9 @@ const Account = ({ accountState }) => {
   }, [])
 
   useEffect(() => {
-
     if (mina) {
       getUserInformation(mina).then(x => setInformation(x));
     }
-    console.log("mina", mina);
-
-    const intervalID = setInterval(() => {
-      if (!information.account && window && (window as any).mina) {
-        const windowMina = (window as any).mina;
-        getUserInformation(windowMina).then(x => setInformation(x));
-      }
-    }, 3000);
-
-    return () => clearInterval(intervalID);
   }, [mina]);
 
 
@@ -139,7 +128,7 @@ const Account = ({ accountState }) => {
         </div>
         {information?.account && <div className="flex flex-row">
           <div>
-            <span>{Math.trunc(balances?.mina)} Mina</span>
+            <span>{Math.trunc(balances?.mina)} MINA</span>
           </div>
           <div>
             <span title="Token">{Math.trunc(balances?.token)} TOKA</span>

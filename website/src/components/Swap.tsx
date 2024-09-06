@@ -110,12 +110,12 @@ const Swap = ({ accountState }) => {
             <CurrencyFormat
               className="w-48 border-black text-default pr-3 text-xl text-right rounded focus:outline-none "
               thousandSeparator={true}
-              decimalScale={6}
+              decimalScale={2}
               placeholder="0.0"
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">TOKA</span>}
+            {toDai ? <span className="w-24 text-center">MINA</span> : <span className="w-24 text-center">TOKA</span>}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -126,12 +126,12 @@ const Swap = ({ accountState }) => {
             <CurrencyFormat
               className="w-48 border-slate-50 text-default  pr-3 text-xl text-right text-xl rounded focus:outline-none "
               thousandSeparator={true}
-              decimalScale={6}
+              decimalScale={2}
               placeholder="0.0"
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">Mina</span> : <span className="w-24 text-center">TOKA</span>}
+            {!toDai ? <span className="w-24 text-center">MINA</span> : <span className="w-24 text-center">TOKA</span>}
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap
