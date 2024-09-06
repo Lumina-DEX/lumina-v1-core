@@ -123,7 +123,12 @@ export default class ZkappWorkerClient {
     this.nextId = 0;
 
     this.worker.onmessage = (event: MessageEvent<ZkappWorkerReponse>) => {
-      this.promises[event.data.id].resolve(event.data.data);
+      if (event.data.error) {
+        console.log("error", event.data.error);
+        this.promises[event.data.id].reject(event.data.error);
+      } else {
+        this.promises[event.data.id].resolve(event.data.data);
+      }
       delete this.promises[event.data.id];
     };
 

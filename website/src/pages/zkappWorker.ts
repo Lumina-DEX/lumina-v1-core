@@ -259,20 +259,29 @@ export type ZkappWorkerRequest = {
 export type ZkappWorkerReponse = {
   id: number;
   data: any;
+  error: any;
 };
 
 if (typeof window !== "undefined") {
   addEventListener(
     "message",
     async (event: MessageEvent<ZkappWorkerRequest>) => {
-      const returnData = await functions[event.data.fn](event.data.args);
+      functions[event.data.fn](event.data.args).then(x => {
+        const message: ZkappWorkerReponse = {
+          id: event.data.id,
+          data: x,
+          error: null
+        };
+        postMessage(message);
+      }).catch(x => {
+        const messageError: ZkappWorkerReponse = {
+          id: event.data.id,
+          data: null,
+          error: x
+        };
+        postMessage(messageError);
+      });
 
-      console.log("worker return data", returnData);
-      const message: ZkappWorkerReponse = {
-        id: event.data.id,
-        data: returnData,
-      };
-      postMessage(message);
     }
   );
 }
