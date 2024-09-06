@@ -65,13 +65,13 @@ const functions = {
   compileContract: async (args: {}) => {
     console.time("compile");
     try {
-      //const cacheFiles = await fetchFiles();
-      //const cache = readCache(cacheFiles);
+      const cacheFiles = await fetchFiles();
+      const cache = readCache(cacheFiles);
 
-      await state.TokenAdmin?.compile({});
-      await state.TokenStandard?.compile({});
-      await state.PoolMinaHolder!.compile({});
-      await state.PoolMina!.compile({});
+      await state.TokenAdmin?.compile({ cache, forceRecompile: true });
+      await state.TokenStandard?.compile({ cache, forceRecompile: true });
+      await state.PoolMinaHolder!.compile({ cache, forceRecompile: true });
+      await state.PoolMina!.compile({ cache, forceRecompile: true });
     } catch (error) {
       console.error("compileContract", error);
     }
