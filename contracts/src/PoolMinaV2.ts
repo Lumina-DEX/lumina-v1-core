@@ -88,7 +88,8 @@ export class PoolMinaV2 extends TokenContractV2 {
     @method
     async initialize(
     ) {
-        this.account.provedState.requireEquals(Bool(false));
+        // comment because we use the first time to update an existing pool
+        //this.account.provedState.requireEquals(Bool(false));
 
 
         const accountUpdate = AccountUpdate.createSigned(this.address, this.deriveTokenId())

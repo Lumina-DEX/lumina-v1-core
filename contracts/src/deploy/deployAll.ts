@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from '../indexmina.js';
+import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaV2, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from '../indexmina.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
@@ -102,6 +102,7 @@ const key = await PoolMina.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 await MinaTokenHolder.compile({ cache });
+const keyV2 = await PoolMinaV2.compile({ cache });
 
 async function ask() {
     try {
@@ -113,7 +114,7 @@ async function ask() {
             4 add liquidity 
             5 swap mina for token
             6 swap token for mina
-            7 updgrade
+            7 upgrade
             8 deploy all
             9 mint token
             10 show event
@@ -138,7 +139,7 @@ async function ask() {
                 await swapToken();
                 break;
             case "7":
-                await updgrade();
+                await upgrade();
                 break;
             case "8":
                 await deployAll();
@@ -374,14 +375,16 @@ async function swapToken() {
     }
 }
 
-async function updgrade() {
+async function upgrade() {
     try {
-        console.log("updgrade");
+        console.log("upgrade");
+        const zkApp2 = new PoolMinaV2(zkAppAddress);
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            //await zkApp.updgrade(key.verificationKey);
+            await zkApp.updateVerificationKey(keyV2.verificationKey);
+            await zkApp2.initialize();
         });
         await tx.prove();
-        let sentTx = await tx.sign([feepayerKey]).send();
+        let sentTx = await tx.sign([feepayerKey, zkAppKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
         }
