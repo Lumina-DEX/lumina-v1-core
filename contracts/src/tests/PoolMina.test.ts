@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, mulDiv, MINIMUM_LIQUIDITY, PoolMinaV2 } from '../indexmina';
+import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, mulDiv, MINIMUM_LIQUIDITY, PoolMina } from '../indexmina';
 
 let proofsEnabled = false;
 
@@ -16,7 +16,7 @@ describe('Pool Mina', () => {
     aliceKey: PrivateKey,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
-    zkApp: PoolMinaV2,
+    zkApp: PoolMina,
     zkTokenAdminAddress: PublicKey,
     zkTokenAdminPrivateKey: PrivateKey,
     zkTokenAdmin: FungibleTokenAdmin,
@@ -26,14 +26,14 @@ describe('Pool Mina', () => {
     tokenHolder: MinaTokenHolder;
 
   beforeAll(async () => {
-    const analyze = await PoolMinaV2.analyzeMethods();
+    const analyze = await PoolMina.analyzeMethods();
     getGates(analyze);
 
     if (proofsEnabled) {
       console.time('compile pool');
       await FungibleTokenAdmin.compile();
       await FungibleToken.compile();
-      const key = await PoolMinaV2.compile();
+      const key = await PoolMina.compile();
       await MinaTokenHolder.compile();
       console.timeEnd('compile pool');
     }
@@ -61,7 +61,7 @@ describe('Pool Mina', () => {
 
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
-    zkApp = new PoolMinaV2(zkAppAddress);
+    zkApp = new PoolMina(zkAppAddress);
 
     zkTokenAdminPrivateKey = PrivateKey.random();
     zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();

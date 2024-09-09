@@ -86,6 +86,20 @@ export class PoolMina extends TokenContractV2 {
     }
 
     @method
+    async initialize(
+    ) {
+        // comment because we use the first time to update an existing pool
+        this.account.provedState.requireEquals(Bool(false));
+
+        const accountUpdate = AccountUpdate.createSigned(this.address, this.deriveTokenId())
+        let permissions = Permissions.default()
+        // This is necessary in order to allow burn circulation supply
+        permissions.send = Permissions.none()
+        permissions.setPermissions = Permissions.impossible()
+        accountUpdate.account.permissions.set(permissions)
+    }
+
+    @method
     async approveBase(forest: AccountUpdateForest) {
         this.checkZeroBalanceChange(forest);
     }
@@ -98,6 +112,13 @@ export class PoolMina extends TokenContractV2 {
         // todo implement check
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", vk.hash);
+    }
+
+    @method
+    async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
+        from.equals(this.address).assertFalse("Can't transfer to/from the circulation account");
+        to.equals(this.address).assertFalse("Can't transfer to/from the circulation account");
+        this.internal.send({ from, to, amount })
     }
 
 
@@ -119,6 +140,7 @@ export class PoolMina extends TokenContractV2 {
 
         // send mina to the pool
         let sender = this.sender.getUnconstrained();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         let senderUpdate = AccountUpdate.createSigned(sender);
         senderUpdate.send({ to: this.self, amount: amountMina });
 
@@ -170,6 +192,7 @@ export class PoolMina extends TokenContractV2 {
 
         // send mina to the pool
         let sender = this.sender.getUnconstrained();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         let senderUpdate = AccountUpdate.createSigned(sender);
         senderUpdate.send({ to: this.self, amount: amountMina });
 
@@ -206,6 +229,7 @@ export class PoolMina extends TokenContractV2 {
 
         // send token to the pool
         let sender = this.sender.getUnconstrained();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amountTokenIn });
 
@@ -226,7 +250,7 @@ export class PoolMina extends TokenContractV2 {
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
         const sender = this.sender.getUnconstrained();
-
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
         liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
 
@@ -234,7 +258,7 @@ export class PoolMina extends TokenContractV2 {
         amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
 
         // burn liquidity from user and current supply
-        await this.internal.burn({ address: liquidityAccount, amount: liquidityAmount });
+        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2()
         await this.internal.burn({ address: sender, amount: liquidityAmount });
 
         // send mina to user

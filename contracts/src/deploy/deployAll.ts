@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaV2, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from '../indexmina.js';
+import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from '../indexmina.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
@@ -72,6 +72,7 @@ const Network = Mina.Network({
     // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
     // This is to ensure the backward compatibility.
     networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
+    //mina: "https://devnet.zeko.io/graphql",
     mina: "https://api.minascan.io/node/devnet/v1/graphql",
     archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
 });
@@ -102,7 +103,7 @@ const key = await PoolMina.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 await MinaTokenHolder.compile({ cache });
-const keyV2 = await PoolMinaV2.compile({ cache });
+//const keyV2 = await PoolMinaV2.compile({ cache });
 
 async function ask() {
     try {
@@ -378,10 +379,8 @@ async function swapToken() {
 async function upgrade() {
     try {
         console.log("upgrade");
-        const zkApp2 = new PoolMinaV2(zkAppAddress);
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkApp.updateVerificationKey(keyV2.verificationKey);
-            await zkApp2.initialize();
+            //  await zkApp.updateVerificationKey(keyV2.verificationKey);
         });
         await tx.prove();
         let sentTx = await tx.sign([feepayerKey, zkAppKey]).send();
