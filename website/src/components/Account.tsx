@@ -30,18 +30,19 @@ const Account = ({ accountState }) => {
     }
 
 
-    const intervalID = setInterval(() => {
+    const intervalID = setInterval(() => { 
       if (mina) {
+        console.log("get info");
         getUserInformation(mina).then(x => setInformation(x))
       }
     }, 15000);
 
     return () => clearInterval(intervalID);
-
   }, [])
 
 
   const getBalances = async (user: string, graphUrl: string) => {
+    console.log("getBalances");
     const publicKey = PublicKey.fromBase58(user);
     const accMina = await fetchAccount({ publicKey }, graphUrl);
     const acc = await fetchAccount({ publicKey, tokenId: "wTRtTRnW7hZCQSVgsuMVJRvnS1xEAbRRMWyaaJPkQsntSNh67n" }, graphUrl);

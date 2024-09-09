@@ -7,10 +7,13 @@ import path from 'path';
 // node build/src/cache.js
 
 const cache = Cache.FileSystem('./cache');
-await PoolMina.compile({ cache });
-await FungibleToken.compile({ cache });
-await FungibleTokenAdmin.compile({ cache });
-await MinaTokenHolder.compile({ cache });
+for (let index = 0; index < 3; index++) {
+    // compile 3 time to get all files
+    await PoolMina.compile({ cache });
+    await FungibleToken.compile({ cache });
+    await FungibleTokenAdmin.compile({ cache });
+    await MinaTokenHolder.compile({ cache });
+}
 
 const folder = await fs.readdir("./cache");
 
