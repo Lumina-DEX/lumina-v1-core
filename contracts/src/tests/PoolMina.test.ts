@@ -102,7 +102,6 @@ describe('Pool Mina', () => {
     await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
 
     tokenHolder = new MinaTokenHolder(zkAppAddress, zkToken.deriveTokenId());
-    const zkFau = new Faucet(zkFaucetAddress);
     const txn2 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
       await tokenHolder.deploy();
@@ -178,11 +177,11 @@ describe('Pool Mina', () => {
     await txn.prove();
     await txn.sign([bobKey]).send();
 
+    const faucetAmount = UInt64.from(100 * 10 ** 9);
+    const balanceBob = Mina.getBalance(bobAccount, zkToken.deriveTokenId());
+    expect(balanceBob.value).toEqual(faucetAmount.value);
+
   });
-
-
-
-  return;
 
   it('withdraw liquidity', async () => {
 

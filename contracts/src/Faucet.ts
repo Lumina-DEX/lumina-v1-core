@@ -31,16 +31,18 @@ export class Faucet extends SmartContract {
         });
     }
 
+    @method
     async claim() {
         const tokenAddress = this.token.getAndRequireEquals();
+        const amount = this.amount.getAndRequireEquals();
+
         const token = new FungibleToken(tokenAddress);
+
         const sender = this.sender.getUnconstrained();
         const accountSender = AccountUpdate.create(sender, token.deriveTokenId());
         // user can claim only if he is never received this token
         accountSender.account.provedState.requireEquals(Bool(false));
-        const amount = this.amount.getAndRequireEquals();
-
-        const accountUpdate = this.send({ to: sender, amount });
+        const accountUpdate = this.send({ to: accountSender, amount });
         accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
     }
 

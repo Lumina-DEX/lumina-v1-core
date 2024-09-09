@@ -28,8 +28,9 @@ const Account = ({ accountState }) => {
         getUserInformation(windowMina).then(x => setInformation(x))
       })
     }
+  }, [])
 
-
+  useEffect(() => {
     const intervalID = setInterval(() => {
       if (mina) {
         console.log("get info");
