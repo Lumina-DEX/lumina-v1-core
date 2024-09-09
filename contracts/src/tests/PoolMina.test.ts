@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, mulDiv, MINIMUM_LIQUIDITY, PoolMina } from '../indexmina';
+import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, mulDiv, MINIMUM_LIQUIDITY, PoolMina, Faucet } from '../indexmina';
 
 let proofsEnabled = false;
 
@@ -23,7 +23,10 @@ describe('Pool Mina', () => {
     zkTokenAddress: PublicKey,
     zkTokenPrivateKey: PrivateKey,
     zkToken: FungibleToken,
-    tokenHolder: MinaTokenHolder;
+    tokenHolder: MinaTokenHolder,
+    zkFaucetAddress: PublicKey,
+    zkFaucetPrivateKey: PrivateKey,
+    zkFaucet: Faucet;
 
   beforeAll(async () => {
     const analyze = await PoolMina.analyzeMethods();
@@ -63,6 +66,9 @@ describe('Pool Mina', () => {
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new PoolMina(zkAppAddress);
 
+    zkFaucetPrivateKey = PrivateKey.random();
+    zkFaucetAddress = zkFaucetPrivateKey.toPublicKey();
+
     zkTokenAdminPrivateKey = PrivateKey.random();
     zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
     zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
@@ -96,7 +102,7 @@ describe('Pool Mina', () => {
     await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
 
     tokenHolder = new MinaTokenHolder(zkAppAddress, zkToken.deriveTokenId());
-
+    const zkFau = new Faucet(zkFaucetAddress);
     const txn2 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
       await tokenHolder.deploy();
@@ -104,7 +110,20 @@ describe('Pool Mina', () => {
     });
     await txn2.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn2.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey]).send();
+    await txn2.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkFaucetPrivateKey]).send();
+
+    zkFaucet = new Faucet(zkFaucetAddress, zkToken.deriveTokenId());
+    const faucetAmount = UInt64.from(100 * 10 ** 9);
+    const argsFaucet = { amount: faucetAmount, token: zkTokenAddress };
+    const txn3 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await zkFaucet.deploy(argsFaucet);
+      await zkToken.approveAccountUpdate(zkFaucet.self);
+    });
+    await txn3.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn3.sign([deployerKey, zkFaucetPrivateKey]).send();
+
 
 
     // mint token to user
@@ -138,6 +157,32 @@ describe('Pool Mina', () => {
     expect(balanceMina.value).toEqual(amt.value);
 
   });
+
+  it('claim faucet', async () => {
+
+    let amt = UInt64.from(1000 * 10 ** 9);
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkToken.transfer(senderAccount, zkFaucetAddress, amt);
+    });
+    console.log("add faucet", txn.toPretty());
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+
+    txn = await Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(bobAccount, 1);
+      await zkFaucet.claim();
+      await zkToken.approveAccountUpdate(zkFaucet.self);
+    });
+    console.log("add faucet", txn.toPretty());
+    await txn.prove();
+    await txn.sign([bobKey]).send();
+
+  });
+
+
+
+  return;
 
   it('withdraw liquidity', async () => {
 

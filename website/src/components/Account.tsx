@@ -30,7 +30,7 @@ const Account = ({ accountState }) => {
     }
 
 
-    const intervalID = setInterval(() => { 
+    const intervalID = setInterval(() => {
       if (mina) {
         console.log("get info");
         getUserInformation(mina).then(x => setInformation(x))
@@ -38,7 +38,7 @@ const Account = ({ accountState }) => {
     }, 15000);
 
     return () => clearInterval(intervalID);
-  }, [])
+  }, [mina, graph])
 
 
   const getBalances = async (user: string, graphUrl: string) => {

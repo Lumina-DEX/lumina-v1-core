@@ -13,7 +13,7 @@ export const fetchFiles = async () => {
             fetch(`${currentLocation}/cache/${file}.txt`, {
                 cache: "force-cache",
                 headers
-            }).then(res => res.text())
+            }).then(res => res.arrayBuffer())
         ]).then(([data]) => ({ file, data }));
     }))
         .then((cacheList) => cacheList.reduce((acc: any, { file, data }) => {
@@ -35,12 +35,14 @@ export const readCache = (files: any): any => ({
             const data = files[persistentId].data;
             // const hash = crypto.createHash('sha1').update(data).digest('hex');
             // console.log(persistentId + " hash", hash);
-            return new TextEncoder().encode(data);
+            return data;
         }
-        // else {
-        //   let buffer = readFileSync(resolve(cacheDirectory, persistentId));
-        //   return new Uint8Array(buffer.buffer);
-        // }
+        else {
+            const data = files[persistentId].data;
+            // const hash = crypto.createHash('sha1').update(data).digest('hex');
+            // console.log(persistentId + " hash", hash);
+            return data;
+        }
         console.log("data type not string : ", persistentId);
         return undefined;
     },

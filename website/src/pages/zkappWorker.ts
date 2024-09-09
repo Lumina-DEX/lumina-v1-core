@@ -144,7 +144,8 @@ const functions = {
     const balanceOut = Math.trunc(args.balanceOutMin);
     const balanceIn = Math.trunc(args.balanceInMax);
 
-
+    console.log("Network", Mina.getNetworkId());
+    console.log("Graphql", Mina.activeInstance.getNetworkState);
 
     const publicKey = PublicKey.fromBase58(args.user);
     await fetchAccount({ publicKey: state.zkapp.address });
