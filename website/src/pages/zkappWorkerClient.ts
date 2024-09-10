@@ -5,6 +5,7 @@ import type {
   ZkappWorkerReponse,
   WorkerFunctions,
 } from "./zkappWorker";
+import { faucet } from "o1js/dist/node/lib/mina/mina";
 
 export default class ZkappWorkerClient {
   // ---------------------------------------------------------------------------------------
@@ -58,9 +59,10 @@ export default class ZkappWorkerClient {
     return UInt64.fromJSON(JSON.parse(result as string));
   }
 
-  initZkappInstance(publicKey: PublicKey) {
+  initZkappInstance(poolAddress: PublicKey, faucetAddress: PublicKey) {
     return this._call("initZkappInstance", {
-      publicKey58: publicKey.toBase58(),
+      pool: poolAddress.toBase58(),
+      faucet: faucetAddress.toBase58(),
     });
   }
 
@@ -76,6 +78,10 @@ export default class ZkappWorkerClient {
 
   async swapFromMina(user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
     return await this._call("swapFromMinaTransaction", { user, amt, minOut, balanceOutMin, balanceInMax });
+  }
+
+  async claim(user: string) {
+    return await this._call("claim", { user });
   }
 
   async swapFromToken(user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {

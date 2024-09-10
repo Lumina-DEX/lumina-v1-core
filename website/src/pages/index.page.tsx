@@ -11,6 +11,7 @@ import Tab from '@/components/Tab';
 let transactionFee = 0.1;
 const ZKAPP_ADDRESS = 'B62qrn4bTWsKGddKeLGzriYVQF23fNF4tCnACKawP7ySJfH7zFmd2u6';
 const ZKTOKEN_ADDRESS = 'B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w';
+const ZKFAUCET_ADDRESS = 'B62qjKsMNx8rNjnFmEe2jjerKASu3XeGg5HDbqngsbvasJKPuGHuzJm';
 
 export default function Home() {
   const [state, setState] = useState({
@@ -18,7 +19,6 @@ export default function Home() {
     hasWallet: null as null | boolean,
     hasBeenSetup: false,
     accountExists: false,
-    currentNum: null as null | Field,
     publicKey: null as null | PublicKey,
     zkappPublicKey: null as null | PublicKey,
     creatingTransaction: false,
@@ -61,14 +61,10 @@ export default function Home() {
         setDisplayText('zkApp compiled...');
 
         const zkappPublicKey = PublicKey.fromBase58(ZKAPP_ADDRESS);
+        const zkFaucetPublicKey = PublicKey.fromBase58(ZKFAUCET_ADDRESS);
 
-        await zkappWorkerClient.initZkappInstance(zkappPublicKey);
+        await zkappWorkerClient.initZkappInstance(zkappPublicKey,zkFaucetPublicKey);
 
-        console.log('Getting zkApp state...');
-        setDisplayText('Getting zkApp state...');
-        await zkappWorkerClient.fetchAccount({ publicKeyBase58: zkappPublicKey.toBase58() });
-        const currentNum = await zkappWorkerClient.getReserves();
-        console.log(`Current state in zkApp:`, currentNum);
         setDisplayText('');
 
         setState({
@@ -77,7 +73,6 @@ export default function Home() {
           hasWallet: true,
           hasBeenSetup: true,
           zkappPublicKey,
-          currentNum,
         });
       }
     })();

@@ -2,7 +2,7 @@ import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt
 
 console.log('Load Web Worker.');
 
-import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../contracts/src/indexmina";
+import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/indexmina";
 import { fetchFiles, readCache } from "./cache";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -14,9 +14,11 @@ const state = {
   TokenStandard: null as null | typeof FungibleToken,
   PoolMina: null as null | typeof PoolMina,
   PoolMinaHolder: null as null | typeof MinaTokenHolder,
+  Faucet: null as null | typeof Faucet,
   zkapp: null as null | PoolMina,
   zkHolder: null as null | MinaTokenHolder,
   zkToken: null as null | FungibleToken,
+  zkFaucet: null as null | Faucet,
   transaction: null as null | Transaction,
   key: null as null | string,
   isZeko: false,
@@ -54,12 +56,13 @@ const functions = {
   },
 
   loadContract: async (args: {}) => {
-    const { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } = await import("../../../contracts/build/src/indexmina");
+    const { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/indexmina");
 
     state.PoolMina = PoolMina;
     state.PoolMinaHolder = MinaTokenHolder;
     state.TokenStandard = FungibleToken;
     state.TokenAdmin = FungibleTokenAdmin;
+    state.Faucet = Faucet
   },
   compileContract: async (args: {}) => {
     console.time("compile");
@@ -70,6 +73,7 @@ const functions = {
     await state.TokenStandard?.compile({ cache });
     await state.PoolMinaHolder!.compile({ cache });
     await state.PoolMina!.compile({ cache });
+    await state.Faucet!.compile({ cache });
 
     console.timeEnd("compile");
   },
@@ -86,8 +90,8 @@ const functions = {
     const balance = Mina.getBalance(publicKey);
     return JSON.stringify(balance.toJSON());
   },
-  initZkappInstance: async (args: { publicKey58: string }) => {
-    const publicKey = PublicKey.fromBase58(args.publicKey58);
+  initZkappInstance: async (args: { pool: string, faucet: string }) => {
+    const publicKey = PublicKey.fromBase58(args.pool);
     await fetchAccount({ publicKey })
     state.zkapp = new state.PoolMina!(publicKey);
     const token = await state.zkapp.token.fetch();
@@ -96,6 +100,10 @@ const functions = {
 
     await fetchAccount({ publicKey, tokenId: state.zkToken.deriveTokenId() });
     state.zkHolder = new state.PoolMinaHolder!(publicKey, state.zkToken.deriveTokenId());
+
+    const publicKeyFaucet = PublicKey.fromBase58(args.faucet);
+    await fetchAccount({ publicKey: publicKeyFaucet, tokenId: state.zkToken.deriveTokenId() });
+    state.zkFaucet = new state.Faucet!(publicKeyFaucet, state.zkToken.deriveTokenId());
   },
   deployPoolInstance: async (args: { tokenX: string }) => {
     const poolKey = PrivateKey.random();
@@ -234,6 +242,28 @@ const functions = {
     const transaction = await Mina.transaction(publicKey, async () => {
       await state.zkHolder!.withdrawLiquidity(UInt64.from(liquidityAmountIn), UInt64.from(amountMinaOut), UInt64.from(amountTokenOut), UInt64.from(reserveMina), UInt64.from(reserveToken), UInt64.from(supply));
       await state.zkToken.approveAccountUpdate(state.zkHolder.self);
+    });
+    state.transaction = transaction;
+
+    await state.transaction!.prove();
+  },
+  claim: async (args: { user: string }) => {
+    console.log("Network", Mina.getNetworkId());
+    console.log("Graphql", Mina.activeInstance.getNetworkState);
+
+    const publicKey = PublicKey.fromBase58(args.user);
+    await fetchAccount({ publicKey: state.zkFaucet.address });
+    await fetchAccount({ publicKey: state.zkFaucet.address, tokenId: state.zkToken.deriveTokenId() });
+    await fetchAccount({ publicKey });
+    const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+
+    let newAcc = acc.account ? 0 : 1;
+    const token = await state.zkFaucet?.token.fetch();
+    console.log("token", token?.toBase58());
+    const transaction = await Mina.transaction(publicKey, async () => {
+      AccountUpdate.fundNewAccount(publicKey, newAcc);
+      await state.zkFaucet!.claim();
+      await state.zkToken?.approveAccountUpdate(state.zkFaucet.self);
     });
     state.transaction = transaction;
 

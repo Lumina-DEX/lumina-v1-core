@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from './indexmina.js';
+import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv, Faucet } from './indexmina.js';
 import readline from "readline/promises";
 import path from 'path';
 
@@ -13,6 +13,7 @@ for (let index = 0; index < 3; index++) {
     await FungibleToken.compile({ cache });
     await FungibleTokenAdmin.compile({ cache });
     await MinaTokenHolder.compile({ cache });
+    await Faucet.compile({ cache });
 }
 
 const folder = await fs.readdir("./cache");

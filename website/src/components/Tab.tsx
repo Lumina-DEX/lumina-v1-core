@@ -8,6 +8,7 @@ import CurrencyFormat from "react-currency-format";
 import Liquidity from "./Liquidity";
 import Swap from "./Swap";
 import Withdraw from "./Withdraw";
+import Faucet from "./Claim";
 
 type Percent = number | string;
 
@@ -24,6 +25,7 @@ const Tab = ({ accountState }) => {
                         <button style={{ color: tab === "swap" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("swap")}>Swap</button>
                         <button style={{ color: tab === "liquidity" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("liquidity")}>Liquidity</button>
                         <button style={{ color: tab === "withdraw" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("withdraw")}>Withdraw</button>
+                        <button style={{ color: tab === "faucet" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("faucet")}>Faucet</button>
                     </div>
                     <div className="p-2">
                         {tab === "swap" && <div>
@@ -35,6 +37,9 @@ const Tab = ({ accountState }) => {
                         </div>}
                         {tab === "withdraw" && <div>
                             <Withdraw accountState={accountState}></Withdraw>
+                        </div>}
+                        {tab === "faucet" && <div>
+                            <Faucet accountState={accountState}></Faucet>
                         </div>}
                     </div>
                 </div>
