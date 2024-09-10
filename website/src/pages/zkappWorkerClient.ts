@@ -118,6 +118,7 @@ export default class ZkappWorkerClient {
   nextId: number;
 
   constructor() {
+    console.time("worker load");
     this.worker = new Worker(new URL("./zkappWorker.ts", import.meta.url));
     this.promises = {};
     this.nextId = 0;
@@ -136,7 +137,7 @@ export default class ZkappWorkerClient {
     this.worker.onerror = (event: ErrorEvent) => {
       console.error("worker error", event);
     };
-
+    console.timeEnd("worker load");
   }
 
 

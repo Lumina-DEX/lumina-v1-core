@@ -44,7 +44,7 @@ export default function Home() {
         setDisplayText('Loading web worker...');
         console.log('Loading web worker...');
         const zkappWorkerClient = new ZkappWorkerClient();
-        await timeout(5);
+        await timeout(1);
 
         setDisplayText('Done loading web worker');
         console.log('Done loading web worker');
