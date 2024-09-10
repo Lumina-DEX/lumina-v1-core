@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
-import { PoolMina, FungibleToken, mulDiv, SwapEvent } from './indexmina.js';
+import { FungibleToken } from './indexmina.js';
 
 
 export interface FaucetDeployProps extends Exclude<DeployArgs, undefined> {
@@ -40,8 +40,8 @@ export class Faucet extends SmartContract {
 
         const sender = this.sender.getUnconstrained();
         const accountSender = AccountUpdate.create(sender, token.deriveTokenId());
-        // user can claim only if he is never received this token
-        accountSender.account.provedState.requireEquals(Bool(false));
+        // user can claim only if he is never received this token;
+        accountSender.account.isNew.requireEquals(Bool(true));
         const accountUpdate = this.send({ to: accountSender, amount });
         accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
     }

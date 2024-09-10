@@ -36,6 +36,7 @@ describe('Pool Mina', () => {
       console.time('compile pool');
       await FungibleTokenAdmin.compile();
       await FungibleToken.compile();
+      await Faucet.compile();
       const key = await PoolMina.compile();
       await MinaTokenHolder.compile();
       console.timeEnd('compile pool');
@@ -163,7 +164,6 @@ describe('Pool Mina', () => {
     let txn = await Mina.transaction(senderAccount, async () => {
       await zkToken.transfer(senderAccount, zkFaucetAddress, amt);
     });
-    console.log("add faucet", txn.toPretty());
     await txn.prove();
     await txn.sign([senderKey]).send();
 
@@ -173,13 +173,21 @@ describe('Pool Mina', () => {
       await zkFaucet.claim();
       await zkToken.approveAccountUpdate(zkFaucet.self);
     });
-    console.log("add faucet", txn.toPretty());
+    console.log("claim faucet", txn.toPretty());
     await txn.prove();
     await txn.sign([bobKey]).send();
 
     const faucetAmount = UInt64.from(100 * 10 ** 9);
     const balanceBob = Mina.getBalance(bobAccount, zkToken.deriveTokenId());
     expect(balanceBob.value).toEqual(faucetAmount.value);
+
+    txn = await Mina.transaction(bobAccount, async () => {
+      await zkFaucet.claim();
+      await zkToken.approveAccountUpdate(zkFaucet.self);
+    });
+    console.log("claim faucet 2", txn.toPretty());
+    await txn.prove();
+    await expect(txn.sign([bobKey]).send()).rejects.toThrow();
 
   });
 
