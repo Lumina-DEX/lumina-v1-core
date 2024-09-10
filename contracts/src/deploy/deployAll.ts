@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv } from '../indexmina.js';
+import { PoolMina, MinaTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv, Faucet } from '../indexmina.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
@@ -66,6 +66,8 @@ let zkAppKey = PrivateKey.fromBase58("EKFR61nPLgsRYV2fULL1n1QpGxjjAxXJRrgse43fPv
 let zkTokenPrivateKey = PrivateKey.fromBase58("EKDpsCUu1roVtrqoprUyseGZVKbPLZMvGagBoN7WRUVHzDWBUWFj");
 // B62qmZpuEkuf3MeH2WAkxzXRJMBMmZHb1JxSZqqQR8T3jtt2FUTy9wK
 let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKDym4pZnbRVmWtubWaBgEeQ5GHrhtQc1KyD6sJm5cFaDWcj3vai");
+// B62qjKsMNx8rNjnFmEe2jjerKASu3XeGg5HDbqngsbvasJKPuGHuzJm
+let zkFaucetKey = PrivateKey.fromBase58("EKFDtgBCH8VZnU24CWGAyB4DKSx8hXsTZBrzRs9q9tphuoV5LSb5");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
@@ -87,13 +89,13 @@ let zkTokenAddress = zkTokenPrivateKey.toPublicKey();
 let zkToken = new FungibleToken(zkTokenAddress);
 let zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
 let zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
+let zkFaucetAddress = zkFaucetKey.toPublicKey();
+let zkFaucet = new Faucet(zkFaucetAddress, zkToken.deriveTokenId());
 
 console.log("tokenStandard", zkTokenAddress.toBase58());
-console.log("tokenStandard", zkTokenPrivateKey.toBase58());
-console.log("pool", zkAppKey.toBase58());
 console.log("pool", zkAppAddress.toBase58());
 console.log("zkTokenAdmin", zkTokenAdminAddress.toBase58());
-console.log("zkTokenAdmin", zkTokenAdminPrivateKey.toBase58());
+console.log("zkFaucet", zkFaucetAddress.toBase58());
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
@@ -103,6 +105,7 @@ const key = await PoolMina.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 await MinaTokenHolder.compile({ cache });
+await Faucet.compile({ cache });
 //const keyV2 = await PoolMinaV2.compile({ cache });
 
 async function ask() {
@@ -119,6 +122,7 @@ async function ask() {
             8 deploy all
             9 mint token
             10 show event
+            11 deploy faucet
             `);
         switch (result) {
             case "1":
@@ -150,6 +154,9 @@ async function ask() {
                 break;
             case "10":
                 await getEvent();
+                break;
+            case "11":
+                await deployFaucet();
                 break;
             default:
                 await ask();
@@ -274,6 +281,40 @@ async function deployAll() {
         );
         await tx.prove();
         let sentTx = await tx.sign([feepayerKey, zkAppKey, zkTokenPrivateKey, zkTokenAdminPrivateKey]).send();
+        if (sentTx.status === 'pending') {
+            console.log("hash", sentTx.hash);
+        }
+
+
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+async function deployFaucet() {
+    try {
+        console.log("deploy faucet");
+
+        let tx = await Mina.transaction(
+            { sender: feepayerAddress, fee },
+            async () => {
+                AccountUpdate.fundNewAccount(feepayerAddress, 1);
+                // 100 token by claim
+                await zkFaucet.deploy({
+                    token: zkTokenAddress,
+                    amount: UInt64.from(100 * 10 ** 9)
+                });
+                await zkToken.approveAccountUpdate(zkFaucet.self);
+
+                // 1'000'000 tokens in the faucet
+                await zkToken.mint(
+                    zkFaucetAddress,
+                    UInt64.from(1000000 * 10 ** 9)
+                );
+            }
+        );
+        await tx.prove();
+        let sentTx = await tx.sign([feepayerKey, zkTokenPrivateKey, zkFaucetKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
         }
