@@ -257,7 +257,7 @@ const functions = {
     await fetchAccount({ publicKey });
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
 
-    let newAcc = acc.account ? 0 : 1;
+    let newAcc = acc.account?.balance ? 0 : 1;
     const token = await state.zkFaucet?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
