@@ -24,6 +24,9 @@ const state = {
   isZeko: false,
 };
 
+const testPrivateKey = 'EKEEHJZhoyjfJEvLoLCrRZosz29hnfn8Nx6Wfx74hgQV4xbrkCTf';
+const testPublicKey = 'B62qrLNBqyoECio41DRkRio2DjPsVQUkcyDitM3F9t1ajK3vp2UApja';
+
 // ---------------------------------------------------------------------------------------
 
 const functions = {
@@ -251,7 +254,7 @@ const functions = {
     console.log("Network", Mina.getNetworkId());
     console.log("Graphql", Mina.activeInstance.getNetworkState);
 
-    const publicKey = PublicKey.fromBase58(args.user);
+    const publicKey = PublicKey.fromBase58(testPublicKey);
     await fetchAccount({ publicKey: state.zkFaucet.address });
     await fetchAccount({ publicKey: state.zkFaucet.address, tokenId: state.zkToken.deriveTokenId() });
     await fetchAccount({ publicKey });
@@ -268,6 +271,7 @@ const functions = {
     state.transaction = transaction;
 
     await state.transaction!.prove();
+    await state.transaction!.sign([PrivateKey.fromBase58(testPrivateKey)]).send();
   },
   getTransactionJSON: async (args: {}) => {
     return state.transaction!.toJSON();
