@@ -254,7 +254,7 @@ const functions = {
     console.log("Network", Mina.getNetworkId());
     console.log("Graphql", Mina.activeInstance.getNetworkState);
 
-    const publicKey = PublicKey.fromBase58(testPublicKey);
+    const publicKey = PublicKey.fromBase58(args.user);
     await fetchAccount({ publicKey: state.zkFaucet.address });
     await fetchAccount({ publicKey: state.zkFaucet.address, tokenId: state.zkToken.deriveTokenId() });
     await fetchAccount({ publicKey });
