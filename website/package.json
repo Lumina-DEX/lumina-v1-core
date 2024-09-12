@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --experimental-https",
     "postinstall": "cd ../contracts && npm install",
     "prebuild": "cd ../contracts && npm run build",
     "build": "next build --no-lint",
