@@ -24,18 +24,17 @@ const Faucet = ({ accountState }) => {
     try {
       setLoading(true);
 
-      // if (mina) {
-      console.log("zkState", zkState)
-      // get time proof generation
-      console.time("claim");
-      //const user: string =  (await mina.requestAccounts())[0];
-      const testPublicKey = 'B62qrLNBqyoECio41DRkRio2DjPsVQUkcyDitM3F9t1ajK3vp2UApja';
-      await zkState.zkappWorkerClient?.claim(testPublicKey);
+      if (mina) {
+        console.log("zkState", zkState)
+        // get time proof generation
+        console.time("claim");
+        const user: string = (await mina.requestAccounts())[0];
+        await zkState.zkappWorkerClient?.claim(user);
 
-      const json = await zkState.zkappWorkerClient?.getTransactionJSON();
-      console.timeEnd("claim");
-      await mina.sendTransaction({ transaction: json });
-      //    }
+        const json = await zkState.zkappWorkerClient?.getTransactionJSON();
+        console.timeEnd("claim");
+        await mina.sendTransaction({ transaction: json });
+      }
     } catch (error) {
       console.log('swap error', error);
     }
@@ -59,7 +58,7 @@ const Faucet = ({ accountState }) => {
             Claim
           </button>
           <div>
-            <span>Work only if you never received TOKA token</span>
+            <span>Faucet works only if your wallet TOKA balance is 0</span>
           </div>
           {loading && <p>Creating transaction ...</p>}
 

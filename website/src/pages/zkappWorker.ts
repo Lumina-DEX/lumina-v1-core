@@ -271,7 +271,7 @@ const functions = {
     state.transaction = transaction;
 
     await state.transaction!.prove();
-    await state.transaction!.sign([PrivateKey.fromBase58(testPrivateKey)]).send();
+    //await state.transaction!.sign([PrivateKey.fromBase58(testPrivateKey)]).send();
   },
   getTransactionJSON: async (args: {}) => {
     return state.transaction!.toJSON();
