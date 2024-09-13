@@ -1,5 +1,5 @@
-import { Field, SmartContract, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString } from 'o1js';
-import { FungibleToken, MinaTokenHolder, mulDiv } from './indexmina.js';
+import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString } from 'o1js';
+import { FungibleToken, mulDiv } from './indexmina.js';
 
 // minimum liquidity permanently locked in the pool
 export const MINIMUM_LIQUIDITY: UInt64 = new UInt64(10 ** 3);
@@ -148,7 +148,7 @@ export class PoolMinaV2 extends TokenContractV2 {
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
         // send mina to the pool
-        let sender = this.sender.getUnconstrained();
+        let sender = this.sender.getUnconstrainedV2();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         let senderUpdate = AccountUpdate.createSigned(sender);
         senderUpdate.send({ to: this.self, amount: amountMina });
@@ -200,7 +200,7 @@ export class PoolMinaV2 extends TokenContractV2 {
         liquidityUser.assertGreaterThan(UInt64.zero, "Liquidity out can't be zero");
 
         // send mina to the pool
-        let sender = this.sender.getUnconstrained();
+        let sender = this.sender.getUnconstrainedV2();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         let senderUpdate = AccountUpdate.createSigned(sender);
         senderUpdate.send({ to: this.self, amount: amountMina });
@@ -246,7 +246,7 @@ export class PoolMinaV2 extends TokenContractV2 {
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
-        let sender = this.sender.getUnconstrained();
+        let sender = this.sender.getUnconstrainedV2();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amountTokenIn });
@@ -269,7 +269,7 @@ export class PoolMinaV2 extends TokenContractV2 {
 
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
-        const sender = this.sender.getUnconstrained();
+        const sender = this.sender.getUnconstrainedV2();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
         liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);

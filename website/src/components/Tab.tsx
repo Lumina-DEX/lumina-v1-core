@@ -9,6 +9,7 @@ import Liquidity from "./Liquidity";
 import Swap from "./Swap";
 import Withdraw from "./Withdraw";
 import Faucet from "./Claim";
+import SwapServer from "./SwapServer";
 
 type Percent = number | string;
 
@@ -20,12 +21,13 @@ const Tab = ({ accountState }) => {
     return (
         <>
             <div>
-                <div className="flex flex-col  w-[400px]  h-[500px]  rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
+                <div className="flex flex-col  w-[500px]  h-[500px]  rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
                     <div className="flex flex-row justify-around items-stretch w-full p-2" style={{ borderBottom: "white 1px solid" }} >
                         <button style={{ color: tab === "swap" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("swap")}>Swap</button>
                         <button style={{ color: tab === "liquidity" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("liquidity")}>Liquidity</button>
                         <button style={{ color: tab === "withdraw" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("withdraw")}>Withdraw</button>
                         <button style={{ color: tab === "faucet" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("faucet")}>Faucet</button>
+                        <button style={{ color: tab === "server" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("server")}>Server</button>
                     </div>
                     <div className="p-2">
                         {tab === "swap" && <div>
@@ -40,6 +42,9 @@ const Tab = ({ accountState }) => {
                         </div>}
                         {tab === "faucet" && <div>
                             <Faucet accountState={accountState}></Faucet>
+                        </div>}
+                        {tab === "server" && <div>
+                            <SwapServer accountState={accountState}></SwapServer>
                         </div>}
                     </div>
                 </div>

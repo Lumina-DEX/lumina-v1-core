@@ -1,6 +1,7 @@
 // Importing 'crypto' module
 // import crypto from 'crypto';
 
+
 export const fetchFiles = async () => {
     let currentLocation = self.location.origin;
     var headers = new Headers();
@@ -30,6 +31,8 @@ export const readCache = (files: any): any => ({
             console.log("not found : ", persistentId);
             return undefined;
         }
+
+        console.log("load : ", persistentId);
 
         if (dataType === 'string') {
             const data = files[persistentId].data;
