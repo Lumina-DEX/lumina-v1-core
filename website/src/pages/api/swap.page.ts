@@ -1,8 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { PoolMina, PoolMinaDeployProps, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../../contracts/build/src/indexmina.js";
 import { AccountUpdate, Mina, PrivateKey, PublicKey, Cache, fetchAccount, UInt64 } from "o1js";
-import fs from 'fs'
+import fs, { readFileSync } from 'fs'
 import util from 'util';
+import { resolve } from 'path';
 import { readCache } from '../cache';
 
 type ResponseData = {
@@ -31,6 +32,32 @@ const fetchFromServerFiles = async () => {
         }, {}));
 }
 
+const FileSystem = (cacheDirectory) => ({
+    read({ persistentId, uniqueId, dataType }) {
+
+        // read current uniqueId, return data if it matches
+        let currentId = fs.existsSync(resolve(cacheDirectory, `${persistentId}.txt`));
+        if (!currentId) {
+            console.log("not found : ", persistentId);
+            return undefined;
+        }
+
+        console.log("load : ", persistentId);
+        if (dataType === 'string') {
+            let string = readFileSync(resolve(cacheDirectory, `${persistentId}.txt`), 'utf8');
+            return new TextEncoder().encode(string);
+        }
+        else {
+            let buffer = readFileSync(resolve(cacheDirectory, `${persistentId}.txt`));
+            return new Uint8Array(buffer.buffer);
+        }
+    },
+    write({ persistentId, uniqueId, dataType }, data) {
+
+    },
+    canWrite: false
+});
+
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<any>
@@ -43,9 +70,8 @@ export default async function handler(
 
         if (args) {
             console.time("compile");
-            const cacheFiles = await fetchFromServerFiles();
-            console.log("cacheFiles", cacheFiles);
-            const cache = readCache(cacheFiles);
+            //const cacheFiles = await fetchFromServerFiles();
+            const cache = FileSystem("./public/cache");
 
             await PoolMina.compile({ cache })
             await MinaTokenHolder.compile({ cache });

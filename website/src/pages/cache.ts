@@ -7,9 +7,12 @@ export const fetchFiles = async () => {
     var headers = new Headers();
     headers.append('Content-Encoding', 'br, gzip, deflate');
 
+    // we don't load pk key on the frontend 
+    const filter = (x: string) => { return x.indexOf('-pk-') === -1 && x.indexOf('.header') === -1 };
+
     const filesResponse = await fetch(`${currentLocation}/compiled.json`, { headers });
     const json = await filesResponse.json();
-    return Promise.all(json.map((file) => {
+    return Promise.all(json.filter(filter).map((file) => {
         return Promise.all([
             fetch(`${currentLocation}/cache/${file}.txt`, {
                 cache: "force-cache",
