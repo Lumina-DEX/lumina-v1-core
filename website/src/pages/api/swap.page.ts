@@ -60,10 +60,29 @@ const FileSystem = (cacheDirectory) => ({
     canWrite: false
 });
 
+let inited = false;
+
+async function init() {
+    if (!inited) {
+        console.time("compile");
+        //const cacheFiles = await fetchFromServerFiles();
+        const cache = FileSystem("./public/cache");
+
+        await PoolMina.compile({ cache })
+        await MinaTokenHolder.compile({ cache });
+        await FungibleTokenAdmin.compile({ cache });
+        await FungibleToken.compile({ cache });
+        console.timeEnd("compile");
+
+        inited = true;
+    }
+}
+
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<any>
 ) {
+    await init();
     if (req.method === 'POST') {
         const json = req.body;
         const args = json as SwapData;
@@ -71,15 +90,6 @@ export default async function handler(
         console.log("args", args);
 
         if (args) {
-            console.time("compile");
-            //const cacheFiles = await fetchFromServerFiles();
-            const cache = FileSystem("./public/cache");
-
-            await PoolMina.compile({ cache })
-            await MinaTokenHolder.compile({ cache });
-            await FungibleTokenAdmin.compile({ cache });
-            await FungibleToken.compile({ cache });
-            console.timeEnd("compile");
 
             const Network = Mina.Network({
                 networkId: "testnet",
