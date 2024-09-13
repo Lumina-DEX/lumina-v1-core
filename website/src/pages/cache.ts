@@ -58,3 +58,44 @@ export const readCache = (files: any): any => ({
     },
     canWrite: false,
 });
+
+export const readCache2 = async (): Promise<any> => ({
+    async read({ persistentId, uniqueId, dataType }: any) {
+        let currentLocation = self.location.origin;
+
+        if (persistentId.indexOf("-pk-") > -1) {
+            return undefined;
+        }
+
+        // read current uniqueId, return data if it matches
+        let currentId = await fetch(`${currentLocation}/cache/${persistentId}.txt`, {
+            cache: "force-cache"
+        });
+        if (!currentId) {
+            console.log("not found : ", persistentId);
+            return undefined;
+        }
+
+        console.log("load : ", persistentId);
+
+        if (dataType === 'string') {
+            const data = currentId.arrayBuffer();
+            // const hash = crypto.createHash('sha1').update(data).digest('hex');
+            // console.log(persistentId + " hash", hash);
+            return data;
+        }
+        else {
+            const data = currentId.arrayBuffer();
+            // const hash = crypto.createHash('sha1').update(data).digest('hex');
+            // console.log(persistentId + " hash", hash);
+            return data;
+        }
+        console.log("data type not string : ", persistentId);
+        return undefined;
+    },
+    write({ persistentId, uniqueId, dataType }: any, data: any) {
+        console.log('write');
+        console.log({ persistentId, uniqueId, dataType });
+    },
+    canWrite: false,
+});

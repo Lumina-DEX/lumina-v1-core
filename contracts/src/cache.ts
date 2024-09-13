@@ -21,7 +21,7 @@ const folder = await fs.readdir("./cache");
 //const filter = (x: string) => { return x.indexOf('-pk-') === -1 && x.indexOf('.header') === -1 };
 // we will filter pk directly on the frontend
 const filter = (x: string) => { return x.indexOf('.header') === -1 };
-const fileName = folder.filter(filter);
+const fileName = folder.filter((x: string) => { return x.indexOf('-pk-') === -1 && x.indexOf('.header') === -1 });
 const json = JSON.stringify(fileName);
 
 
