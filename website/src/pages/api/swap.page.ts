@@ -6,6 +6,8 @@ import util from 'util';
 import { resolve } from 'path';
 import { readCache } from '../cache';
 
+export const maxDuration = 300; // This function can run for a maximum of 300 seconds
+
 type ResponseData = {
     message: string
 }
