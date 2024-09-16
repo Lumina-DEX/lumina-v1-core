@@ -57,7 +57,7 @@ export class PoolFactory extends TokenContractV2 {
 
         const fungibleToken = new FungibleToken(token);
 
-        let tokenAccount = AccountUpdate.create(this.address, fungibleToken.deriveTokenId());
+        let tokenAccount = AccountUpdate.create(newAccount, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
 
@@ -119,7 +119,9 @@ export class PoolFactory extends TokenContractV2 {
         };
 
         // we mint one token to check if this pool exist 
-        this.internal.mint({ address: token, amount: UInt64.one });
+        this.internal.mint({ address: tokenAccount, amount: UInt64.one });
+
+        await fungibleToken.approveAccountUpdate(poolHolderAccount);
 
         return poolAccount.publicKey;
     }

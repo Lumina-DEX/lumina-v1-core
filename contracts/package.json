@@ -21,9 +21,8 @@
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "testw": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "testfactory": "node --experimental-vm-modules node_modules/jest/bin/jest.js factory.test",
     "testmina": "node --experimental-vm-modules node_modules/jest/bin/jest.js poolmina.test",
-    "testdex": "node --experimental-vm-modules node_modules/jest/bin/jest.js dex.test",
-    "testpre": "node --experimental-vm-modules node_modules/jest/bin/jest.js addpre.test",
     "testprivate": "node --experimental-vm-modules node_modules/jest/bin/jest.js privatepool.test",
     "lint": "npx eslint src/* --fix",
     "patch": "node patch.js"
