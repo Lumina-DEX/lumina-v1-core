@@ -22,9 +22,9 @@ export class MinaTokenHolderV2 extends SmartContract {
     }
 
     /**
- * Upgrade to a new version
- * @param vk new verification key
- */
+     * Upgrade to a new version
+     * @param vk new verification key
+     */
     @method async updateVerificationKey(vk: VerificationKey) {
         // todo implement check
         this.account.verificationKey.set(vk);
@@ -33,7 +33,7 @@ export class MinaTokenHolderV2 extends SmartContract {
 
 
     // swap from mina to this token through the pool
-    @method async swapFromMina(amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
+    @method async swapFromMina(frontend: PublicKey, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
@@ -63,10 +63,9 @@ export class MinaTokenHolderV2 extends SmartContract {
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-        // send fee to the frontend
-        const poolMina = new PoolMinaV2(this.address);
-        const frontend = poolMina.frontend.getAndRequireEquals()
-        await this.send({ to: frontend, amount: feeFrontend });
+        // send fee to frontend (if not empty)
+        const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
+        await this.send({ to: frontendReceiver, amount: feeFrontend });
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }

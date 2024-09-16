@@ -52,7 +52,6 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
     symbol: string;
     src: string;
     protocol: PublicKey;
-    frontend: PublicKey;
 }
 
 
@@ -63,7 +62,6 @@ export class PoolMinaV2 extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
     @state(PublicKey) protocol = State<PublicKey>();
-    @state(PublicKey) frontend = State<PublicKey>();
 
     events = {
         swap: SwapEvent,
@@ -76,13 +74,11 @@ export class PoolMinaV2 extends TokenContractV2 {
         await super.deploy(args);
         args.token.isEmpty().assertFalse("Token empty");
         args.protocol.isEmpty().assertFalse("Protocol empty");
-        args.frontend.isEmpty().assertFalse("Frontend empty");
 
         this.token.set(args.token);
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
         this.protocol.set(args.protocol);
-        this.frontend.set(args.frontend);
 
         this.account.permissions.set({
             ...Permissions.default(),
@@ -223,7 +219,7 @@ export class PoolMinaV2 extends TokenContractV2 {
         return liquidityUser;
     }
 
-    @method async swapFromToken(amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
+    @method async swapFromToken(frontend: PublicKey, amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
@@ -256,9 +252,9 @@ export class PoolMinaV2 extends TokenContractV2 {
 
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
-        // send mina to frontend
-        const frontend = this.frontend.getAndRequireEquals()
-        await this.send({ to: frontend, amount: feeFrontend });
+        // send mina to frontend (if not empty)
+        const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
+        await this.send({ to: frontendReceiver, amount: feeFrontend });
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
     }
