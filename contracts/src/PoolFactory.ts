@@ -27,10 +27,6 @@ export class PoolFactory extends TokenContractV2 {
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
         this.protocol.set(args.protocol);
-    }
-
-    init() {
-        super.init();
 
         let permissions = Permissions.default();
         // token not transferable to prevent manipulation for pool creation
@@ -57,7 +53,7 @@ export class PoolFactory extends TokenContractV2 {
 
         const fungibleToken = new FungibleToken(token);
 
-        let tokenAccount = AccountUpdate.create(newAccount, this.deriveTokenId());
+        let tokenAccount = AccountUpdate.create(token, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
 
