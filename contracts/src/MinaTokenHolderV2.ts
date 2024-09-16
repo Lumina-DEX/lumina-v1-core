@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
-import { PoolMinaV2, FungibleToken, mulDiv, SwapEvent } from './indexmina.js';
+import { PoolMinaV2, mulDiv, SwapEvent } from './indexmina.js';
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
@@ -47,7 +47,12 @@ export class MinaTokenHolderV2 extends SmartContract {
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         // calculate amount token out, No tax for the moment (probably in a next version),   
-        let amountOut = mulDiv(balanceOutMin, amountMinaIn, balanceInMax.add(amountMinaIn));
+        let amountOutBeforeFee = mulDiv(balanceOutMin, amountMinaIn, balanceInMax.add(amountMinaIn));
+        // 0.25% tax fee directly on amount out
+        const feeLP = amountOutBeforeFee.mul(2).div(1000);
+        const feeFrontend = amountOutBeforeFee.mul(5).div(10000);
+
+        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend);
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
         // transfer token in to this pool      
@@ -58,6 +63,10 @@ export class MinaTokenHolderV2 extends SmartContract {
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+        // send fee to the frontend
+        const poolMina = new PoolMinaV2(this.address);
+        const frontend = poolMina.frontend.getAndRequireEquals()
+        await this.send({ to: frontend, amount: feeFrontend });
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }

@@ -1,9 +1,6 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString } from 'o1js';
 import { FungibleToken, mulDiv } from './indexmina.js';
 
-// minimum liquidity permanently locked in the pool
-export const MINIMUM_LIQUIDITY: UInt64 = new UInt64(10 ** 3);
-
 export class SwapEvent extends Struct({
     sender: PublicKey,
     amountIn: UInt64,
@@ -139,10 +136,8 @@ export class PoolMinaV2 extends TokenContractV2 {
         amountToken.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         amountMina.assertGreaterThan(UInt64.zero, "Amount mina can't be zero");
 
+        // remove minimun liquidity amount, we mint token to the protocol fees
         const liquidityAmount = amountToken.add(amountMina);
-
-        // https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack, check if necessary in our case
-        liquidityAmount.assertGreaterThan(MINIMUM_LIQUIDITY, "Insufficient amount to mint liquidities");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -157,10 +152,13 @@ export class PoolMinaV2 extends TokenContractV2 {
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amountToken });
 
-        // calculate liquidity token output simply as liquidityAmount = amountA + amountB - minimal liquidity, todo check overflow  
-        // => maintains ratio a/l, b/l       
-        const liquidityUser = liquidityAmount.sub(MINIMUM_LIQUIDITY);
+        // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
+        // 0.1 % as protocol fees       
+        const liquidityProtocol = liquidityAmount.div(1000);
+        const liquidityUser = liquidityAmount.sub(liquidityProtocol);
         // mint token
+        const protocol = this.protocol.getAndRequireEquals();
+        this.internal.mint({ address: protocol, amount: liquidityProtocol });
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
@@ -196,8 +194,8 @@ export class PoolMinaV2 extends TokenContractV2 {
         liquidityMin.assertLessThanOrEqual(liquidityToken, "Too much mina supplied");
         liquidityMax.assertGreaterThanOrEqual(liquidityToken, "Too much token supplied");
 
-        const liquidityUser = Provable.if(liquidityMina.lessThan(liquidityToken), liquidityMina, liquidityToken);
-        liquidityUser.assertGreaterThan(UInt64.zero, "Liquidity out can't be zero");
+        const liquidityAmount = Provable.if(liquidityMina.lessThan(liquidityToken), liquidityMina, liquidityToken);
+        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity out can't be zero");
 
         // send mina to the pool
         let sender = this.sender.getUnconstrainedV2();
@@ -209,9 +207,14 @@ export class PoolMinaV2 extends TokenContractV2 {
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amountToken });
 
+        // 0.1 % as protocol fees       
+        const liquidityProtocol = liquidityAmount.div(1000);
+        const liquidityUser = liquidityAmount.sub(liquidityProtocol);
         // mint token
+        const protocol = this.protocol.getAndRequireEquals();
+        this.internal.mint({ address: protocol, amount: liquidityProtocol });
         this.internal.mint({ address: sender, amount: liquidityUser });
-        this.internal.mint({ address: circulationUpdate, amount: liquidityUser });
+        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
 
@@ -236,11 +239,9 @@ export class PoolMinaV2 extends TokenContractV2 {
         // working on fee integration
 
         let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
-        // 0.25% directly on amount out
+        // 0.25% tax fee directly on amount out
         const feeLP = amountOutBeforeFee.mul(2).div(1000);
         const feeFrontend = amountOutBeforeFee.mul(5).div(10000);
-
-
 
         let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend);
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
@@ -256,7 +257,8 @@ export class PoolMinaV2 extends TokenContractV2 {
         // send mina to user
         await this.send({ to: sender, amount: amountOut });
         // send mina to frontend
-        await this.send({ to: this.frontend.getAndRequireEquals(), amount: feeFrontend });
+        const frontend = this.frontend.getAndRequireEquals()
+        await this.send({ to: frontend, amount: feeFrontend });
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
     }
