@@ -66,12 +66,6 @@ export class PoolFactory extends TokenContractV2 {
         // Require this account didn't already exist
         poolAccount.account.isNew.requireEquals(Bool(true));
 
-        // create a token holder as this new address
-        const poolHolderAccount = AccountUpdate.createSigned(newAccount, fungibleToken.deriveTokenId());
-        // Require this account didn't already exist
-        poolHolderAccount.account.isNew.requireEquals(Bool(true));
-
-
         // set pool account vk and permission
         poolAccount.body.update.verificationKey = { isSome: Bool(true), value: contract.verificationKey };
         poolAccount.body.update.permissions = {
@@ -102,6 +96,11 @@ export class PoolFactory extends TokenContractV2 {
             { isSome: Bool(true), value: Field(0) },
             { isSome: Bool(true), value: Field(0) },
         ];
+
+        // create a token holder as this new address
+        const poolHolderAccount = AccountUpdate.createSigned(newAccount, fungibleToken.deriveTokenId());
+        // Require this account didn't already exist
+        poolHolderAccount.account.isNew.requireEquals(Bool(true));
 
         // set pool token holder account vk and permission
         poolHolderAccount.body.update.verificationKey = { isSome: Bool(true), value: contractHolder.verificationKey };
