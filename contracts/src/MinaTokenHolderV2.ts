@@ -65,7 +65,8 @@ export class MinaTokenHolderV2 extends SmartContract {
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
         // send fee to frontend (if not empty)
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
-        await this.send({ to: frontendReceiver, amount: feeFrontend });
+        let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
+        frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }

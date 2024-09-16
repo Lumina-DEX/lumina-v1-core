@@ -106,7 +106,7 @@ describe('Pool Factory Mina', () => {
       await zkApp.createPool(zkPoolAddress, zkTokenAddress);
       await zkPool.initialize();
     });
-    console.log("Pool creation", txn3.toPretty());
+    console.log("Pool creation au", txn3.transaction.accountUpdates.length);
     await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
