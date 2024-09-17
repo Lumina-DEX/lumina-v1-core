@@ -1,4 +1,4 @@
-import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert } from 'o1js';
+import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
 import { FungibleToken, mulDiv } from './indexmina.js';
 
 export class SwapEvent extends Struct({
@@ -47,11 +47,17 @@ export class WithdrawLiquidityEvent extends Struct({
     }
 }
 
-export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
-    token: PublicKey;
-    symbol: string;
-    src: string;
-    protocol: PublicKey;
+
+export class BalanceChangeEvent extends Struct({
+    address: PublicKey,
+    amount: Int64,
+}) {
+    constructor(value: {
+        address: PublicKey,
+        amount: Int64,
+    }) {
+        super(value);
+    }
 }
 
 
@@ -67,18 +73,56 @@ export class PoolMinaV2 extends TokenContractV2 {
         swap: SwapEvent,
         addLiquidity: AddLiquidityEvent,
         withdrawLiquidity: WithdrawLiquidityEvent,
-        upgrade: Field
+        BalanceChange: BalanceChangeEvent,
+        upgrade: Field,
     };
 
-    async deploy(args: PoolMinaDeployProps) {
-        await super.deploy(args);
+    async deploy() {
+        await super.deploy();
 
         Bool(false).assertTrue("You can't directly deploy a pool");
     }
 
+    /** Approve `AccountUpdate`s that have been created outside of the token contract.
+      *
+      * @argument {AccountUpdateForest} updates - The `AccountUpdate`s to approve. Note that the forest size is limited by the base token contract, @see TokenContractV2.MAX_ACCOUNT_UPDATES The current limit is 9.
+      */
     @method
-    async approveBase(forest: AccountUpdateForest) {
-        this.checkZeroBalanceChange(forest);
+    async approveBase(updates: AccountUpdateForest): Promise<void> {
+        let totalBalance = Int64.from(0)
+        this.forEachUpdate(updates, (update, usesToken) => {
+            // Make sure that the account permissions are not changed
+            this.checkPermissionsUpdate(update)
+            this.emitEventIf(
+                usesToken,
+                "BalanceChange",
+                new BalanceChangeEvent({ address: update.publicKey, amount: update.balanceChange }),
+            )
+
+            // Don't allow transfers to/from the account that's tracking circulation
+            update.publicKey.equals(this.address).and(usesToken).assertFalse(
+                "Can't transfer to/from the circulation account"
+            )
+            totalBalance = Provable.if(usesToken, totalBalance.add(update.balanceChange), totalBalance)
+            totalBalance.isPositiveV2().assertFalse(
+                "Flash-minting or unbalanced transaction detected"
+            )
+        })
+        totalBalance.assertEquals(Int64.zero, "Unbalanced transaction")
+    }
+
+    private checkPermissionsUpdate(update: AccountUpdate) {
+        let permissions = update.update.permissions
+
+        let { access, receive } = permissions.value
+        let accessIsNone = Provable.equal(Types.AuthRequired, access, Permissions.none())
+        let receiveIsNone = Provable.equal(Types.AuthRequired, receive, Permissions.none())
+        let updateAllowed = accessIsNone.and(receiveIsNone)
+
+        assert(
+            updateAllowed.or(permissions.isSome.not()),
+            "Can't change permissions for access or receive on token accounts"
+        )
     }
 
     /**

@@ -41,6 +41,15 @@ export class PoolFactory extends TokenContractV2 {
         this.checkZeroBalanceChange(forest);
     }
 
+    /** Update the verification key.
+     * Note that because we have set the permissions for setting the verification key to `impossibleDuringCurrentVersion()`, this will only be possible in case of a protocol update that requires an update.
+     */
+    @method
+    async updateVerificationKey(vk: VerificationKey) {
+        this.account.verificationKey.set(vk)
+    }
+
+
     /**
      * Create a new pool
      * @param newAccount address of the new pool
