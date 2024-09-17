@@ -104,8 +104,8 @@ describe('Pool Factory Mina', () => {
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.createPool(zkPoolAddress, zkTokenAddress);
-      await zkPool.initialize();
     });
+
     console.log("Pool creation au", txn3.transaction.accountUpdates.length);
     await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization

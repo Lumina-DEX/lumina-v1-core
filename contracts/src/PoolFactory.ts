@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs } from 'o1js';
+import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString } from 'o1js';
 import { FungibleToken, PoolMinaV2, MinaTokenHolderV2 } from './indexmina.js';
 
 
@@ -93,6 +93,10 @@ export class PoolFactory extends TokenContractV2 {
             { isSome: Bool(true), value: Field(0) },
         ];
 
+
+        // Liquidity token default name
+        poolAccount.account.tokenSymbol.set("LUM");
+
         // create a token holder as this new address
         const poolHolderAccount = AccountUpdate.createSigned(newAccount, fungibleToken.deriveTokenId());
         // Require this account didn't already exist
@@ -113,10 +117,31 @@ export class PoolFactory extends TokenContractV2 {
             },
         };
 
+
+        // create a liquidity token holder as this new address
+        const tokenId = TokenId.derive(newAccount);
+        const liquidityAccount = AccountUpdate.createSigned(newAccount, tokenId);
+        // Require this account didn't already exist
+        liquidityAccount.account.isNew.requireEquals(Bool(true));
+        liquidityAccount.body.update.permissions = {
+            isSome: Bool(true),
+            value: {
+                ...Permissions.default(),
+                setVerificationKey: {
+                    auth: Permissions.impossible(),
+                    txnVersion: TransactionVersion.current()
+                },
+                // This is necessary in order to allow burn circulation supply without signature
+                send: Permissions.none(),
+                setPermissions: Permissions.impossible()
+            },
+        };
+
         // we mint one token to check if this pool exist 
         this.internal.mint({ address: tokenAccount, amount: UInt64.one });
 
         await fungibleToken.approveAccountUpdate(poolHolderAccount);
+        await poolAccount.approve(liquidityAccount);
 
         return poolAccount.publicKey;
     }

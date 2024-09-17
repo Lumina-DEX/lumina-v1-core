@@ -1,4 +1,4 @@
-import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString } from 'o1js';
+import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert } from 'o1js';
 import { FungibleToken, mulDiv } from './indexmina.js';
 
 export class SwapEvent extends Struct({
@@ -72,33 +72,8 @@ export class PoolMinaV2 extends TokenContractV2 {
 
     async deploy(args: PoolMinaDeployProps) {
         await super.deploy(args);
-        args.token.isEmpty().assertFalse("Token empty");
-        args.protocol.isEmpty().assertFalse("Protocol empty");
 
-        this.token.set(args.token);
-        this.account.zkappUri.set(args.src);
-        this.account.tokenSymbol.set(args.symbol);
-        this.protocol.set(args.protocol);
-
-        this.account.permissions.set({
-            ...Permissions.default(),
-            send: Permissions.proof(),
-            setVerificationKey: Permissions.VerificationKey.proofOrSignature()
-        });
-    }
-
-    @method
-    async initialize(
-    ) {
-        // comment because we use the first time to update an existing pool
-        this.account.provedState.requireEquals(Bool(false));
-
-        const accountUpdate = AccountUpdate.createSigned(this.address, this.deriveTokenId())
-        let permissions = Permissions.default()
-        // This is necessary in order to allow burn circulation supply
-        permissions.send = Permissions.none()
-        permissions.setPermissions = Permissions.impossible()
-        accountUpdate.account.permissions.set(permissions)
+        Bool(false).assertTrue("You can't directly deploy a pool");
     }
 
     @method
