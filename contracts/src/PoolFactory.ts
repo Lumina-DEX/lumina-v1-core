@@ -19,6 +19,9 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 export class PoolFactory extends TokenContractV2 {
 
     @state(PublicKey) protocol = State<PublicKey>();
+    // use for protocol update
+    @state(Field) poolHash = State<Field>();
+    @state(Field) tokenHolderHash = State<Field>();
 
     async deploy(args: PoolMinaDeployProps) {
         await super.deploy(args);
@@ -29,8 +32,6 @@ export class PoolFactory extends TokenContractV2 {
         this.protocol.set(args.protocol);
 
         let permissions = Permissions.default();
-        // token not transferable to prevent manipulation for pool creation
-        permissions.send = Permissions.impossible();
         permissions.setPermissions = Permissions.impossible();
         permissions.setVerificationKey = Permissions.VerificationKey.impossibleDuringCurrentVersion();
         this.account.permissions.set(permissions);
@@ -38,7 +39,7 @@ export class PoolFactory extends TokenContractV2 {
 
     @method
     async approveBase(forest: AccountUpdateForest) {
-        this.checkZeroBalanceChange(forest);
+        Bool(false).assertTrue("You can't approve any token operation");
     }
 
     /** Update the verification key.
@@ -89,15 +90,15 @@ export class PoolFactory extends TokenContractV2 {
         // set poolAccount initial state
         let tokenFields = token.toFields();
         let protocolFields = this.protocol.getAndRequireEquals().toFields();
-
+        let factoryFields = this.address.toFields();
 
         poolAccount.body.update.appState = [
             { isSome: Bool(true), value: tokenFields[0] },
             { isSome: Bool(true), value: tokenFields[1] },
             { isSome: Bool(true), value: protocolFields[0] },
             { isSome: Bool(true), value: protocolFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: factoryFields[0] },
+            { isSome: Bool(true), value: factoryFields[1] },
             { isSome: Bool(true), value: Field(0) },
             { isSome: Bool(true), value: Field(0) },
         ];

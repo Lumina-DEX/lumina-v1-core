@@ -238,6 +238,23 @@ describe('Pool Factory Mina', () => {
     })).rejects.toThrow();
   });
 
+  it('cant transfer factory circulation supply', async () => {
+
+    await expect(Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.transfer(zkTokenAddress, bobAccount, UInt64.one);
+    })).rejects.toThrow();
+
+
+    await expect(Mina.transaction(senderAccount, async () => {
+      const poolAccount = AccountUpdate.create(zkTokenAddress, zkPool.deriveTokenId());
+      const userAccount = AccountUpdate.create(senderAccount, zkPool.deriveTokenId());
+      poolAccount.balance.subInPlace(1000);
+      userAccount.balance.addInPlace(1000)
+      await zkApp.approveAccountUpdates([poolAccount, userAccount]);
+    })).rejects.toThrow();
+  });
+
 
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test

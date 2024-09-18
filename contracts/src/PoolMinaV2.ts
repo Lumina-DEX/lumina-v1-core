@@ -68,6 +68,7 @@ export class PoolMinaV2 extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
     @state(PublicKey) protocol = State<PublicKey>();
+    @state(PublicKey) factory = State<PublicKey>();
 
     events = {
         swap: SwapEvent,
