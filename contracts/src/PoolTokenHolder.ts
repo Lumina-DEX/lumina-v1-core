@@ -1,10 +1,10 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
-import { PoolMinaV2, mulDiv, SwapEvent } from './indexmina.js';
+import { PoolMina, mulDiv, SwapEvent } from './indexmina.js';
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
  */
-export class PoolTokenHolderV2 extends SmartContract {
+export class PoolTokenHolder extends SmartContract {
 
     events = {
         swap: SwapEvent
@@ -63,7 +63,7 @@ export class PoolTokenHolderV2 extends SmartContract {
         amountTokenMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
-        let pool = new PoolMinaV2(this.address);
+        let pool = new PoolMina(this.address);
 
         this.account.balance.requireBetween(reserveTokenMin, UInt64.MAXINT());
 

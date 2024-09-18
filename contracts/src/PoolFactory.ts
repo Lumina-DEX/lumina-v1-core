@@ -1,9 +1,9 @@
 import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString } from 'o1js';
-import { FungibleToken, PoolMinaV2, MinaTokenHolderV2 } from './indexmina.js';
+import { FungibleToken, PoolMina, PoolTokenHolder } from './indexmina.js';
 
 
-const contract = await PoolMinaV2.compile();
-const contractHolder = await MinaTokenHolderV2.compile();
+const contract = await PoolMina.compile();
+const contractHolder = await PoolTokenHolder.compile();
 
 export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
     symbol: string;
