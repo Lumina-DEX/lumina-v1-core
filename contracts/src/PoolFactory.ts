@@ -82,10 +82,7 @@ export class PoolFactory extends TokenContractV2 {
             isSome: Bool(true),
             value: {
                 ...Permissions.default(),
-                setVerificationKey: {
-                    auth: Permissions.impossible(),
-                    txnVersion: TransactionVersion.current()
-                },
+                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },
@@ -121,10 +118,7 @@ export class PoolFactory extends TokenContractV2 {
             isSome: Bool(true),
             value: {
                 ...Permissions.default(),
-                setVerificationKey: {
-                    auth: Permissions.impossible(),
-                    txnVersion: TransactionVersion.current()
-                },
+                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },
@@ -140,10 +134,7 @@ export class PoolFactory extends TokenContractV2 {
             isSome: Bool(true),
             value: {
                 ...Permissions.default(),
-                setVerificationKey: {
-                    auth: Permissions.impossible(),
-                    txnVersion: TransactionVersion.current()
-                },
+                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
                 // This is necessary in order to allow burn circulation supply without signature
                 send: Permissions.none(),
                 setPermissions: Permissions.impossible()
