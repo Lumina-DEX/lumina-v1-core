@@ -4,33 +4,17 @@ import { PoolMinaV2, mulDiv, SwapEvent } from './indexmina.js';
 /**
  * Token holder contract, manage swap and liquidity remove functions
  */
-export class MinaTokenHolderV2 extends SmartContract {
+export class PoolTokenHolderV2 extends SmartContract {
 
     events = {
-        swap: SwapEvent,
-        upgrade: Field
+        swap: SwapEvent
     };
 
-    init() {
-        super.init();
+    async deploy() {
+        await super.deploy();
 
-        this.account.permissions.set({
-            ...Permissions.default(),
-            send: Permissions.proof(),
-            setVerificationKey: Permissions.VerificationKey.proofOrSignature()
-        });
+        Bool(false).assertTrue("You can't directly deploy a token holder");
     }
-
-    /**
-     * Upgrade to a new version
-     * @param vk new verification key
-     */
-    @method async updateVerificationKey(vk: VerificationKey) {
-        // todo implement check
-        this.account.verificationKey.set(vk);
-        this.emitEvent("upgrade", vk.hash);
-    }
-
 
     // swap from mina to this token through the pool
     @method async swapFromMina(frontend: PublicKey, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64

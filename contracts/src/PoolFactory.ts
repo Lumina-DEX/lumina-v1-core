@@ -11,6 +11,19 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
     protocol: PublicKey;
 }
 
+export class PoolCreationEvent extends Struct({
+    sender: PublicKey,
+    poolAddress: PublicKey,
+    tokenAddress: PublicKey
+}) {
+    constructor(value: {
+        sender: PublicKey,
+        poolAddress: PublicKey,
+        tokenAddress: PublicKey
+    }) {
+        super(value);
+    }
+}
 
 
 /**
@@ -19,9 +32,10 @@ export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
 export class PoolFactory extends TokenContractV2 {
 
     @state(PublicKey) protocol = State<PublicKey>();
-    // use for protocol update
-    @state(Field) poolHash = State<Field>();
-    @state(Field) tokenHolderHash = State<Field>();
+
+    events = {
+        poolAdded: PoolCreationEvent
+    };
 
     async deploy(args: PoolMinaDeployProps) {
         await super.deploy(args);
@@ -42,22 +56,12 @@ export class PoolFactory extends TokenContractV2 {
         Bool(false).assertTrue("You can't approve any token operation");
     }
 
-    /** Update the verification key.
-     * Note that because we have set the permissions for setting the verification key to `impossibleDuringCurrentVersion()`, this will only be possible in case of a protocol update that requires an update.
-     */
-    @method
-    async updateVerificationKey(vk: VerificationKey) {
-        this.account.verificationKey.set(vk)
-    }
-
-
     /**
      * Create a new pool
      * @param newAccount address of the new pool
      * @param token for which the pool is created
-     * @returns address of the new pool
      */
-    @method.returns(PublicKey)
+    @method
     async createPool(newAccount: PublicKey, token: PublicKey) {
         token.isEmpty().assertFalse("Token is empty");
 
@@ -90,15 +94,14 @@ export class PoolFactory extends TokenContractV2 {
         // set poolAccount initial state
         let tokenFields = token.toFields();
         let protocolFields = this.protocol.getAndRequireEquals().toFields();
-        let factoryFields = this.address.toFields();
 
         poolAccount.body.update.appState = [
             { isSome: Bool(true), value: tokenFields[0] },
             { isSome: Bool(true), value: tokenFields[1] },
             { isSome: Bool(true), value: protocolFields[0] },
             { isSome: Bool(true), value: protocolFields[1] },
-            { isSome: Bool(true), value: factoryFields[0] },
-            { isSome: Bool(true), value: factoryFields[1] },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
             { isSome: Bool(true), value: Field(0) },
             { isSome: Bool(true), value: Field(0) },
         ];
@@ -153,7 +156,9 @@ export class PoolFactory extends TokenContractV2 {
         await fungibleToken.approveAccountUpdate(poolHolderAccount);
         await poolAccount.approve(liquidityAccount);
 
-        return poolAccount.publicKey;
+        const sender = this.sender.getUnconstrainedV2();
+        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, tokenAddress: token }));
+
     }
 
 }
