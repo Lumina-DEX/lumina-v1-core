@@ -25,9 +25,6 @@ export class PoolTokenHolder extends SmartContract {
         amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
         amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
 
-        const poolAccount = AccountUpdate.create(this.address);
-
-        poolAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         // calculate amount token out, No tax for the moment (probably in a next version),   
@@ -39,10 +36,7 @@ export class PoolTokenHolder extends SmartContract {
         let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend);
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
-        // transfer token in to this pool      
         let sender = this.sender.getUnconstrainedV2();
-        let senderSigned = AccountUpdate.createSigned(sender);
-        senderSigned.send({ to: poolAccount, amount: amountMinaIn });
 
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })
@@ -51,6 +45,9 @@ export class PoolTokenHolder extends SmartContract {
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
         let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
         frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+
+        let pool = new PoolMina(this.address);
+        await pool.swapFromMina(amountMinaIn, balanceInMax);
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }

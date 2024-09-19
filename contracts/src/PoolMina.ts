@@ -1,5 +1,5 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv } from './indexmina.js';
+import { BalanceChangeEvent, FungibleToken, mulDiv, PoolTokenHolder } from './indexmina.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -252,6 +252,21 @@ export class PoolMina extends TokenContractV2 {
         await this.send({ to: frontendReceiver, amount: feeFrontend });
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
+    }
+
+    /**
+     * Don't call this method directly, use pool token holder or you will just lost mina
+     * @param amountMinaIn mina amount in
+     * @param balanceInMax actual reserve max in
+     */
+    @method async swapFromMina(amountMinaIn: UInt64, balanceInMax: UInt64) {
+        amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
+        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
+
+        this.account.balance.requireBetween(UInt64.one, balanceInMax);
+        let sender = this.sender.getUnconstrainedV2();
+        let senderSigned = AccountUpdate.createSigned(sender);
+        await senderSigned.send({ to: this.self, amount: amountMinaIn });
     }
 
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
