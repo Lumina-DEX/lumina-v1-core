@@ -60,16 +60,16 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
     await fs.readFile(config.feepayerKeyPath, 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-// B62qrn4bTWsKGddKeLGzriYVQF23fNF4tCnACKawP7ySJfH7zFmd2u6
-let zkAppKey = PrivateKey.fromBase58("EKFR61nPLgsRYV2fULL1n1QpGxjjAxXJRrgse43fPvwJsdFS6PRM");
+// B62qjmz2oEe8ooqBmvj3a6fAbemfhk61rjxTYmUMP9A6LPdsBLmRAxK
+let zkAppKey = PrivateKey.fromBase58("EKEVcNxyPchkFYBvkzPvPz9PVPNPKPEkM33QNpPGPfet7Ga4MBQZ");
 // B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w
 let zkTokenPrivateKey = PrivateKey.fromBase58("EKDpsCUu1roVtrqoprUyseGZVKbPLZMvGagBoN7WRUVHzDWBUWFj");
 // B62qmZpuEkuf3MeH2WAkxzXRJMBMmZHb1JxSZqqQR8T3jtt2FUTy9wK
 let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKDym4pZnbRVmWtubWaBgEeQ5GHrhtQc1KyD6sJm5cFaDWcj3vai");
-// B62qjKsMNx8rNjnFmEe2jjerKASu3XeGg5HDbqngsbvasJKPuGHuzJm
-let zkFaucetKey = PrivateKey.fromBase58("EKFDtgBCH8VZnU24CWGAyB4DKSx8hXsTZBrzRs9q9tphuoV5LSb5");
-// B62qjKsMNx8rNjnFmEe2jjerKASu3XeGg5HDbqngsbvasJKPuGHuzJm
-let zkFactoryKey = PrivateKey.fromBase58("EKFDtgBCH8VZnU24CWGAyB4DKSx8hXsTZBrzRs9q9tphuoV5LSb5");
+// B62qnigaSA2ZdhmGuKfQikjYKxb6V71mLq3H8RZzvkH4htHBEtMRUAG
+let zkFaucetKey = PrivateKey.fromBase58("EKDrpqX83AMJPT4X2dpPhAESbtrL96YV85gGCjECiK523LnBNqka");
+// B62qpfZ1egTLiRyX2DxfeFENrumeZowycer3Y5J9pKbiGVkgQBDkhW3
+let zkFactoryKey = PrivateKey.fromBase58("EKFaHTuesnx5QDU2DBAZmZBMhPTnEPCib3g83gvvQtaSBUx5thZW");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
@@ -98,6 +98,7 @@ let zkFaucet = new Faucet(zkFaucetAddress, zkToken.deriveTokenId());
 
 console.log("tokenStandard", zkTokenAddress.toBase58());
 console.log("pool", zkAppAddress.toBase58());
+console.log("factory", zkFactoryKey.toBase58());
 console.log("zkTokenAdmin", zkTokenAdminAddress.toBase58());
 console.log("zkFaucet", zkFaucetAddress.toBase58());
 
@@ -109,6 +110,7 @@ const key = await PoolMina.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 await PoolTokenHolder.compile({ cache });
+await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
 //const keyV2 = await PoolMinaV2.compile({ cache });
 
@@ -118,7 +120,7 @@ async function ask() {
             prompt(`Why do you want to do ?
             1 deploy token
             2 deploy pool      
-            3 deploy token holder 
+            3 deploy factory
             4 add liquidity 
             5 swap mina for token
             6 swap token for mina
@@ -136,7 +138,7 @@ async function ask() {
                 await deployPool();
                 break;
             case "3":
-                await deployTokenHolder();
+                await deployFactory();
                 break;
             case "4":
                 await addLiquidity();
@@ -233,20 +235,18 @@ async function deployPool() {
 }
 
 
-async function deployTokenHolder() {
+async function deployFactory() {
     try {
-        console.log("deploy token holder");
-        let dexTokenHolder0 = new PoolTokenHolder(zkAppAddress, zkToken.deriveTokenId());
+        console.log("deploy factory");
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await dexTokenHolder0.deploy();
-                await zkToken.approveAccountUpdate(dexTokenHolder0.self);
+                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", protocol: feepayerAddress });
             }
         );
         await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, zkAppKey, zkTokenPrivateKey]).send();
+        let sentTx = await tx.sign([feepayerKey, zkFactoryKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
         }

@@ -15,7 +15,7 @@ export class Faucet extends TokenContractV2 {
 
     @method
     async approveBase(forest: AccountUpdateForest) {
-        Bool(false).assertTrue("You can't approve any token operation");
+        forest.isEmpty().assertTrue("You can't approve any token operation");
     }
 
     async deploy(args: FaucetDeployProps) {
