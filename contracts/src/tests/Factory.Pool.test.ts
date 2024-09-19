@@ -255,6 +255,23 @@ describe('Pool Factory Mina', () => {
     })).rejects.toThrow();
   });
 
+  it('cant mint token', async () => {
+    let txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkPool.internal.mint({ address: senderAccount, amount: UInt64.one });
+      await zkPool.approveAccountUpdate(zkPool.self);
+    });
+    console.log("txn mint", txn.toPretty());
+    await txn.prove();
+    await expect(txn.sign([senderKey, zkPoolPrivateKey]).send()).rejects.toThrow();
+
+    await expect(Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkApp.internal.mint({ address: senderAccount, amount: UInt64.one });
+      await zkApp.approveAccountUpdate(zkApp.self);
+    })).rejects.toThrow();
+  });
+
 
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test

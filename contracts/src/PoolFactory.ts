@@ -83,6 +83,8 @@ export class PoolFactory extends TokenContractV2 {
             isSome: Bool(true),
             value: {
                 ...Permissions.default(),
+                // only proof to prevent signature owner to steal liquidity
+                access: Permissions.proof(),
                 setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setPermissions: Permissions.impossible()
