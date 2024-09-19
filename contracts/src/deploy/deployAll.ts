@@ -70,6 +70,8 @@ let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKDym4pZnbRVmWtubWaBgEeQ5GHr
 let zkFaucetKey = PrivateKey.fromBase58("EKDrpqX83AMJPT4X2dpPhAESbtrL96YV85gGCjECiK523LnBNqka");
 // B62qpfZ1egTLiRyX2DxfeFENrumeZowycer3Y5J9pKbiGVkgQBDkhW3
 let zkFactoryKey = PrivateKey.fromBase58("EKFaHTuesnx5QDU2DBAZmZBMhPTnEPCib3g83gvvQtaSBUx5thZW");
+// B62qphnhqrRW6DFFR39onHNKnBcoB9Gqi3M8Emytg26nwZWUYXR1itw
+let zkEthKey = PrivateKey.fromBase58("EKEqnfG219qK6frdShbPF768u142ASEFMiwsXoau1bK6VEd8Wao2");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
@@ -95,12 +97,15 @@ let zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
 let zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
 let zkFaucetAddress = zkFaucetKey.toPublicKey();
 let zkFaucet = new Faucet(zkFaucetAddress, zkToken.deriveTokenId());
+let zkEthAddress = zkEthKey.toPublicKey();
+let zkEth = new PoolMina(zkEthAddress);
 
 console.log("tokenStandard", zkTokenAddress.toBase58());
 console.log("pool", zkAppAddress.toBase58());
 console.log("factory", zkFactoryKey.toBase58());
 console.log("zkTokenAdmin", zkTokenAdminAddress.toBase58());
 console.log("zkFaucet", zkFaucetAddress.toBase58());
+console.log("zkEth", zkEthAddress.toBase58());
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
@@ -125,7 +130,7 @@ async function ask() {
             5 swap mina for token
             6 swap token for mina
             7 upgrade
-            8 deploy all
+            8 deploy pool eth
             9 mint token
             10 show event
             11 deploy faucet
@@ -153,7 +158,7 @@ async function ask() {
                 await upgrade();
                 break;
             case "8":
-                await deployAll();
+                await deployPoolEth();
                 break;
             case "9":
                 await mintToken();
@@ -257,38 +262,22 @@ async function deployFactory() {
     }
 }
 
-async function deployAll() {
+async function deployPoolEth() {
     try {
-        console.log("deploy all");
-        let dexTokenHolder0 = new PoolTokenHolder(zkAppAddress, zkToken.deriveTokenId());
+        const wethAddress = PublicKey.fromBase58("B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H");
+        console.log("deploy pool eth");
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkTokenAdmin.deploy({
-                    adminPublicKey: feepayerAddress,
-                });
-                await zkToken.deploy({
-                    symbol: "TOKA",
-                    src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
-                });
-                await zkToken.initialize(
-                    zkTokenAdminAddress,
-                    UInt8.from(9),
-                    Bool(false),
-                );
-
-                //await zkApp.deploy({ token: zkTokenAddress, symbol: "LUM", src: "https://luminadex.com/" });
-                // await dexTokenHolder0.deploy();
-                // await zkToken.approveAccountUpdate(dexTokenHolder0.self);
+                await zkFactory.createPool(zkEthAddress, wethAddress);
             }
         );
         await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, zkAppKey, zkTokenPrivateKey, zkTokenAdminPrivateKey]).send();
+        let sentTx = await tx.sign([feepayerKey, zkEthKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
         }
-
 
     } catch (err) {
         console.log(err);
