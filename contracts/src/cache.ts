@@ -7,7 +7,7 @@ import path from 'path';
 // node build/src/cache.js
 
 const cache = Cache.FileSystem('./cache');
-for (let index = 0; index < 3; index++) {
+for (let index = 0; index < 6; index++) {
     // compile 3 time to get all files
     await PoolFactory.compile({ cache });
     await PoolMina.compile({ cache });

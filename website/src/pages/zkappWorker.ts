@@ -2,7 +2,7 @@ import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt
 
 console.log('Load Web Worker.');
 
-import type { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/indexmina";
+import type { PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/indexmina";
 import { fetchFiles, readCache } from "./cache";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -13,10 +13,10 @@ const state = {
   TokenAdmin: null as null | typeof FungibleTokenAdmin,
   TokenStandard: null as null | typeof FungibleToken,
   PoolMina: null as null | typeof PoolMina,
-  PoolMinaHolder: null as null | typeof MinaTokenHolder,
+  PoolMinaHolder: null as null | typeof PoolTokenHolder,
   Faucet: null as null | typeof Faucet,
   zkapp: null as null | PoolMina,
-  zkHolder: null as null | MinaTokenHolder,
+  zkHolder: null as null | PoolTokenHolder,
   zkToken: null as null | FungibleToken,
   zkFaucet: null as null | Faucet,
   transaction: null as null | Transaction,
@@ -59,10 +59,10 @@ const functions = {
   },
 
   loadContract: async (args: {}) => {
-    const { PoolMina, MinaTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/indexmina");
+    const { PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/indexmina");
 
     state.PoolMina = PoolMina;
-    state.PoolMinaHolder = MinaTokenHolder;
+    state.PoolMinaHolder = PoolTokenHolder;
     state.TokenStandard = FungibleToken;
     state.TokenAdmin = FungibleTokenAdmin;
     state.Faucet = Faucet
