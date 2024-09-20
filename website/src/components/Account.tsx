@@ -15,7 +15,7 @@ const Account = ({ accountState }) => {
   const [network, setNetwork] = useState("zeko");
   const zekoGraph = "https://devnet.zeko.io/graphql";
   const devnetGraph = "https://api.minascan.io/node/devnet/v1/graphql";
-  const [graph, setGraph] = useState(zekoGraph);
+  const [graph, setGraph] = useState(devnetGraph);
 
   const zkState = accountState;
 
@@ -151,12 +151,12 @@ const Account = ({ accountState }) => {
           <div>
             <span title={information?.account}>{trimText(information?.account)}</span>
           </div>
-          <div>
+          {/* <div>
             <select defaultValue={network} onChange={async (ev) => await switchNetwork(ev.target.value)}>
               <option value="zeko">Zeko</option>
               <option value="devnet">Devnet</option>
             </select>
-          </div>
+          </div> */}
         </div>}
         {!information?.account &&
           <button onClick={() => connect().then()}>Connect Wallet</button>

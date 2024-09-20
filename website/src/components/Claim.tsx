@@ -57,9 +57,6 @@ const Faucet = ({ accountState }) => {
           <button onClick={claim} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Claim
           </button>
-          <div>
-            <span>Faucet works only if your wallet TOKA balance is 0</span>
-          </div>
           {loading && <p>Creating transaction ...</p>}
 
         </div >

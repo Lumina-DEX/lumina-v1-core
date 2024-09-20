@@ -268,12 +268,15 @@ const functions = {
     await fetchAccount({ publicKey: state.zkFaucet.address, tokenId: state.zkToken.deriveTokenId() });
     await fetchAccount({ publicKey });
     const acc = await fetchAccount({ publicKey, tokenId: state.zkToken?.deriveTokenId() });
+    const accFau = await fetchAccount({ publicKey, tokenId: state.zkFaucet?.deriveTokenId() });
 
     let newAcc = acc.account?.balance ? 0 : 1;
+    let newFau = accFau.account?.balance ? 0 : 1;
+    const total = newAcc + newFau;
     const token = await state.zkFaucet?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      AccountUpdate.fundNewAccount(publicKey, newAcc);
+      AccountUpdate.fundNewAccount(publicKey, total);
       await state.zkFaucet!.claim();
       await state.zkToken?.approveAccountUpdate(state.zkFaucet.self);
     });
