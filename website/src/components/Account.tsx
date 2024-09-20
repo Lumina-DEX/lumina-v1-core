@@ -24,7 +24,7 @@ const Account = ({ accountState }) => {
       const windowMina = (window as any).mina;
       setMina(windowMina);
       windowMina.requestAccounts().then(x => {
-        switchChain(windowMina, "zeko").then();
+        switchChain(windowMina, "devnet").then();
         getUserInformation(windowMina).then(x => setInformation(x))
       })
     }
@@ -47,7 +47,7 @@ const Account = ({ accountState }) => {
     const publicKey = PublicKey.fromBase58(user);
     const accMina = await fetchAccount({ publicKey }, graphUrl);
     const acc = await fetchAccount({ publicKey, tokenId: "wTRtTRnW7hZCQSVgsuMVJRvnS1xEAbRRMWyaaJPkQsntSNh67n" }, graphUrl);
-    const accLiquidity = await fetchAccount({ publicKey, tokenId: "wpmBCWqmBWeYm3vEnwpEQ16LS8AJCAatSrSHsJTxNx4mrLy8NL" }, graphUrl);
+    const accLiquidity = await fetchAccount({ publicKey, tokenId: "xhLRW49wTFPbDq6dhZoNKgX64tQDs8iEAjqUhb4WDivqYQPe1Q" }, graphUrl);
     const bal = accMina.account ? accMina.account.balance : 0;
     const balToken = acc.account ? acc.account.balance : 0;
     const balLiquidity = accLiquidity.account ? accLiquidity.account.balance : 0;

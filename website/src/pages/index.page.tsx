@@ -9,9 +9,9 @@ import Account from '@/components/Account';
 import Tab from '@/components/Tab';
 
 let transactionFee = 0.1;
-const ZKAPP_ADDRESS = 'B62qrn4bTWsKGddKeLGzriYVQF23fNF4tCnACKawP7ySJfH7zFmd2u6';
+const ZKAPP_ADDRESS = 'B62qjmz2oEe8ooqBmvj3a6fAbemfhk61rjxTYmUMP9A6LPdsBLmRAxK';
 const ZKTOKEN_ADDRESS = 'B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w';
-const ZKFAUCET_ADDRESS = 'B62qjKsMNx8rNjnFmEe2jjerKASu3XeGg5HDbqngsbvasJKPuGHuzJm';
+const ZKFAUCET_ADDRESS = 'B62qnigaSA2ZdhmGuKfQikjYKxb6V71mLq3H8RZzvkH4htHBEtMRUAG';
 
 export default function Home() {
   const [state, setState] = useState({
@@ -49,7 +49,7 @@ export default function Home() {
         setDisplayText('Done loading web worker');
         console.log('Done loading web worker');
 
-        await zkappWorkerClient.setActiveInstanceToZeko();      
+        await zkappWorkerClient.setActiveInstanceToDevnet();      
 
         await zkappWorkerClient.loadContract();
 

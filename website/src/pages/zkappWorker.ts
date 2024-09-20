@@ -26,6 +26,8 @@ const state = {
 
 const testPrivateKey = 'EKEEHJZhoyjfJEvLoLCrRZosz29hnfn8Nx6Wfx74hgQV4xbrkCTf';
 const testPublicKey = 'B62qrLNBqyoECio41DRkRio2DjPsVQUkcyDitM3F9t1ajK3vp2UApja';
+const frontend = PublicKey.fromBase58("B62qoSZbMLJSP7dHLqe8spFPFSsUoENnMSHJN8i5bS1X4tdGpAZuwAC");
+const protocol = PublicKey.fromBase58("B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1");
 
 // ---------------------------------------------------------------------------------------
 
@@ -109,21 +111,21 @@ const functions = {
     state.zkFaucet = new state.Faucet!(publicKeyFaucet, state.zkToken.deriveTokenId());
   },
   deployPoolInstance: async (args: { tokenX: string }) => {
-    const poolKey = PrivateKey.random();
-    const pool = new state.PoolMina!(poolKey.toPublicKey());
-    console.log("appkey", poolKey.toBase58());
-    const tokenKey = PublicKey.fromBase58(args.tokenX);
-    const depArgs = { token: tokenKey, symbol: "LUM", src: "https://luminadex.com/" };
-    const tokenX = new state.TokenStandard!(tokenKey);
-    const holderX = new state.PoolMinaHolder!(poolKey.toPublicKey(), tokenX.deriveTokenId());
-
-    const transaction = await Mina.transaction(async () => {
-      await pool.deploy(depArgs);
-      await holderX.deploy();
-      await tokenX.approveAccountUpdate(holderX.self);
-    });
-    state.transaction = transaction;
-    state.key = poolKey.toBase58();
+    /*  const poolKey = PrivateKey.random();
+      const pool = new state.PoolMina!(poolKey.toPublicKey());
+      console.log("appkey", poolKey.toBase58());
+      const tokenKey = PublicKey.fromBase58(args.tokenX);
+      const depArgs = { token: tokenKey, symbol: "LUM", src: "https://luminadex.com/" };
+      const tokenX = new state.TokenStandard!(tokenKey);
+      const holderX = new state.PoolMinaHolder!(poolKey.toPublicKey(), tokenX.deriveTokenId());
+  
+      const transaction = await Mina.transaction(async () => {
+        await pool.deploy(depArgs);
+        await holderX.deploy();
+        await tokenX.approveAccountUpdate(holderX.self);
+      });
+      state.transaction = transaction;
+      state.key = poolKey.toBase58();*/
   },
   getSupply: async (args: {}) => {
     const acc = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkapp?.deriveTokenId() });
@@ -169,7 +171,7 @@ const functions = {
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, newAcc);
-      await state.zkHolder!.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+      await state.zkHolder!.swapFromMina(frontend, UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
       await state.zkToken?.approveAccountUpdate(state.zkHolder.self);
     });
     state.transaction = transaction;
@@ -192,7 +194,7 @@ const functions = {
     const token = await state.zkapp?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      await state.zkapp!.swapFromToken(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+      await state.zkapp!.swapFromToken(frontend, UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
     });
     state.transaction = transaction;
 
@@ -214,10 +216,17 @@ const functions = {
 
     console.log("add liquidity");
     const acc = await fetchAccount({ publicKey, tokenId: state.zkapp?.deriveTokenId() });
+    const accPro = await fetchAccount({ publicKey: protocol, tokenId: state.zkapp?.deriveTokenId() });
     let newAcc = acc.account ? 0 : 1;
+    let newAccPro = accPro.account ? 0 : 1;
+    let total = newAcc + newAccPro;
     const transaction = await Mina.transaction(publicKey, async () => {
-      AccountUpdate.fundNewAccount(publicKey, newAcc);
-      await state.zkapp!.supplyLiquidity(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn), UInt64.from(reserveMina), UInt64.from(reserveToken), UInt64.from(supply));
+      AccountUpdate.fundNewAccount(publicKey, total);
+      if (supply > 0) {
+        await state.zkapp!.supplyLiquidity(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn), UInt64.from(reserveMina), UInt64.from(reserveToken), UInt64.from(supply));
+      } else {
+        await state.zkapp!.supplyFirstLiquidities(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn));
+      }
     });
     state.transaction = transaction;
 

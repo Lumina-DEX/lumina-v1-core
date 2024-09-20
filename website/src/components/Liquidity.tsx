@@ -37,12 +37,12 @@ const Liquidity = ({ accountState }) => {
       getLiquidityAmount(fromAmount, slippagePercent).then(x => setData(x));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromAmount, slippagePercent]);
+  }, [fromAmount, toAmount, slippagePercent]);
 
 
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {
     console.log("getLiquidityAmount", fromAmt);
-    const { getAmountLiquidityOut } = await import("../../../contracts/build/src/indexmina");
+    const { getAmountLiquidityOut, getFirstAmountLiquidityOut } = await import("../../../contracts/build/src/indexmina");
     const reserves = await zkState?.zkappWorkerClient?.getReserves();
     console.log("reserve", reserves);
     let calcul = { amountAIn: 0, amountBIn: 0, balanceAMax: 0, balanceBMax: 0, supplyMin: 0, liquidity: 0 };
@@ -51,22 +51,38 @@ const Liquidity = ({ accountState }) => {
       const amountMina = parseInt(reserves?.amountMina);
       const amountToken = parseInt(reserves?.amountToken);
       const liquidity = parseInt(reserves?.liquidity);
-      let amt = parseFloat(fromAmt) * 10 ** 9;
-      console.log("amtIn", amt);
-      if (!toDai) {
-        calcul = getAmountLiquidityOut(amt, amountToken, amountMina, liquidity, slippage);
-        console.log("calcul from dai", calcul);
-        let amtOut = calcul.amountBIn / 10 ** 9;
-        setToAmount(amtOut.toString());
-        let liq = calcul.liquidity / 10 ** 9;
-        setLiquidityMinted(liq);
+      if (liquidity > 0) {
+        let amt = parseFloat(fromAmt) * 10 ** 9;
+        console.log("amtIn", amt);
+        if (!toDai) {
+          calcul = getAmountLiquidityOut(amt, amountToken, amountMina, liquidity, slippage);
+          console.log("calcul from dai", calcul);
+          let amtOut = calcul.amountBIn / 10 ** 9;
+          setToAmount(amtOut.toString());
+          let liq = calcul.liquidity / 10 ** 9;
+          setLiquidityMinted(liq);
+        } else {
+          calcul = getAmountLiquidityOut(amt, amountMina, amountToken, liquidity, slippage);
+          console.log("calcul from mina", calcul);
+          let amtOut = calcul.amountBIn / 10 ** 9;
+          setToAmount(amtOut.toString());
+          let liq = calcul.liquidity / 10 ** 9;
+          setLiquidityMinted(liq);
+        }
       } else {
-        calcul = getAmountLiquidityOut(amt, amountMina, amountToken, liquidity, slippage);
-        console.log("calcul from mina", calcul);
-        let amtOut = calcul.amountBIn / 10 ** 9;
-        setToAmount(amtOut.toString());
-        let liq = calcul.liquidity / 10 ** 9;
-        setLiquidityMinted(liq);
+        let amtA = parseFloat(fromAmt) * 10 ** 9;
+        let amtB = parseFloat(toAmount) * 10 ** 9;
+        if (!toDai) {
+          calcul = getFirstAmountLiquidityOut(amtB, amtA);
+          console.log("calcul from dai", calcul);
+          let liq = calcul.liquidity / 10 ** 9;
+          setLiquidityMinted(liq);
+        } else {
+          calcul = getFirstAmountLiquidityOut(amtA, amtB);
+          console.log("calcul from mina", calcul);
+          let liq = calcul.liquidity / 10 ** 9;
+          setLiquidityMinted(liq);
+        }
       }
     }
     return calcul;
