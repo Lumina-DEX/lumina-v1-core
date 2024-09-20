@@ -40,7 +40,7 @@ export default async function handler(
             const fee = 0.1 * 1e9;
             const transaction = await Mina.transaction({ sender: senderKey.toPublicKey() }, async () => {
                 AccountUpdate.fundNewAccount(senderKey.toPublicKey(), 3);
-                await pool.deploy({ token: tokenKey, symbol: "test", src: "lumina" });
+                await pool.deploy();
                 await holderX.deploy();
                 await tokenX.approveAccountUpdate(holderX.self);
             });

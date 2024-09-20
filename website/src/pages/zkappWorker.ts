@@ -62,7 +62,7 @@ const functions = {
 
   loadContract: async (args: {}) => {
     const { PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/indexmina");
-
+    // @ts-ignore
     state.PoolMina = PoolMina;
     state.PoolMinaHolder = PoolTokenHolder;
     state.TokenStandard = FungibleToken;
