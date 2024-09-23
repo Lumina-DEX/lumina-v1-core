@@ -27,7 +27,7 @@ const Tab = ({ accountState }) => {
                         <button style={{ color: tab === "liquidity" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("liquidity")}>Liquidity</button>
                         <button style={{ color: tab === "withdraw" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("withdraw")}>Withdraw</button>
                         <button style={{ color: tab === "faucet" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("faucet")}>Faucet</button>
-                        <button style={{ color: tab === "server" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("server")}>Server</button>
+                        {/* <button style={{ color: tab === "server" ? "blue" : "black" }} className="text-lg text-black p-1 " onClick={() => setTab("server")}>Server</button> */}
                     </div>
                     <div className="p-2">
                         {tab === "swap" && <div>
