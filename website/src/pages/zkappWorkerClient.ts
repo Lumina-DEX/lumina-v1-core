@@ -66,8 +66,8 @@ export default class ZkappWorkerClient {
     });
   }
 
-  async getReserves(): Promise<any> {
-    const result = await this._call("getReserves", {}) as string;
+  async getReserves(pool: string): Promise<any> {
+    const result = await this._call("getReserves", { pool }) as string;
     return JSON.parse(result);
   }
 
@@ -76,24 +76,24 @@ export default class ZkappWorkerClient {
     return JSON.parse(result);
   }
 
-  async swapFromMina(user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
-    return await this._call("swapFromMinaTransaction", { user, amt, minOut, balanceOutMin, balanceInMax });
+  async swapFromMina(pool: string, user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
+    return await this._call("swapFromMinaTransaction", { pool, user, amt, minOut, balanceOutMin, balanceInMax });
   }
 
   async claim(user: string) {
     return await this._call("claim", { user });
   }
 
-  async swapFromToken(user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
-    return await this._call("swapFromTokenTransaction", { user, amt, minOut, balanceOutMin, balanceInMax });
+  async swapFromToken(pool: string, user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number) {
+    return await this._call("swapFromTokenTransaction", { pool, user, amt, minOut, balanceOutMin, balanceInMax });
   }
 
-  async addLiquidity(user: string, amtMina: number, amtToken: number, reserveMinaMax: number, reserveTokenMax: number, supplyMin: number) {
-    return await this._call("addLiquidity", { user, amtMina, amtToken, reserveMinaMax, reserveTokenMax, supplyMin });
+  async addLiquidity(pool: string, user: string, amtMina: number, amtToken: number, reserveMinaMax: number, reserveTokenMax: number, supplyMin: number) {
+    return await this._call("addLiquidity", { pool, user, amtMina, amtToken, reserveMinaMax, reserveTokenMax, supplyMin });
   }
 
-  async withdrawLiquidity(user: string, liquidityAmount: number, amountMinaMin: number, amountTokenMin: number, reserveMinaMin: number, reserveTokenMin: number, supplyMax: number) {
-    return await this._call("withdrawLiquidity", { user, liquidityAmount, amountMinaMin, amountTokenMin, reserveMinaMin, reserveTokenMin, supplyMax });
+  async withdrawLiquidity(pool: string, user: string, liquidityAmount: number, amountMinaMin: number, amountTokenMin: number, reserveMinaMin: number, reserveTokenMin: number, supplyMax: number) {
+    return await this._call("withdrawLiquidity", { pool, user, liquidityAmount, amountMinaMin, amountTokenMin, reserveMinaMin, reserveTokenMin, supplyMax });
   }
 
   async deployPoolInstance(tokenX: string) {

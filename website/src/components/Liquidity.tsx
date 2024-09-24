@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
+import { poolToka } from "@/utils/addresses";
+import TokenMenu from "./TokenMenu";
 
 // @ts-ignore
 const Liquidity = ({ accountState }) => {
@@ -20,15 +22,11 @@ const Liquidity = ({ accountState }) => {
   }, [])
 
   const zkState = accountState;
-
+  const [token, setToken] = useState(poolToka);
   const [toDai, setToDai] = useState(true);
-
   const [fromAmount, setFromAmount] = useState("");
-
   const [toAmount, setToAmount] = useState("0.0");
-
   const [slippagePercent, setSlippagePercent] = useState<number>(1);
-
   const [data, setData] = useState({ amountAIn: 0, amountBIn: 0, balanceAMax: 0, balanceBMax: 0, supplyMin: 0, liquidity: 0 });
 
 
@@ -43,7 +41,7 @@ const Liquidity = ({ accountState }) => {
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {
     console.log("getLiquidityAmount", fromAmt);
     const { getAmountLiquidityOut, getFirstAmountLiquidityOut } = await import("../../../contracts/build/src/indexmina");
-    const reserves = await zkState?.zkappWorkerClient?.getReserves();
+    const reserves = await zkState?.zkappWorkerClient?.getReserves(token);
     console.log("reserve", reserves);
     let calcul = { amountAIn: 0, amountBIn: 0, balanceAMax: 0, balanceBMax: 0, supplyMin: 0, liquidity: 0 };
     const slippage = slippagePcent;
@@ -97,9 +95,9 @@ const Liquidity = ({ accountState }) => {
         console.log("zkState", zkState)
         const user: string = (await mina.requestAccounts())[0];
         if (!toDai) {
-          await zkState.zkappWorkerClient?.addLiquidity(user, data.amountBIn, data.amountAIn, data.balanceBMax, data.balanceAMax, data.supplyMin);
+          await zkState.zkappWorkerClient?.addLiquidity(token, user, data.amountBIn, data.amountAIn, data.balanceBMax, data.balanceAMax, data.supplyMin);
         } else {
-          await zkState.zkappWorkerClient?.addLiquidity(user, data.amountAIn, data.amountBIn, data.balanceAMax, data.balanceBMax, data.supplyMin);
+          await zkState.zkappWorkerClient?.addLiquidity(token, user, data.amountAIn, data.amountBIn, data.balanceAMax, data.balanceBMax, data.supplyMin);
         }
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
         await mina.sendTransaction({ transaction: json });
@@ -136,7 +134,7 @@ const Liquidity = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">MINA</span> : <span className="w-24 text-center">TOKA</span>}
+            {toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={token} setToken={setToken} />}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -152,7 +150,7 @@ const Liquidity = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">MINA</span> : <span className="w-24 text-center">TOKA</span>}
+            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={token} setToken={setToken} />}
           </div>
           <div>
             <span>Liquidity minted : {toFixedIfNecessary(liquidityMinted, 2)}</span>

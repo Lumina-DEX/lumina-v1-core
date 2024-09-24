@@ -5,12 +5,18 @@ import { useSearchParams } from "next/navigation";
 import { PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
+import { poolToka } from "@/utils/addresses";
+import TokenMenu from "./TokenMenu";
 
 type Percent = number | string;
+
+
 
 // @ts-ignore
 const Swap = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
+
+  const [token, setToken] = useState(poolToka);
 
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +51,7 @@ const Swap = ({ accountState }) => {
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
     const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
-    const reserves = await zkState?.zkappWorkerClient?.getReserves();
+    const reserves = await zkState?.zkappWorkerClient?.getReserves(token);
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
     const slippage = slippagePcent;
     if (reserves?.amountMina && reserves?.amountToken) {
@@ -99,7 +105,7 @@ const Swap = ({ accountState }) => {
   return (
     <>
       <div className="flex flex-row justify-center w-full ">
-        <div  className="flex flex-col p-5 gap-5  items-center">
+        <div className="flex flex-col p-5 gap-5  items-center">
           <div className="text-xl">
             Swap
           </div>
@@ -115,7 +121,7 @@ const Swap = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">MINA</span> : <span className="w-24 text-center">TOKA</span>}
+            {toDai ? <span className="w-24 text-center">MINA</span> :  <TokenMenu token={token} setToken={setToken} /> }
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -131,7 +137,7 @@ const Swap = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">MINA</span> : <span className="w-24 text-center">TOKA</span>}
+            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={token} setToken={setToken} />}
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap

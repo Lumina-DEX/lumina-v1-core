@@ -3,14 +3,14 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
 import { fetchAccount, PublicKey } from "o1js";
-// @ts-ignore
+
 import CurrencyFormat from "react-currency-format";
 
 // @ts-ignore
 const Account = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
   const [information, setInformation] = useState<any>({ account: "", network: "" });
-  const [balances, setBalances] = useState<any>({ mina: 0, token: 0, liquidity: 0 });
+  const [balances, setBalances] = useState<any>({ mina: 0, token: 0, weth: 0 });
   const [isZeko, setIsZeko] = useState(true);
   const [network, setNetwork] = useState("zeko");
   const zekoGraph = "https://devnet.zeko.io/graphql";
@@ -47,15 +47,15 @@ const Account = ({ accountState }) => {
     const publicKey = PublicKey.fromBase58(user);
     const accMina = await fetchAccount({ publicKey }, graphUrl);
     const acc = await fetchAccount({ publicKey, tokenId: "wTRtTRnW7hZCQSVgsuMVJRvnS1xEAbRRMWyaaJPkQsntSNh67n" }, graphUrl);
-    const accLiquidity = await fetchAccount({ publicKey, tokenId: "xhLRW49wTFPbDq6dhZoNKgX64tQDs8iEAjqUhb4WDivqYQPe1Q" }, graphUrl);
+    const accWeth = await fetchAccount({ publicKey, tokenId: "yBtcFk2EJTBJh7Ubjbw7oeAmiPjSTNKbtSVHd1f7voV39HQaWK" }, graphUrl);
     const bal = accMina.account ? accMina.account.balance : 0;
     const balToken = acc.account ? acc.account.balance : 0;
-    const balLiquidity = accLiquidity.account ? accLiquidity.account.balance : 0;
+    const balWeth = accWeth.account ? accWeth.account.balance : 0;
 
     const mina = parseInt(bal.toString()) / 10 ** 9;
     const token = parseInt(balToken.toString()) / 10 ** 9;
-    const liquidity = parseInt(balLiquidity.toString()) / 10 ** 9;
-    return { mina, token, liquidity };
+    const weth = parseInt(balWeth.toString()) / 10 ** 9;
+    return { mina, token, weth };
   }
 
   const getUserInformation = async (auroMina) => {
@@ -146,7 +146,7 @@ const Account = ({ accountState }) => {
             <span title="Token">{Math.trunc(balances?.token)} TOKA</span>
           </div>
           <div>
-            <span title="Liquidity">{Math.trunc(balances?.liquidity)} LUM</span>
+            <span title="WETH">{Math.trunc(balances?.weth)} WETH</span>
           </div>
           <div>
             <span title={information?.account}>{trimText(information?.account)}</span>
