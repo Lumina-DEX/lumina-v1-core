@@ -35,7 +35,7 @@ const Liquidity = ({ accountState }) => {
       getLiquidityAmount(fromAmount, slippagePercent).then(x => setData(x));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromAmount, toAmount, slippagePercent]);
+  }, [fromAmount, toAmount, slippagePercent, token]);
 
 
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {

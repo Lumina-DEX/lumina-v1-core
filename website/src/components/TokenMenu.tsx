@@ -13,7 +13,7 @@ const TokenMenu = ({ token, setToken }) => {
   }, [])
 
   return (<select className="ml-3" defaultValue={token} onChange={async (ev) => await setToken(ev.target.value)}>
-    {tokenList.map(x => <option title={x.name} value={x.poolAddress}>{x.symbol}</option>)}
+    {tokenList.map(x => <option key={x.poolAddress} title={x.name} value={x.poolAddress}>{x.symbol}</option>)}
   </select>);
 };
 

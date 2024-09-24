@@ -59,10 +59,11 @@ export default class ZkappWorkerClient {
     return UInt64.fromJSON(JSON.parse(result as string));
   }
 
-  initZkappInstance(poolAddress: PublicKey, faucetAddress: PublicKey) {
+  initZkappInstance(poolAddress: string, faucetAddress: string, factoryAddress: string) {
     return this._call("initZkappInstance", {
-      pool: poolAddress.toBase58(),
-      faucet: faucetAddress.toBase58(),
+      pool: poolAddress,
+      faucet: faucetAddress,
+      factory: factoryAddress
     });
   }
 
@@ -96,9 +97,9 @@ export default class ZkappWorkerClient {
     return await this._call("withdrawLiquidity", { pool, user, liquidityAmount, amountMinaMin, amountTokenMin, reserveMinaMin, reserveTokenMin, supplyMax });
   }
 
-  async deployPoolInstance(tokenX: string) {
+  async deployPoolInstance(tokenX: string, user: string) {
     return await this._call("deployPoolInstance", {
-      tokenX
+      tokenX, user
     });
   }
 

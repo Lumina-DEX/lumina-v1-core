@@ -16,7 +16,7 @@ type Percent = number | string;
 const Swap = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
 
-  const [token, setToken] = useState(poolToka);
+  const [pool, setPool] = useState(poolToka);
 
   const [loading, setLoading] = useState(false);
 
@@ -45,13 +45,13 @@ const Swap = ({ accountState }) => {
       getSwapAmount(fromAmount, slippagePercent).then(x => setData(x));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromAmount, slippagePercent]);
+  }, [fromAmount, slippagePercent, pool]);
 
 
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
     const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
-    const reserves = await zkState?.zkappWorkerClient?.getReserves(token);
+    const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
     const slippage = slippagePcent;
     if (reserves?.amountMina && reserves?.amountToken) {
@@ -85,9 +85,9 @@ const Swap = ({ accountState }) => {
         console.time("swap");
         const user: string = (await mina.requestAccounts())[0];
         if (!toDai) {
-          await zkState.zkappWorkerClient?.swapFromToken(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
+          await zkState.zkappWorkerClient?.swapFromToken(pool, user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
         } else {
-          await zkState.zkappWorkerClient?.swapFromMina(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
+          await zkState.zkappWorkerClient?.swapFromMina(pool, user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
         }
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
         console.timeEnd("swap");
@@ -121,7 +121,7 @@ const Swap = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">MINA</span> :  <TokenMenu token={token} setToken={setToken} /> }
+            {toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={pool} setToken={setPool} />}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -137,7 +137,7 @@ const Swap = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={token} setToken={setToken} />}
+            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={pool} setToken={setPool} />}
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap

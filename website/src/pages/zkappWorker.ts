@@ -2,7 +2,7 @@ import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt
 
 console.log('Load Web Worker.');
 
-import { PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/indexmina";
+import { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/indexmina";
 import { fetchFiles, readCache } from "./cache";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -13,9 +13,11 @@ const state = {
   TokenAdmin: null as null | typeof FungibleTokenAdmin,
   TokenStandard: null as null | typeof FungibleToken,
   PoolMina: null as null | typeof PoolMina,
+  PoolFactory: null as null | typeof PoolFactory,
   PoolMinaHolder: null as null | typeof PoolTokenHolder,
   Faucet: null as null | typeof Faucet,
   zkapp: null as null | PoolMina,
+  zkFactory: null as null | PoolFactory,
   zkHolder: null as null | PoolTokenHolder,
   zkToken: null as null | FungibleToken,
   zkFaucet: null as null | Faucet,
@@ -61,9 +63,10 @@ const functions = {
   },
 
   loadContract: async (args: {}) => {
-    const { PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/indexmina");
+    const { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/indexmina");
     // @ts-ignore
     state.PoolMina = PoolMina;
+    state.PoolFactory = PoolFactory;
     state.PoolMinaHolder = PoolTokenHolder;
     state.TokenStandard = FungibleToken;
     state.TokenAdmin = FungibleTokenAdmin;
@@ -76,6 +79,7 @@ const functions = {
 
     await state.TokenAdmin?.compile({ cache });
     await state.TokenStandard?.compile({ cache });
+    await state.PoolFactory!.compile({ cache });
     await state.PoolMinaHolder!.compile({ cache });
     await state.PoolMina!.compile({ cache });
     await state.Faucet!.compile({ cache });
@@ -95,13 +99,17 @@ const functions = {
     const balance = Mina.getBalance(publicKey);
     return JSON.stringify(balance.toJSON());
   },
-  initZkappInstance: async (args: { pool: string, faucet: string }) => {
+  initZkappInstance: async (args: { pool: string, faucet: string, factory: string }) => {
     const publicKey = PublicKey.fromBase58(args.pool);
     await fetchAccount({ publicKey })
     state.zkapp = new state.PoolMina!(publicKey);
     const token = await state.zkapp.token.fetch();
     await fetchAccount({ publicKey: token })
     state.zkToken = new state.TokenStandard!(token);
+
+    const factoryKey = PublicKey.fromBase58(args.factory);
+    await fetchAccount({ publicKey: factoryKey })
+    state.zkFactory = new state.PoolFactory!(factoryKey);
 
     await fetchAccount({ publicKey, tokenId: state.zkToken.deriveTokenId() });
     state.zkHolder = new state.PoolMinaHolder!(publicKey, state.zkToken.deriveTokenId());
@@ -110,22 +118,22 @@ const functions = {
     await fetchAccount({ publicKey: publicKeyFaucet, tokenId: state.zkToken.deriveTokenId() });
     state.zkFaucet = new state.Faucet!(publicKeyFaucet, state.zkToken.deriveTokenId());
   },
-  deployPoolInstance: async (args: { tokenX: string }) => {
-    /*  const poolKey = PrivateKey.random();
-      const pool = new state.PoolMina!(poolKey.toPublicKey());
-      console.log("appkey", poolKey.toBase58());
-      const tokenKey = PublicKey.fromBase58(args.tokenX);
-      const depArgs = { token: tokenKey, symbol: "LUM", src: "https://luminadex.com/" };
-      const tokenX = new state.TokenStandard!(tokenKey);
-      const holderX = new state.PoolMinaHolder!(poolKey.toPublicKey(), tokenX.deriveTokenId());
-  
-      const transaction = await Mina.transaction(async () => {
-        await pool.deploy(depArgs);
-        await holderX.deploy();
-        await tokenX.approveAccountUpdate(holderX.self);
-      });
-      state.transaction = transaction;
-      state.key = poolKey.toBase58();*/
+  deployPoolInstance: async (args: { tokenX: string, user: string }) => {
+    const poolKey = PrivateKey.random();
+    console.log("appkey", poolKey.toBase58());
+    console.log("pool address", poolKey.toPublicKey().toBase58());
+    const tokenKey = PublicKey.fromBase58(args.tokenX);
+    const userKey = PublicKey.fromBase58(args.user);
+
+    const transaction = await Mina.transaction(userKey, async () => {
+      AccountUpdate.fundNewAccount(userKey, 4);
+      await state.zkFactory!.createPool(poolKey.toPublicKey(), tokenKey);
+    });
+    state.transaction = transaction;
+    await state.transaction!.prove();
+    await state.transaction.sign([poolKey]);
+
+    state.key = poolKey.toBase58();
   },
   getSupply: async (args: {}) => {
     const acc = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkapp?.deriveTokenId() });

@@ -11,6 +11,7 @@ import Tab from '@/components/Tab';
 let transactionFee = 0.1;
 const ZKAPP_ADDRESS = 'B62qjmz2oEe8ooqBmvj3a6fAbemfhk61rjxTYmUMP9A6LPdsBLmRAxK';
 const ZKTOKEN_ADDRESS = 'B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w';
+const ZKFACTORY_ADDRESS = 'B62qpfZ1egTLiRyX2DxfeFENrumeZowycer3Y5J9pKbiGVkgQBDkhW3'
 const ZKFAUCET_ADDRESS = 'B62qnigaSA2ZdhmGuKfQikjYKxb6V71mLq3H8RZzvkH4htHBEtMRUAG';
 const WETH_ADDRESS = "B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H";
 
@@ -62,9 +63,8 @@ export default function Home() {
         setDisplayText('zkApp compiled...');
 
         const zkappPublicKey = PublicKey.fromBase58(ZKAPP_ADDRESS);
-        const zkFaucetPublicKey = PublicKey.fromBase58(ZKFAUCET_ADDRESS);
 
-        await zkappWorkerClient.initZkappInstance(zkappPublicKey, zkFaucetPublicKey);
+        await zkappWorkerClient.initZkappInstance(ZKAPP_ADDRESS, ZKFAUCET_ADDRESS, ZKFACTORY_ADDRESS);
 
         setDisplayText('');
 
