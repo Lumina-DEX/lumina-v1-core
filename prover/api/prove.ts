@@ -1,13 +1,25 @@
 import express from 'express';
 import { Worker } from 'worker_threads';
+import ZkappWorkerClient from '../workerClient';
 
 export const proveRouter = express.Router();
 
 
 
+
 proveRouter.get('/', async function (req, res) {
     try {
-        const fib = await computeFibonacci(30);
+        console.log('Loading web worker...');
+        const client = new ZkappWorkerClient();
+        await timeout(1);
+        console.log('Done loading web worker');
+        await client.setActiveInstanceToDevnet();
+        await client.loadContract();
+        console.log('Compiling zkApp...');
+        await client.compileContract()
+        console.log('zkApp compiled');
+
+        const fib = await client.getReserves("B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H");
         res.send(JSON.stringify({ msg: "hello swap", fib: fib }));
     } catch (e) {
         console.error(e)
@@ -17,15 +29,11 @@ proveRouter.get('/', async function (req, res) {
     }
 });
 
-const computeFibonacci = (num: any) => {
-    return new Promise((resolve, reject) => {
-        const worker = new Worker('./worker.js', { workerData: num });
-        worker.postMessage("eddy");
-        worker.on('message', resolve);
-        worker.on('error', reject);
-        worker.on('exit', (code) => {
-            if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
-        });
+async function timeout(seconds: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+        setTimeout(() => {
+            resolve();
+        }, seconds * 1000);
     });
-};
+}
 

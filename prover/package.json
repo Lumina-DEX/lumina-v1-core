@@ -16,7 +16,7 @@
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
     "morgan": "~1.9.1",
-    "o1js": "^1.8.0",
+    "o1js": "^1.7.0",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
