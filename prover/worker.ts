@@ -3,7 +3,7 @@ import { Account, AccountUpdate, Bool, Cache, Mina, PrivateKey, PublicKey, UInt3
 
 console.log('Load Web Worker.');
 
-import { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "@contracts/src/indexmina";
+import { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../contracts/src/indexmina";
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
 // ---------------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ const functions = {
     },
 
     loadContract: async (args: {}) => {
-        const { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("@contracts/build/src/indexmina");
+        const { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../contracts/build/src/indexmina");
         // @ts-ignore
         state.PoolMina = PoolMina;
         state.PoolFactory = PoolFactory;
