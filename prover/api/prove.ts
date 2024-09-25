@@ -20,7 +20,7 @@ proveRouter.get('/', async function (req, res) {
 const computeFibonacci = (num: any) => {
     return new Promise((resolve, reject) => {
         const worker = new Worker('./worker.js', { workerData: num });
-
+        worker.postMessage("eddy");
         worker.on('message', resolve);
         worker.on('error', reject);
         worker.on('exit', (code) => {
