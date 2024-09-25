@@ -44,6 +44,7 @@ const Swap = ({ accountState }) => {
     if (parseFloat(fromAmount)) {
       getSwapAmount(fromAmount, slippagePercent).then(x => setData(x));
     }
+    console.log("pool", pool);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromAmount, slippagePercent, pool]);
 
@@ -121,7 +122,7 @@ const Swap = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={pool} setToken={setPool} />}
+            {toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu pool={pool} setPool={setPool} />}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -137,7 +138,7 @@ const Swap = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu token={pool} setToken={setPool} />}
+            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu pool={pool} setPool={setPool} />}
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap
