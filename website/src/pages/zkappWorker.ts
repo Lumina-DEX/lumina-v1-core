@@ -183,11 +183,14 @@ const functions = {
     await fetchAccount({ publicKey: poolAddress, tokenId: zkToken.deriveTokenId() });
     await fetchAccount({ publicKey });
     const acc = await fetchAccount({ publicKey, tokenId: zkToken.deriveTokenId() });
+    const accFront = await fetchAccount({ publicKey: frontend, tokenId: zkToken.deriveTokenId() });
 
     let newAcc = acc.account ? 0 : 1;
+    let newFront = accFront.account ? 0 : 1;
+    let total = newAcc + newFront;
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      AccountUpdate.fundNewAccount(publicKey, newAcc);
+      AccountUpdate.fundNewAccount(publicKey, total);
       await zkPoolHolder!.swapFromMina(frontend, UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
       await zkToken?.approveAccountUpdate(zkPoolHolder.self);
     });
