@@ -3,8 +3,6 @@ import { Account, AccountUpdate, Bool, Cache, Mina, PrivateKey, PublicKey, UInt3
 
 console.log('Load Web Worker.');
 
-import { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "./contracts/indexmina";
-
 // ---------------------------------------------------------------------------------------
 
 const state = {
