@@ -1,10 +1,7 @@
 import { fetchAccount, PublicKey, Field, UInt64 } from "o1js";
 import { Worker } from 'worker_threads';
-import type {
-    ZkappWorkerRequest,
-    ZkappWorkerReponse,
-    WorkerFunctions,
-} from "./worker";
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 export default class ZkappWorkerClient {
     // ---------------------------------------------------------------------------------------
@@ -125,11 +122,14 @@ export default class ZkappWorkerClient {
 
     constructor() {
         console.time("worker load");
-        this.worker = new Worker("./worker.js");
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+
+        this.worker = new Worker(path.resolve(__dirname, 'worker.js'));
         this.promises = {};
         this.nextId = 0;
 
-        this.worker.on("message", (event: MessageEvent<ZkappWorkerReponse>) => {
+        this.worker.on("message", (event: any) => {
             if (event.data.error) {
                 console.log("error", event.data.error);
                 this.promises[event.data.id].reject(event.data.error);
@@ -147,11 +147,11 @@ export default class ZkappWorkerClient {
     }
 
 
-    _call(fn: WorkerFunctions, args: any) {
+    _call(fn: any, args: any) {
         return new Promise((resolve, reject) => {
             this.promises[this.nextId] = { resolve, reject };
 
-            const message: ZkappWorkerRequest = {
+            const message: any = {
                 id: this.nextId,
                 fn,
                 args,

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts",
+    "start": "tsx src/index.ts",
     "build": "tsc",
-    "serve": "node dist/index.js"
+    "serve": "node dist/src/index.js"
   },
   "dependencies": {
     "constantinople": "^4.0.1",
@@ -16,6 +16,7 @@
     "dotenv": "^16.4.5",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
+    "mina-fungible-token": "^1.0.0",
     "morgan": "~1.9.1",
     "o1js": "^1.7.0",
     "tsx": "^4.19.1"
