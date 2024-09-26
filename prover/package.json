@@ -9,6 +9,7 @@
     "serve": "node dist/src/index.js"
   },
   "dependencies": {
+    "bullmq": "^5.13.2",
     "constantinople": "^4.0.1",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",

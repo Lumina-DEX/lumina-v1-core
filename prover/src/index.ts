@@ -15,7 +15,7 @@ app.use(express.json())
 // enabling CORS for all requests
 app.use(cors())
 
-app.use("/api/swap", proveRouter);
+app.use("/api/prove", proveRouter);
 
 // added root redirect
 app.get(`/`, async (req, res) => {
