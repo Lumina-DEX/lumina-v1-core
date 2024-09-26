@@ -17,6 +17,6 @@
       "@contracts/*": ["../contracts/*"]
     },
   },
-  "include": ["**/*.ts", "package.json", "env.json"],
+  "include": ["**/*.ts", "package.json", "env.json", "worker.js"],
   "exclude": ["node_modules", "dist"]
 }

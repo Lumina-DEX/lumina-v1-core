@@ -2,8 +2,9 @@
   "name": "prover",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "start": "ts-node index.ts",
+    "start": "tsx index.ts",
     "build": "tsc",
     "serve": "node dist/index.js"
   },
@@ -17,7 +18,7 @@
     "jade": "~1.11.0",
     "morgan": "~1.9.1",
     "o1js": "^1.7.0",
-    "ts-node": "^10.9.2"
+    "tsx": "^4.19.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
