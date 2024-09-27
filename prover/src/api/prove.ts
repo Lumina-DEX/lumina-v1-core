@@ -2,6 +2,7 @@ import express from 'express';
 import { Worker } from 'worker_threads';
 import ZkappWorkerClient from '../workerClient';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
+import { addJobs } from '@/proverBull';
 
 export const proveRouter = express.Router();
 
@@ -30,22 +31,7 @@ proveRouter.get('/', async function (req, res) {
 
 proveRouter.get('/toto', async function (req, res) {
     try {
-        const { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("@/contracts/indexmina");
-        console.log('Compiling zkApp...');
-        //const cache = Cache.FileSystem('./cache');        
-        await FungibleTokenAdmin.compile({});
-        await FungibleToken.compile({});
-        await PoolFactory.compile({});
-        await PoolMina.compile({});
-        await PoolTokenHolder.compile({});
-
-        console.log('zkApp compiled');
-
-        const key = PublicKey.fromBase58("B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H");
-        const pool = new PoolMina(key);
-
-        const fib = await pool.token.fetch();
-        res.send(JSON.stringify({ msg: "hello swap", fib: fib.toBase58() }));
+        res.send(JSON.stringify({ msg: "hello swap" }));
 
     } catch (e) {
         console.error(e)
@@ -54,6 +40,20 @@ proveRouter.get('/toto', async function (req, res) {
         });
     }
 });
+
+proveRouter.get('/redis', async function (req, res) {
+    try {
+        await addJobs();
+        res.send(JSON.stringify({ msg: "hello swap", fib: "12" }));
+
+    } catch (e) {
+        console.error(e)
+        res.status(409).json({
+            error: 'No records found!',
+        });
+    }
+});
+
 
 
 async function timeout(seconds: number): Promise<void> {
