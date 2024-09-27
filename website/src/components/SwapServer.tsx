@@ -5,14 +5,15 @@ import { useSearchParams } from "next/navigation";
 import { PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
+import { poolToka } from "@/utils/addresses";
 
 type Percent = number | string;
 
 // @ts-ignore
 const SwapServer = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
-
   const [loading, setLoading] = useState(false);
+  const [pool, setPool] = useState(poolToka);
 
   useEffect(() => {
     if (window && (window as any).mina) {
@@ -45,7 +46,7 @@ const SwapServer = ({ accountState }) => {
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
     const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
-    const reserves = await zkState?.zkappWorkerClient?.getReserves();
+    const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
     const slippage = slippagePcent;
     if (reserves?.amountMina && reserves?.amountToken) {
@@ -80,11 +81,11 @@ const SwapServer = ({ accountState }) => {
         const user: string = (await mina.requestAccounts())[0];
         let json: any = {};
         if (!toDai) {
-          await zkState.zkappWorkerClient?.swapFromToken(user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
+          await zkState.zkappWorkerClient?.swapFromToken(pool, user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
           json = await zkState.zkappWorkerClient?.getTransactionJSON();
-          console.log("json",json);
+          console.log("json", json);
         } else {
-          const callData = { ...data, user };
+          const callData = { ...data, user, pool };
           const call = await fetch("/api/swap", {
             body: JSON.stringify(callData),
             method: 'POST',

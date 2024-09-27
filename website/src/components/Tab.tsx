@@ -26,7 +26,8 @@ const Tab = ({ accountState }) => {
                 <div className="flex flex-col  w-[500px]  h-[500px]  rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
                     <div className="flex flex-row justify-around items-stretch w-full p-2" style={{ borderBottom: "white 1px solid" }} >
                         <TabButton name="swap" tab={tab} setTab={setTab} />
-                        {/* <TabButton name="create" tab={tab} setTab={setTab} /> */}
+                        <TabButton name="create" tab={tab} setTab={setTab} />
+                        <TabButton name="server" tab={tab} setTab={setTab} />
                         <TabButton name="liquidity" tab={tab} setTab={setTab} />
                         <TabButton name="withdraw" tab={tab} setTab={setTab} />
                         <TabButton name="faucet" tab={tab} setTab={setTab} />

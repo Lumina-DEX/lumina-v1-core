@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { PoolMina, PoolMinaDeployProps, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../../contracts/build/src/indexmina.js";
+import { PoolMina, PoolTokenHolder, MinaTokenHolder, FungibleToken, FungibleTokenAdmin } from "../../../../contracts/build/src/indexmina.js";
 import { AccountUpdate, Mina, PrivateKey, PublicKey, Cache, fetchAccount, UInt64 } from "o1js";
 import fs, { readFileSync } from 'fs'
 import util from 'util';
@@ -12,10 +12,11 @@ type ResponseData = {
     message: string
 }
 
-type SwapData = { user: string, amountIn: number, amountOut: number, balanceOutMin: number, balanceInMax: number };
+type SwapData = { pool: string, user: string, amountIn: number, amountOut: number, balanceOutMin: number, balanceInMax: number };
 
 const ZKAPP_ADDRESS = 'B62qrn4bTWsKGddKeLGzriYVQF23fNF4tCnACKawP7ySJfH7zFmd2u6';
 const ZKTOKEN_ADDRESS = 'B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w';
+const frontend = PublicKey.fromBase58("B62qoSZbMLJSP7dHLqe8spFPFSsUoENnMSHJN8i5bS1X4tdGpAZuwAC");
 
 const fetchFromServerFiles = async () => {
     const readFile = util.promisify(fs.readFile);
@@ -60,29 +61,39 @@ const FileSystem = (cacheDirectory) => ({
     canWrite: false
 });
 
-let inited = false;
 
-async function init() {
-    if (!inited) {
-        console.time("compile");
-        //const cacheFiles = await fetchFromServerFiles();
-        const cache = FileSystem("./public/cache");
 
-        await PoolMina.compile({ cache })
-        await MinaTokenHolder.compile({ cache });
-        await FungibleTokenAdmin.compile({ cache });
-        await FungibleToken.compile({ cache });
-        console.timeEnd("compile");
+class Contract {
+    static inited = false;
 
-        inited = true;
+    constructor() { }
+
+    static async init() {
+        console.log("inited", Contract.inited);
+        if (!Contract.inited) {
+            console.time("compile");
+            //const cacheFiles = await fetchFromServerFiles();
+            const cache = FileSystem("./public/cache");
+
+            await PoolMina.compile({ cache })
+            await PoolTokenHolder.compile({ cache });
+            await FungibleTokenAdmin.compile({ cache });
+            await FungibleToken.compile({ cache });
+
+            Contract.inited = true;
+            console.timeEnd("compile");
+        }
+
     }
 }
+
+await Contract.init();
 
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<any>
 ) {
-    await init();
+
     if (req.method === 'POST') {
         const json = req.body;
         const args = json as SwapData;
@@ -93,18 +104,21 @@ export default async function handler(
 
             const Network = Mina.Network({
                 networkId: "testnet",
-                mina: "https://devnet.zeko.io/graphql"
+                mina: "https://api.minascan.io/node/devnet/v1/graphql"
             });
             Mina.setActiveInstance(Network);
 
-            const poolKey = PublicKey.fromBase58(ZKAPP_ADDRESS);
+            const poolKey = PublicKey.fromBase58(args.pool);
+            const pool = new PoolMina(poolKey);
+            await fetchAccount({ publicKey: poolKey });
             console.log("poolKey", poolKey.toBase58());
-            const tokenKey = PublicKey.fromBase58(ZKTOKEN_ADDRESS);
+            const tokenKey = await pool.token.getAndRequireEquals();
             console.log("tokenKey", tokenKey.toBase58());
+            await fetchAccount({ publicKey: tokenKey });
             const tokenX = new FungibleToken(tokenKey);
             const tokenId = tokenX.deriveTokenId();
             console.log("tokenId", tokenId.toString());
-            const holderX = new MinaTokenHolder(poolKey, tokenId);
+            const holderX = new PoolTokenHolder(poolKey, tokenId);
 
             const amtIn = Math.trunc(args.amountIn);
             const amtOut = Math.trunc(args.amountOut);
@@ -114,7 +128,6 @@ export default async function handler(
             console.log("userKey", userKey.toBase58());
             console.log("data swap", amtIn, amtOut, balanceOut, balanceIn);
 
-            await fetchAccount({ publicKey: poolKey });
             await fetchAccount({ publicKey: poolKey, tokenId: tokenId });
             await fetchAccount({ publicKey: userKey });
             const acc = await fetchAccount({ publicKey: userKey, tokenId: tokenId });
@@ -123,7 +136,7 @@ export default async function handler(
             console.time("prove");
             const transaction = await Mina.transaction(userKey, async () => {
                 AccountUpdate.fundNewAccount(userKey, newAcc);
-                await holderX.swapFromMina(UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+                await holderX.swapFromMina(frontend, UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
                 await tokenX.approveAccountUpdate(holderX.self);
             });
             await transaction.prove();
