@@ -1,5 +1,5 @@
 import { SandboxedJob } from 'bullmq';
-import { Account, AccountUpdate, Bool, Cache, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount } from "o1js";
+import { Account, AccountUpdate, Bool, Cache, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount, setNumberOfWorkers } from "o1js";
 import { PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin } from "../dist/src/contracts/indexmina.js";
 
 
@@ -41,6 +41,7 @@ export default async (job: SandboxedJob) => {
     console.time("prove");
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
+    setNumberOfWorkers(8);
     let txn = await Mina.transaction(frontend, async () => {
         AccountUpdate.fundNewAccount(frontend, 2);
         await pool.supplyFirstLiquidities(amt, amtToken);

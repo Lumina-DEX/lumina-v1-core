@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
+    "worker": "tsx src/workerBull.ts",
     "build": "tsc",
     "serve": "node dist/src/index.js"
   },

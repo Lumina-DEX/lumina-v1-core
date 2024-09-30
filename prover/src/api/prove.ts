@@ -43,8 +43,10 @@ proveRouter.get('/toto', async function (req, res) {
 
 proveRouter.get('/redis', async function (req, res) {
     try {
-        await addJobs();
-        res.send(JSON.stringify({ msg: "hello swap", fib: "12" }));
+        console.time("total");
+        const ret = await addJobs();
+        const time = console.timeEnd("total");
+        res.send(JSON.stringify({ msg: "hello swap", fib: ret, total: time }));
 
     } catch (e) {
         console.error(e)
