@@ -15,7 +15,12 @@ const TokenMenu = ({ pool, setPool }) => {
     Addresses.getList().then((x: any) => {
       const network = accountState.network === minaTestnet ? "mina-devnet" : "zeko-devnet";
       const tokens = x?.tokens?.filter(z => z.chainId === network);
-      setTokenList(tokens)
+      setTokenList(tokens);
+      const poolExist = tokens.find(z => z.poolAddress === pool);
+      if (!poolExist && tokens?.length) {
+        // if this pool didn't exist for this network we select the first token
+        setPool(tokens[0].poolAddress);
+      }
     });
   }, [accountState.network])
 

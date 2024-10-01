@@ -6,7 +6,7 @@ import { fetchAccount, PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
 import useAccount from "@/states/useAccount";
-import { connect, minaTestnet, switchChain, zekoTestnet } from "@/lib/wallet";
+import { connect, minaTestnet, requestAccounts, switchChain, zekoTestnet } from "@/lib/wallet";
 
 // @ts-ignore
 const Account = () => {
@@ -27,6 +27,16 @@ const Account = () => {
       });
     });
   }, [])
+
+  useEffect(() => {
+    const intervalID = setInterval(() => {
+      if (zkState.publicKeyBase58) {
+        requestAccounts().then();
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalID);
+  }, [zkState.network, zkState.publicKeyBase58])
 
 
 
@@ -69,7 +79,7 @@ const Account = () => {
           <div>
 
             <select value={zkState?.network} onChange={async (ev) => await switchNetwork(ev.target.value)}>
-              <option>N/A</option>
+              {zkState?.network !== zekoTestnet && zkState?.network !== minaTestnet && <option>N/A</option>}
               <option value={zekoTestnet}>Zeko</option>
               <option value={minaTestnet}>Devnet</option>
             </select>

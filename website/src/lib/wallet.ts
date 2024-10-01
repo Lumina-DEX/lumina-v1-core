@@ -54,7 +54,7 @@ async function handleChainChanged(newChain: ChainInfoArgs) {
   useAccount.setState(() => ({ network: newChain?.networkID }));
 }
 
-async function requestAccounts() {
+export async function requestAccounts() {
   await mina
     .requestAccounts()
     .then(handleAccountsChanged)

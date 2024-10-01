@@ -222,8 +222,12 @@ const functions = {
     await fetchAccount({ publicKey });
     await fetchAccount({ publicKey, tokenId: zkToken?.deriveTokenId() });
 
+    const accFront = await fetchAccount({ publicKey: frontend });
+
+    let newFront = accFront.account ? 0 : 1;
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
+      AccountUpdate.fundNewAccount(publicKey, newFront);
       await zkPool!.swapFromToken(frontend, UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
     });
     state.transaction = transaction;

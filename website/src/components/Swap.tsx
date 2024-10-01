@@ -42,11 +42,11 @@ const Swap = ({ accountState }) => {
 
   useEffect(() => {
     if (parseFloat(fromAmount)) {
-      getSwapAmount(fromAmount, slippagePercent).then(x => setData(x));
+      getSwapAmount(fromAmount, slippagePercent).then(x => setData(x)).catch(x => console.error(x));
     }
     console.log("pool", pool);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromAmount, slippagePercent, pool]);
+  }, [fromAmount, slippagePercent, pool, zkState.network]);
 
 
   const getSwapAmount = async (fromAmt, slippagePcent) => {
