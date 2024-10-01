@@ -9,6 +9,9 @@ type ChainInfoArgs = {
   networkID: string
 }
 
+export const zekoTestnet = "zeko:testnet";
+export const minaTestnet = "mina:testnet";
+
 export async function connect() {
   if (!mina) return;
   await requestNetwork();
@@ -39,6 +42,14 @@ async function requestNetwork() {
 
 async function handleChainChanged(newChain: ChainInfoArgs) {
   console.log("newchain", newChain);
+  const state = useAccount.getState();
+  if (newChain?.networkID == zekoTestnet) {
+    console.log("switc to zeko");
+    state.zkappWorkerClient.setActiveInstanceToZeko();
+  } else {
+    console.log("switc to testnet");
+    state.zkappWorkerClient.setActiveInstanceToDevnet();
+  }
   await requestAccounts();
   useAccount.setState(() => ({ network: newChain?.networkID }));
 }

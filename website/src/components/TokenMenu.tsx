@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Addresses } from "@/utils/addresses";
 import useAccount from "@/states/useAccount";
+import { minaTestnet } from "@/lib/wallet";
 
 const TokenMenu = ({ pool, setPool }) => {
 
@@ -12,7 +13,7 @@ const TokenMenu = ({ pool, setPool }) => {
     console.log("token", pool);
     console.log("accountState update");
     Addresses.getList().then((x: any) => {
-      const network = accountState.network === "mina:testnet" ? "mina-devnet" : "zeko-devnet";
+      const network = accountState.network === minaTestnet ? "mina-devnet" : "zeko-devnet";
       const tokens = x?.tokens?.filter(z => z.chainId === network);
       setTokenList(tokens)
     });

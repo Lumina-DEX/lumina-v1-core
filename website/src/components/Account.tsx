@@ -6,13 +6,10 @@ import { fetchAccount, PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
 import useAccount from "@/states/useAccount";
-import { connect, switchChain } from "@/lib/wallet";
+import { connect, minaTestnet, switchChain, zekoTestnet } from "@/lib/wallet";
 
 // @ts-ignore
 const Account = () => {
-
-  const zekoTestnet = "zeko:testnet";
-  const minaTestnet = "mina:testnet";
   const zkState = useAccount();
 
   async function timeout(seconds: number): Promise<void> {
@@ -34,13 +31,7 @@ const Account = () => {
 
 
   const switchNetwork = async (newNetwork: string) => {
-    await switchChain(newNetwork).then((x) => {
-      if (x == zekoTestnet) {
-        zkState.zkappWorkerClient.setActiveInstanceToZeko();
-      } else {
-        zkState.zkappWorkerClient.setActiveInstanceToDevnet();
-      }
-    });
+    await switchChain(newNetwork).then();
   };
 
 
@@ -78,6 +69,7 @@ const Account = () => {
           <div>
 
             <select value={zkState?.network} onChange={async (ev) => await switchNetwork(ev.target.value)}>
+              <option>N/A</option>
               <option value={zekoTestnet}>Zeko</option>
               <option value={minaTestnet}>Devnet</option>
             </select>
