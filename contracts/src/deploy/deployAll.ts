@@ -79,8 +79,9 @@ const Network = Mina.Network({
     // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
     // This is to ensure the backward compatibility.
     networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-    //mina: "https://devnet.zeko.io/graphql",
-    mina: "https://api.minascan.io/node/devnet/v1/graphql",
+    //
+    mina: "https://devnet.zeko.io/graphql",
+    //mina: "https://api.minascan.io/node/devnet/v1/graphql",
     archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
 });
 console.log("network", config.url);

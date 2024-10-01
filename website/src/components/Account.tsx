@@ -5,9 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { fetchAccount, PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
+import useAccount from "@/states/useAccount";
+import { connect } from "@/lib/wallet";
 
 // @ts-ignore
-const Account = ({ accountState }) => {
+const Account = () => {
   const [mina, setMina] = useState<any>();
   const [information, setInformation] = useState<any>({ account: "", network: "" });
   const [balances, setBalances] = useState<any>({ mina: 0, token: 0, weth: 0 });
@@ -17,7 +19,7 @@ const Account = ({ accountState }) => {
   const devnetGraph = "https://api.minascan.io/node/devnet/v1/graphql";
   const [graph, setGraph] = useState(devnetGraph);
 
-  const zkState = accountState;
+  const zkState = useAccount();
 
   useEffect(() => {
     if (window && (window as any).mina) {
@@ -121,12 +123,8 @@ const Account = ({ accountState }) => {
     return text.substring(0, 4) + "..." + text.substring(text.length - 4, text.length);
   }
 
-  const connect = async () => {
-    if (mina) {
-      await mina.requestAccounts();
-      const info = await getUserInformation(mina);
-      setInformation(info);
-    }
+  const handleConnect = async () => {
+    connect();
   }
 
   return (
@@ -159,7 +157,7 @@ const Account = ({ accountState }) => {
           </div> */}
         </div>}
         {!information?.account &&
-          <button onClick={() => connect().then()}>Connect Wallet</button>
+          <button onClick={() => handleConnect().then()}>Connect Wallet</button>
         }
       </div>
     </>

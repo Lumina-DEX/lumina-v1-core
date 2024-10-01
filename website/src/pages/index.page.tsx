@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react';
 import GradientBG from '../components/GradientBG.js';
 import styles from '../styles/Home.module.css';
 import './reactCOIServiceWorker';
-import ZkappWorkerClient from './zkappWorkerClient';
+import ZkappWorkerClient from "@/lib/zkappWorkerClient";
 import Swap from '@/components/Swap';
 import Account from '@/components/Account';
 import Tab from '@/components/Tab';
+import useAccount from '@/states/useAccount';
+import useLoad from '@/states/useLoad';
 
 let transactionFee = 0.1;
 const ZKAPP_ADDRESS = 'B62qjmz2oEe8ooqBmvj3a6fAbemfhk61rjxTYmUMP9A6LPdsBLmRAxK';
@@ -16,15 +18,25 @@ const ZKFAUCET_ADDRESS = 'B62qnigaSA2ZdhmGuKfQikjYKxb6V71mLq3H8RZzvkH4htHBEtMRUA
 const WETH_ADDRESS = "B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H";
 
 export default function Home() {
-  const [state, setState] = useState({
-    zkappWorkerClient: null as null | ZkappWorkerClient,
-    hasWallet: null as null | boolean,
-    hasBeenSetup: false,
-    accountExists: false,
-    publicKey: null as null | PublicKey,
-    zkappPublicKey: null as null | PublicKey,
-    creatingTransaction: false,
-  });
+  // const [state, setState] = useState({
+  //   zkappWorkerClient: null as null | ZkappWorkerClient,
+  //   hasWallet: null as null | boolean,
+  //   hasBeenSetup: false,
+  //   accountExists: false,
+  //   publicKey: null as null | PublicKey,
+  //   zkappPublicKey: null as null | PublicKey,
+  //   creatingTransaction: false,
+  // });
+
+  const { loadUpdate } = useLoad((state) => ({
+    loadUpdate: state.update,
+  }));
+
+  const { address, hasBeenSetup, accountUpdate } = useAccount((state) => ({
+    address: state.publicKeyBase58,
+    hasBeenSetup: state.hasBeenSetup,
+    accountUpdate: state.update,
+  }));
 
   const [displayText, setDisplayText] = useState('');
   const [transactionlink, setTransactionLink] = useState('');
@@ -42,7 +54,7 @@ export default function Home() {
     }
 
     (async () => {
-      if (!state.hasBeenSetup) {
+      if (!hasBeenSetup) {
         setDisplayText('Loading web worker...');
         console.log('Loading web worker...');
         const zkappWorkerClient = new ZkappWorkerClient();
@@ -68,13 +80,24 @@ export default function Home() {
 
         setDisplayText('');
 
-        setState({
-          ...state,
+        // setState({
+        //   ...state,
+        //   zkappWorkerClient,
+        //   hasWallet: true,
+        //   hasBeenSetup: true,
+        //   zkappPublicKey,
+        // });
+
+        accountUpdate({
           zkappWorkerClient,
           hasWallet: true,
           hasBeenSetup: true,
+          publicKey: null,
+          publicKeyBase58: "",
           zkappPublicKey,
+          accountExists: false,
         });
+        loadUpdate({ state: true, process: 1 });
       }
     })();
   }, []);
@@ -109,8 +132,8 @@ export default function Home() {
 
   let mainContent = (
     <div style={{ justifyContent: 'center', alignItems: 'center' }}>
-      <Account accountState={state}></Account>
-      {state.hasBeenSetup && <Tab accountState={state}></Tab>}
+      <Account ></Account>
+      {hasBeenSetup && <Tab ></Tab>}
     </div>
   );
 

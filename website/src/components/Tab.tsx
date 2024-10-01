@@ -12,13 +12,15 @@ import Faucet from "./Claim";
 import SwapServer from "./SwapServer";
 import TabButton from "./TabButton";
 import Create from "./Create";
+import useAccount from "@/states/useAccount";
 
 type Percent = number | string;
 
 // @ts-ignore
-const Tab = ({ accountState }) => {
+const Tab = () => {
 
     const [tab, setTab] = useState<any>("swap");
+    const accountState = useAccount();
 
     return (
         <>

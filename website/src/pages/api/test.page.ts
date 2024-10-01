@@ -4,7 +4,7 @@ import { AccountUpdate, Mina, PrivateKey, PublicKey, Cache, fetchAccount, UInt64
 import fs, { readFileSync } from 'fs'
 import util from 'util';
 import { resolve } from 'path';
-import { readCache } from '../cache.js';
+import { readCache } from '../../lib/cache.js';
 import ZkappWorkerClient from './workerClient';
 
 export const maxDuration = 300; // This function can run for a maximum of 300 seconds
