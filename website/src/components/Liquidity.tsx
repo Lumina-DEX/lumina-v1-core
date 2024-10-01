@@ -32,10 +32,12 @@ const Liquidity = ({ accountState }) => {
   const [balance, setBalance] = useState({ token: "0", liquidity: "0" });
 
   useEffect(() => {
-    if (parseFloat(fromAmount)) {
-      getLiquidityAmount(fromAmount, slippagePercent).then(x => setData(x));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const delayDebounceFn = setTimeout(() => {
+      if (parseFloat(fromAmount)) {
+        getLiquidityAmount(fromAmount, slippagePercent).then(x => setData(x));
+      }
+    }, 500);
+    return () => clearTimeout(delayDebounceFn)
   }, [fromAmount, toAmount, slippagePercent, pool]);
 
 

@@ -33,10 +33,12 @@ const Withdraw = ({ accountState }) => {
   const [balance, setBalance] = useState("0.0");
 
   useEffect(() => {
-    if (parseFloat(fromAmount)) {
-      getLiquidityAmount(fromAmount, slippagePercent).then(x => setData(x));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const delayDebounceFn = setTimeout(() => {
+      if (parseFloat(fromAmount)) {
+        getLiquidityAmount(fromAmount, slippagePercent).then(x => setData(x));
+      }
+    }, 500);
+    return () => clearTimeout(delayDebounceFn)
   }, [fromAmount, slippagePercent]);
 
   useEffect(() => {

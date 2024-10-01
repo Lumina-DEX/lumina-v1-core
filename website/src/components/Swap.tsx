@@ -44,11 +44,12 @@ const Swap = ({ accountState }) => {
 
 
   useEffect(() => {
-    if (parseFloat(fromAmount)) {
-      getSwapAmount(fromAmount, slippagePercent).then(x => setData(x)).catch(x => console.error(x));
-    }
-    console.log("pool", pool);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const delayDebounceFn = setTimeout(() => {
+      if (parseFloat(fromAmount)) {
+        getSwapAmount(fromAmount, slippagePercent).then(x => setData(x)).catch(x => console.error(x));
+      }
+    }, 500);
+    return () => clearTimeout(delayDebounceFn)
   }, [fromAmount, slippagePercent, pool, zkState.network]);
 
 
