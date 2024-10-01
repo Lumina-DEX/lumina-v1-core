@@ -1,4 +1,4 @@
-import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt32, UInt64, fetchAccount } from "o1js";
+import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UInt32, UInt64, fetchAccount } from "o1js";
 
 console.log('Load Web Worker.');
 
@@ -51,7 +51,7 @@ const functions = {
       {
         networkId: "testnet",
         mina: "https://devnet.zeko.io/graphql",
-        //archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
+        archive: "https://devnet.zeko.io/graphql"
       }
     );
     state.isZeko = true;
@@ -97,6 +97,12 @@ const functions = {
   getBalance: async (args: { publicKey58: string }) => {
     const publicKey = PublicKey.fromBase58(args.publicKey58);
     const balance = Mina.getBalance(publicKey);
+    return JSON.stringify(balance.toJSON());
+  },
+  getBalanceToken: async (args: { publicKey58: string, tokenId: string }) => {
+    const publicKey = PublicKey.fromBase58(args.publicKey58);
+    const acc = await fetchAccount({ publicKey, tokenId: args.tokenId })
+    const balance = acc?.account ? acc.account.balance : UInt64.zero;
     return JSON.stringify(balance.toJSON());
   },
   initZkappInstance: async (args: { pool: string, faucet: string, factory: string }) => {

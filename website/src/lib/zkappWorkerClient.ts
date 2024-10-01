@@ -59,6 +59,11 @@ export default class ZkappWorkerClient {
     return UInt64.fromJSON(JSON.parse(result as string));
   }
 
+  async getBalanceToken(publicKey58: string, tokenId: string): Promise<UInt64> {
+    const result = await this._call("getBalanceToken", { publicKey58, tokenId });
+    return UInt64.fromJSON(JSON.parse(result as string));
+  }
+
   initZkappInstance(poolAddress: string, faucetAddress: string, factoryAddress: string) {
     return this._call("initZkappInstance", {
       pool: poolAddress,

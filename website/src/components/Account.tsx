@@ -6,115 +6,43 @@ import { fetchAccount, PublicKey } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
 import useAccount from "@/states/useAccount";
-import { connect } from "@/lib/wallet";
+import { connect, switchChain } from "@/lib/wallet";
 
 // @ts-ignore
 const Account = () => {
-  const [mina, setMina] = useState<any>();
-  const [information, setInformation] = useState<any>({ account: "", network: "" });
-  const [balances, setBalances] = useState<any>({ mina: 0, token: 0, weth: 0 });
-  const [isZeko, setIsZeko] = useState(true);
-  const [network, setNetwork] = useState("zeko");
-  const zekoGraph = "https://devnet.zeko.io/graphql";
-  const devnetGraph = "https://api.minascan.io/node/devnet/v1/graphql";
-  const [graph, setGraph] = useState(devnetGraph);
 
+  const zekoTestnet = "zeko:testnet";
+  const minaTestnet = "mina:testnet";
   const zkState = useAccount();
 
+  async function timeout(seconds: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, seconds * 1000);
+    });
+  }
+
   useEffect(() => {
-    if (window && (window as any).mina) {
-      const windowMina = (window as any).mina;
-      setMina(windowMina);
-      windowMina.requestAccounts().then(x => {
-        switchChain(windowMina, "devnet").then();
-        getUserInformation(windowMina).then(x => setInformation(x))
-      })
-    }
+    timeout(1).then(() => {
+      connect().then(x => {
+        console.log("network", zkState.network);
+      });
+    });
   }, [])
 
-  useEffect(() => {
-    const intervalID = setInterval(() => {
-      if (mina) {
-        console.log("get info");
-        getUserInformation(mina).then(x => setInformation(x))
-      }
-    }, 15000);
-
-    return () => clearInterval(intervalID);
-  }, [mina, graph])
-
-
-  const getBalances = async (user: string, graphUrl: string) => {
-    console.log("getBalances");
-    const publicKey = PublicKey.fromBase58(user);
-    const accMina = await fetchAccount({ publicKey }, graphUrl);
-    const acc = await fetchAccount({ publicKey, tokenId: "wTRtTRnW7hZCQSVgsuMVJRvnS1xEAbRRMWyaaJPkQsntSNh67n" }, graphUrl);
-    const accWeth = await fetchAccount({ publicKey, tokenId: "yBtcFk2EJTBJh7Ubjbw7oeAmiPjSTNKbtSVHd1f7voV39HQaWK" }, graphUrl);
-    const bal = accMina.account ? accMina.account.balance : 0;
-    const balToken = acc.account ? acc.account.balance : 0;
-    const balWeth = accWeth.account ? accWeth.account.balance : 0;
-
-    const mina = parseInt(bal.toString()) / 10 ** 9;
-    const token = parseInt(balToken.toString()) / 10 ** 9;
-    const weth = parseInt(balWeth.toString()) / 10 ** 9;
-    return { mina, token, weth };
-  }
-
-  const getUserInformation = async (auroMina) => {
-    try {
-      const accounts = await auroMina?.getAccounts();
-      const account = accounts?.length ? accounts[0] : "";
-      const network = await auroMina?.requestNetwork();
-      console.log("account", account);
-      console.log("network", network);
-
-      if (account) {
-        const newBalances = await getBalances(account, graph);
-        setBalances(newBalances);
-      }
-      return { account, network: network?.networkID };
-    } catch (error) {
-      console.error("getUserInformation", error);
-    }
-  }
 
 
   const switchNetwork = async (newNetwork: string) => {
-    setNetwork(newNetwork);
-    const zeko = newNetwork === "zeko";
-    try {
-      if (zeko) {
-        await zkState?.zkappWorkerClient?.setActiveInstanceToZeko();
-        setGraph(zekoGraph);
-        const newBalances = await getBalances(information?.account, zekoGraph);
-        setBalances(newBalances);
+    await switchChain(newNetwork).then((x) => {
+      if (x == zekoTestnet) {
+        zkState.zkappWorkerClient.setActiveInstanceToZeko();
       } else {
-        await zkState?.zkappWorkerClient?.setActiveInstanceToDevnet();
-        setGraph(devnetGraph);
-        const newBalances = await getBalances(information?.account, devnetGraph);
-        setBalances(newBalances);
+        zkState.zkappWorkerClient.setActiveInstanceToDevnet();
       }
-      await switchChain(mina, newNetwork);
-      setIsZeko(zeko);
-
-    } catch (error) {
-      console.error("getUserInformation", error);
-    }
+    });
   };
 
-  const switchChain = async (auroMina: any, newNetwork: string) => {
-    setNetwork(newNetwork);
-    const zeko = newNetwork === "zeko";
-    try {
-      const desiredNetwork = zeko ? "zeko:testnet" : "mina:testnet";
-      const network = await auroMina?.requestNetwork();
-      if (network != desiredNetwork) {
-        await auroMina?.switchChain({ networkID: desiredNetwork }).catch((err: any) => console.error(err));
-      }
-    } catch (error) {
-      console.error("getUserInformation", error);
-    }
-  };
 
   const trimText = (text: string) => {
     if (!text) {
@@ -136,27 +64,26 @@ const Account = () => {
         <div>
 
         </div>
-        {information?.account && <div className="flex flex-row">
+
+        {zkState?.publicKeyBase58 && <div className="flex flex-row">
           <div>
-            <span>{Math.trunc(balances?.mina)} MINA</span>
+            <span>{zkState.balances["mina"]?.toFixed(2)} MINA</span>
           </div>
           <div>
-            <span title="Token">{Math.trunc(balances?.token)} TOKA</span>
+            <span title="Token">{zkState.balances["toka"]?.toFixed(2)} TOKA</span>
           </div>
           <div>
-            <span title="WETH">{Math.trunc(balances?.weth)} WETH</span>
+            <span title={zkState?.publicKeyBase58}>{trimText(zkState?.publicKeyBase58)}</span>
           </div>
           <div>
-            <span title={information?.account}>{trimText(information?.account)}</span>
-          </div>
-          {/* <div>
-            <select defaultValue={network} onChange={async (ev) => await switchNetwork(ev.target.value)}>
-              <option value="zeko">Zeko</option>
-              <option value="devnet">Devnet</option>
+
+            <select value={zkState?.network} onChange={async (ev) => await switchNetwork(ev.target.value)}>
+              <option value={zekoTestnet}>Zeko</option>
+              <option value={minaTestnet}>Devnet</option>
             </select>
-          </div> */}
+          </div>
         </div>}
-        {!information?.account &&
+        {!zkState?.publicKeyBase58 &&
           <button onClick={() => handleConnect().then()}>Connect Wallet</button>
         }
       </div>

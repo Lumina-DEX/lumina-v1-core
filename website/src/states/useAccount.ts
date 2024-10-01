@@ -33,7 +33,7 @@ export const InitialAccountState = {
   publicKeyBase58: null,
   zkappPublicKey: null,
   creatingTransaction: false,
-  network: null,
+  network: "",
   balances: {}
 };
 

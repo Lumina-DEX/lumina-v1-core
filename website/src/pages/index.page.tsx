@@ -58,6 +58,7 @@ export default function Home() {
         setDisplayText('Loading web worker...');
         console.log('Loading web worker...');
         const zkappWorkerClient = new ZkappWorkerClient();
+        accountUpdate({zkappWorkerClient});
         await timeout(1);
 
         setDisplayText('Done loading web worker');
@@ -88,8 +89,7 @@ export default function Home() {
         //   zkappPublicKey,
         // });
 
-        accountUpdate({
-          zkappWorkerClient,
+        accountUpdate({        
           hasWallet: true,
           hasBeenSetup: true,
           publicKey: null,

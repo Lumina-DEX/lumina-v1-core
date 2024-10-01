@@ -5,6 +5,10 @@ export const mina = typeof window !== "undefined" && (window as any)?.mina;
 export const MINA_SUB_DECIMAL: number = 1e9;
 const WALLET_CONNECTED_BEFORE_FLAG: string = "wallet_connected_before";
 
+type ChainInfoArgs = {
+  networkID: string
+}
+
 export async function connect() {
   if (!mina) return;
   await requestNetwork();
@@ -33,8 +37,10 @@ async function requestNetwork() {
     .catch((e: any) => console.error(e));
 }
 
-async function handleChainChanged(newChain: string) {
-  useAccount.setState(() => ({ network: newChain }));
+async function handleChainChanged(newChain: ChainInfoArgs) {
+  console.log("newchain", newChain);
+  await requestAccounts();
+  useAccount.setState(() => ({ network: newChain?.networkID }));
 }
 
 async function requestAccounts() {
@@ -44,12 +50,18 @@ async function requestAccounts() {
     .catch((e: any) => console.error(e));
 }
 
+export async function switchChain(newNetwork: string) {
+  const ret = await mina.switchChain({ networkID: newNetwork });
+  return ret;
+}
+
 async function handleAccountsChanged(accounts: string[]) {
   let publicKeyBase58: string = "";
   let walletConnected: boolean = false;
 
   if (accounts?.length > 0) {
     publicKeyBase58 = accounts[0];
+    console.log("user", publicKeyBase58);
     await setupWorkerClient(publicKeyBase58);
     walletConnected = true;
   } else {
@@ -73,12 +85,27 @@ async function setupWorkerClient(publicKeyBase58: string) {
 
     // get account balance if account exists
     if (accountExists) {
+      // toka token id
+      const tokenId = "wTRtTRnW7hZCQSVgsuMVJRvnS1xEAbRRMWyaaJPkQsntSNh67n"
       const balance = await state.zkappWorkerClient!.getBalance(
         publicKeyBase58
       );
+      let balanceToka = 0;
+      try {
+        balanceToka = await state.zkappWorkerClient!.getBalanceToken(
+          publicKeyBase58,
+          tokenId
+        );
+      } catch (error) {
+
+      }
+
       useAccount.setState((state) => ({
         ...state,
-        balances: { mina: Number(balance.toString()) / MINA_SUB_DECIMAL },
+        balances: {
+          mina: Number(balance.toString()) / MINA_SUB_DECIMAL,
+          toka: Number(balanceToka.toString()) / MINA_SUB_DECIMAL
+        },
       }));
     } else {
       throw res;
