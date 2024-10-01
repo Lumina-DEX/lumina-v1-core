@@ -90,12 +90,8 @@ export default function Home() {
         // });
 
         accountUpdate({        
-          hasWallet: true,
           hasBeenSetup: true,
-          publicKey: null,
-          publicKeyBase58: "",
-          zkappPublicKey,
-          accountExists: false,
+          zkappPublicKey
         });
         loadUpdate({ state: true, process: 1 });
       }
