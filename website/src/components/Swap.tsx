@@ -17,6 +17,7 @@ const Swap = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
 
   const [pool, setPool] = useState(poolToka);
+  const [token, setToken] = useState();
 
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +40,8 @@ const Swap = ({ accountState }) => {
 
   const [data, setData] = useState({ amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 });
 
+  const [balance, setBalance] = useState("0.0");
+
 
   useEffect(() => {
     if (parseFloat(fromAmount)) {
@@ -48,6 +51,23 @@ const Swap = ({ accountState }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromAmount, slippagePercent, pool, zkState.network]);
 
+
+  useEffect(() => {
+    if (token) {
+      console.log("token", JSON.stringify(token));
+      getBalanceToken(zkState.publicKeyBase58, token).then(x => setBalance(x));
+    }
+  }, [token, zkState.network]);
+
+  const getBalanceToken = async (user, token) => {
+    const balanceToken = await zkState.zkappWorkerClient!.getBalanceToken(
+      user,
+      token.tokenId
+    );
+    let amtOut = balanceToken / 10 ** 9;
+    console.log("bal", balance);
+    return amtOut.toFixed(2);
+  }
 
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
@@ -122,7 +142,7 @@ const Swap = ({ accountState }) => {
               value={fromAmount}
               onValueChange={({ value }) => setFromAmount(value)}
             />
-            {toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu pool={pool} setPool={setPool} />}
+            {toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu pool={pool} setToken={setToken} setPool={setPool} />}
           </div>
           <div>
             <button onClick={() => setToDai(!toDai)} className="w-8 bg-cyan-500 text-lg text-white rounded">
@@ -138,7 +158,10 @@ const Swap = ({ accountState }) => {
               value={toAmount}
               onValueChange={({ value }) => setToAmount(value)}
             />
-            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu pool={pool} setPool={setPool} />}
+            {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu pool={pool} setToken={setToken} setPool={setPool} />}
+          </div>
+          <div>
+            Your token balance : {balance}
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap

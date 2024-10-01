@@ -2,15 +2,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
-import { PublicKey } from "o1js";
+import { PublicKey, TokenId } from "o1js";
 // @ts-ignore
 import CurrencyFormat from "react-currency-format";
+import TokenMenu from "./TokenMenu";
+import { poolToka } from "@/utils/addresses";
 
 // @ts-ignore
 const Withdraw = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
 
   const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState();
 
   useEffect(() => {
     if (window && (window as any).mina) {
@@ -20,18 +23,14 @@ const Withdraw = ({ accountState }) => {
   }, [])
 
   const zkState = accountState;
-
   const [toDai, setToDai] = useState(true);
-
+  const [pool, setPool] = useState(poolToka);
   const [fromAmount, setFromAmount] = useState("");
-
   const [toMina, setToMina] = useState(0);
   const [toToken, setToToken] = useState(0);
-
   const [slippagePercent, setSlippagePercent] = useState<number>(1);
-
   const [data, setData] = useState({ amountAOut: 0, amountBOut: 0, balanceAMin: 0, balanceBMin: 0, supplyMax: 0, liquidity: 0 });
-
+  const [balance, setBalance] = useState("0.0");
 
   useEffect(() => {
     if (parseFloat(fromAmount)) {
@@ -40,11 +39,27 @@ const Withdraw = ({ accountState }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromAmount, slippagePercent]);
 
+  useEffect(() => {
+    if (pool) {
+      getBalanceToken(zkState.publicKeyBase58, pool).then(x => setBalance(x));
+    }
+  }, [pool, zkState.network]);
+
+  const getBalanceToken = async (user, token) => {
+    const poolTokenId = TokenId.derive(PublicKey.fromBase58(pool));
+    const balanceLiquidity = await zkState.zkappWorkerClient!.getBalanceToken(
+      user,
+      TokenId.toBase58(poolTokenId)
+    );
+    let amtOut = balanceLiquidity / 10 ** 9;
+    console.log("bal", balance);
+    return amtOut.toFixed(2);
+  }
 
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {
     console.log("getLiquidityAmount", fromAmt);
     const { getAmountOutFromLiquidity } = await import("../../../contracts/build/src/indexmina");
-    const reserves = await zkState?.zkappWorkerClient?.getReserves();
+    const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     console.log("reserve", reserves);
     let calcul = { amountAOut: 0, amountBOut: 0, balanceAMin: 0, balanceBMin: 0, supplyMax: 0, liquidity: 0 };
     const slippage = slippagePcent;
@@ -72,7 +87,7 @@ const Withdraw = ({ accountState }) => {
       if (mina) {
         const user: string = (await mina.requestAccounts())[0];
 
-        await zkState.zkappWorkerClient?.withdrawLiquidity(user, data.liquidity, data.amountAOut, data.amountBOut, data.balanceAMin, data.balanceBMin, data.supplyMax);
+        await zkState.zkappWorkerClient?.withdrawLiquidity(pool, user, data.liquidity, data.amountAOut, data.amountBOut, data.balanceAMin, data.balanceBMin, data.supplyMax);
 
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
         await mina.sendTransaction({ transaction: json });
@@ -100,6 +115,9 @@ const Withdraw = ({ accountState }) => {
           <div>
             <span>Slippage (%) : </span><input type="number" defaultValue={slippagePercent} onChange={(event) => setSlippagePercent(event.target.valueAsNumber)}></input>
           </div>
+          <div>
+            Pool : <TokenMenu setToken={setToken} pool={pool} setPool={setPool} />
+          </div>
           <div className="flex flex-row w-full">
             <CurrencyFormat
               className="w-48 border-black text-default pr-3 text-xl text-right rounded focus:outline-none "
@@ -115,7 +133,10 @@ const Withdraw = ({ accountState }) => {
             <span>MINA out : {toFixedIfNecessary(toMina, 2)}</span>
           </div>
           <div>
-            <span>TOKA out : {toFixedIfNecessary(toToken, 2)}</span>
+            <span>Token out : {toFixedIfNecessary(toToken, 2)}</span>
+          </div>
+          <div>
+            Your liquidity balance : {balance}
           </div>
           <button onClick={withdrawLiquidity} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Withdraw Liquidity
