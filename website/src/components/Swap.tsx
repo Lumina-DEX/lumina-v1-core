@@ -50,7 +50,7 @@ const Swap = ({ accountState }) => {
       }
     }, 500);
     return () => clearTimeout(delayDebounceFn)
-  }, [fromAmount, slippagePercent, pool, zkState.network]);
+  }, [fromAmount, toDai, slippagePercent, pool, zkState.network]);
 
 
   useEffect(() => {

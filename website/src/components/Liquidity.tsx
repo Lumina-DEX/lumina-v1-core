@@ -38,7 +38,7 @@ const Liquidity = ({ accountState }) => {
       }
     }, 500);
     return () => clearTimeout(delayDebounceFn)
-  }, [fromAmount, toAmount, slippagePercent, pool]);
+  }, [fromAmount, toDai, toAmount, slippagePercent, pool]);
 
 
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {
