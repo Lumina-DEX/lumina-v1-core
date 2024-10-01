@@ -1,4 +1,5 @@
 import useAccount from "@/states/useAccount";
+import { UInt64 } from "o1js";
 
 export const mina = typeof window !== "undefined" && (window as any)?.mina;
 
@@ -101,7 +102,7 @@ async function setupWorkerClient(publicKeyBase58: string) {
       const balance = await state.zkappWorkerClient!.getBalance(
         publicKeyBase58
       );
-      let balanceToka = 0;
+      let balanceToka = UInt64.zero;
       try {
         balanceToka = await state.zkappWorkerClient!.getBalanceToken(
           publicKeyBase58,
