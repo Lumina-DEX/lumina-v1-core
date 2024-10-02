@@ -34,7 +34,7 @@ const Account = () => {
       if (zkState.publicKeyBase58) {
         requestAccounts().then();
       }
-    }, 30000);
+    }, 10000);
 
     return () => clearInterval(intervalID);
   }, [zkState.network, zkState.publicKeyBase58])
@@ -68,7 +68,7 @@ const Account = () => {
         </div>
 
         {zkState?.publicKeyBase58 && <div className="flex flex-row">
-          <div  className="flex flex-col lg:flex-row">
+          <div className="flex flex-col lg:flex-row">
             <div>
               <span>{zkState.balances["mina"]?.toFixed(2)} MINA</span>
             </div>
