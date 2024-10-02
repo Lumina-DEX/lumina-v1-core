@@ -6,16 +6,15 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<any>
 ) {
-  // console.log("req", req.body);
+  const json = JSON.stringify(req.body);
   const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+    "headers": {
+      "content-type": "application/json"
     },
-    body: req.body,
+    "body": json,
+    "method": "POST"
   });
-  console.log("response", response);
-  const result = await response.body;
+  const result = await response.json();
   console.log("result", result);
-  res.status(200).json(result);
+  res.status(200).send(result);
 }
