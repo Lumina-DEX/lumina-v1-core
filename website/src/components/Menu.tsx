@@ -16,7 +16,7 @@ const Menu = () => {
     const handleRouteChange = (url, { shallow }) => {
         setIsNavOpen(false);
     }
-    router.events.on('routeChangeStart', handleRouteChange);
+    router?.events?.on('routeChangeStart', handleRouteChange);
 
     return (
         <>
