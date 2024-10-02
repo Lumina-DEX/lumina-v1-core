@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "coi-serviceworker": "^0.1.7",
-    "http-proxy": "^1.18.1",
     "next": "14.2.3",
     "o1js": "^1.7.0",
     "react": "^18",
