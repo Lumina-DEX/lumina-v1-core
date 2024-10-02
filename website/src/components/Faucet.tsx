@@ -58,7 +58,8 @@ const Faucet = ({ accountState }) => {
             Claim
           </button>
           {loading && <p>Creating transaction ...</p>}
-
+          <a className="text-blue-500 underline" href="https://faucet.minaprotocol.com/" target="_blank">Official Mina Faucet</a>
+          <a className="text-blue-500 underline" href="https://zeko.io/faucet" target="_blank">Official Zeko Faucet</a>
         </div >
       </div >
     </>

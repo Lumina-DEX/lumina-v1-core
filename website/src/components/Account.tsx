@@ -7,6 +7,7 @@ import { fetchAccount, PublicKey } from "o1js";
 import CurrencyFormat from "react-currency-format";
 import useAccount from "@/states/useAccount";
 import { connect, minaTestnet, requestAccounts, switchChain, zekoTestnet } from "@/lib/wallet";
+import Menu from "./Menu";
 
 // @ts-ignore
 const Account = () => {
@@ -63,15 +64,12 @@ const Account = () => {
           <img className="w-52 h-12" src="/assets/logo/logo.png" />
         </div>
         <div>
-
+          <Menu></Menu>
         </div>
 
         {zkState?.publicKeyBase58 && <div className="flex flex-row">
           <div>
             <span>{zkState.balances["mina"]?.toFixed(2)} MINA</span>
-          </div>
-          <div>
-            <span title="Token">{zkState.balances["toka"]?.toFixed(2)} TOKA</span>
           </div>
           <div>
             <span title={zkState?.publicKeyBase58}>{trimText(zkState?.publicKeyBase58)}</span>

@@ -102,21 +102,21 @@ async function setupWorkerClient(publicKeyBase58: string) {
       const balance = await state.zkappWorkerClient!.getBalance(
         publicKeyBase58
       );
-      let balanceToka = UInt64.zero;
-      try {
-        balanceToka = await state.zkappWorkerClient!.getBalanceToken(
-          publicKeyBase58,
-          tokenId
-        );
-      } catch (error) {
+      // let balanceToka = UInt64.zero;
+      // try {
+      //   balanceToka = await state.zkappWorkerClient!.getBalanceToken(
+      //     publicKeyBase58,
+      //     tokenId
+      //   );
+      // } catch (error) {
 
-      }
+      // }
 
       useAccount.setState((state) => ({
         ...state,
         balances: {
-          mina: Number(balance.toString()) / MINA_SUB_DECIMAL,
-          toka: Number(balanceToka.toString()) / MINA_SUB_DECIMAL
+          mina: Number(balance.toString()) / MINA_SUB_DECIMAL
+          //toka: Number(balanceToka.toString()) / MINA_SUB_DECIMAL
         },
       }));
     } else {

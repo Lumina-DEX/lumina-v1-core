@@ -8,7 +8,7 @@ import CurrencyFormat from "react-currency-format";
 import Liquidity from "./Liquidity";
 import Swap from "./Swap";
 import Withdraw from "./Withdraw";
-import Faucet from "./Claim";
+import Faucet from "./Faucet";
 import SwapServer from "./SwapServer";
 import TabButton from "./TabButton";
 import Create from "./Create";
