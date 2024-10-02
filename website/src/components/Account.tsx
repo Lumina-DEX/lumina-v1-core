@@ -60,7 +60,7 @@ const Account = () => {
   return (
     <>
       <div className="flex flex-row justify-between items-center w-screen menu" style={{ position: "fixed", top: "0", left: "0", backgroundColor: "white" }} >
-        <div>
+        <div className="hidden lg:block">
           <img className="w-52 h-12" src="/assets/logo/logo.png" />
         </div>
         <div>
@@ -68,11 +68,13 @@ const Account = () => {
         </div>
 
         {zkState?.publicKeyBase58 && <div className="flex flex-row">
-          <div>
-            <span>{zkState.balances["mina"]?.toFixed(2)} MINA</span>
-          </div>
-          <div>
-            <span title={zkState?.publicKeyBase58}>{trimText(zkState?.publicKeyBase58)}</span>
+          <div  className="flex flex-col lg:flex-row">
+            <div>
+              <span>{zkState.balances["mina"]?.toFixed(2)} MINA</span>
+            </div>
+            <div>
+              <span title={zkState?.publicKeyBase58}>{trimText(zkState?.publicKeyBase58)}</span>
+            </div>
           </div>
           <div>
 
