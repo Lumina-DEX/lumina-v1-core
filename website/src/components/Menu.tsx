@@ -11,18 +11,19 @@ import Link from "next/link";
 
 // @ts-ignore
 const Menu = () => {
+    const router = useRouter();
 
     return (
         <>
-            <div className="flex flex-row gap-5 justify-between items-center"  >
-                <div>
-                    <Link href="/">Swap</Link>
+            <div className="flex flex-row gap-5 justify-between items-center text-xl text-black"  >
+                <div className={router.pathname == "/" ? "font-bold  text-blue-500" : ""}>
+                    <Link className="text-xl" href="/">Swap</Link>
                 </div>
-                <div>
-                    <Link href="/pool">Pool</Link>
+                <div className={router.pathname == "/pool" ? "font-bold  text-blue-500" : ""}>
+                    <Link className="text-xl" href="/pool">Pool</Link>
                 </div>
-                <div>
-                    <Link href="/faucet">Faucet</Link>
+                <div className={router.pathname == "/faucet" ? "font-bold  text-blue-500" : ""}>
+                    <Link className="" href="/faucet">Faucet</Link>
                 </div>
             </div>
         </>
