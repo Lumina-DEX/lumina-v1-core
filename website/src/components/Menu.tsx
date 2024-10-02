@@ -16,13 +16,13 @@ const Menu = () => {
     return (
         <>
             <div className="flex flex-row gap-5 justify-between items-center text-xl text-black"  >
-                <div className={router.pathname == "/" ? "font-bold  text-blue-500" : ""}>
+                <div className={router.pathname == "/" ? "text-blue-500" : ""}>
                     <Link className="text-xl" href="/">Swap</Link>
                 </div>
-                <div className={router.pathname == "/pool" ? "font-bold  text-blue-500" : ""}>
+                <div className={router.pathname == "/pool" ? "text-blue-500" : ""}>
                     <Link className="text-xl" href="/pool">Pool</Link>
                 </div>
-                <div className={router.pathname == "/faucet" ? "font-bold  text-blue-500" : ""}>
+                <div className={router.pathname == "/faucet" ? "text-blue-500" : ""}>
                     <Link className="" href="/faucet">Faucet</Link>
                 </div>
             </div>
