@@ -59,6 +59,9 @@ const Menu = () => {
                             <li >
                                 <Link className="" href="/faucet">Faucet</Link>
                             </li>
+                            <li >
+                                <Link className="" href="/token">Token</Link>
+                            </li>
                         </ul>
                     </div>
                 </section>
@@ -72,6 +75,9 @@ const Menu = () => {
                     </li>
                     <li className={router.pathname == "/faucet" ? "text-blue-500" : ""}>
                         <Link className="" href="/faucet">Faucet</Link>
+                    </li>
+                    <li className={router.pathname == "/token" ? "text-blue-500" : ""}>
+                        <Link className="" href="/token">Token</Link>
                     </li>
                 </ul>
             </nav>

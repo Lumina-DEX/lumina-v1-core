@@ -108,6 +108,18 @@ export default class ZkappWorkerClient {
     });
   }
 
+  async deployToken(user: string, tokenKey: string, tokenAdminKey: string, symbol: string) {
+    return await this._call("deployToken", {
+      user, tokenKey, tokenAdminKey, symbol
+    });
+  }
+
+  async mintToken(user: string, token: string, to: string, amount: number) {
+    return await this._call("mintToken", {
+      user, token, to, amount
+    });
+  }
+
   async getTransactionJSON(): Promise<string> {
     const result = await this._call("getTransactionJSON", {}) as string;
     return result;

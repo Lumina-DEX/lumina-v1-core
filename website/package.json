@@ -14,6 +14,9 @@
     "deploy": "next build --no-lint && touch out/.nojekyll && node ./ghp-postbuild && git add -f out && git commit -m \"Deploy gh-pages\" && cd .. && git subtree push --prefix ui/out origin gh-pages"
   },
   "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/material": "^6.1.2",
     "coi-serviceworker": "^0.1.7",
     "next": "14.2.3",
     "o1js": "^1.7.0",

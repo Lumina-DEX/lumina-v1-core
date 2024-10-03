@@ -1,4 +1,4 @@
-import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UInt32, UInt64, fetchAccount } from "o1js";
+import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UInt32, UInt64, UInt8, fetchAccount } from "o1js";
 
 console.log('Load Web Worker.');
 
@@ -140,6 +140,53 @@ const functions = {
     await state.transaction.sign([poolKey]);
 
     state.key = poolKey.toBase58();
+  },
+  deployToken: async (args: { user: string, tokenKey: string, tokenAdminKey: string, symbol: string }) => {
+    const tokenKey = PrivateKey.fromBase58(args.tokenKey);
+    const tokenAdminKey = PrivateKey.fromBase58(args.tokenAdminKey);
+    const tokenPublic = tokenKey.toPublicKey();
+    const tokenAdminPublic = tokenAdminKey.toPublicKey();
+    const userKey = PublicKey.fromBase58(args.user);
+
+    let zkToken = new state.TokenStandard(tokenPublic);
+    let zkTokenAdmin = new state.TokenAdmin(tokenAdminPublic);
+
+    const transaction = await Mina.transaction(userKey, async () => {
+      AccountUpdate.fundNewAccount(userKey, 3);
+      await zkTokenAdmin.deploy({
+        adminPublicKey: userKey,
+      });
+      await zkToken.deploy({
+        symbol: args.symbol,
+        src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+      });
+      await zkToken.initialize(
+        tokenAdminPublic,
+        UInt8.from(9),
+        Bool(false),
+      );
+    });
+    state.transaction = transaction;
+    await state.transaction!.prove();
+    await state.transaction.sign([tokenKey, tokenAdminKey]);
+  },
+  mintToken: async (args: { user: string, token: string, to: string, amount: number }) => {
+    const tokenPublic = PublicKey.fromBase58(args.token);
+    const userKey = PublicKey.fromBase58(args.user);
+    const receiver = PublicKey.fromBase58(args.to);
+    const amount = UInt64.from(args.amount * 10 ** 9);
+
+    let zkToken = new state.TokenStandard(tokenPublic);
+
+    const acc = await fetchAccount({ publicKey: receiver, tokenId: zkToken.deriveTokenId() });
+    let newAcc = acc.account ? 0 : 1;
+
+    const transaction = await Mina.transaction(userKey, async () => {
+      AccountUpdate.fundNewAccount(userKey, newAcc);
+      await zkToken.mint(receiver, amount);
+    });
+    state.transaction = transaction;
+    await state.transaction!.prove();
   },
   getSupply: async (args: {}) => {
     const acc = await fetchAccount({ publicKey: state.zkapp.address, tokenId: state.zkapp?.deriveTokenId() });
