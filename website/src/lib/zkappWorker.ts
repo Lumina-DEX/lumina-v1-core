@@ -99,9 +99,12 @@ const functions = {
     const balance = Mina.getBalance(publicKey);
     return JSON.stringify(balance.toJSON());
   },
-  getBalanceToken: async (args: { publicKey58: string, tokenId: string }) => {
+  getBalanceToken: async (args: { publicKey58: string, tokenAddress: string }) => {
     const publicKey = PublicKey.fromBase58(args.publicKey58);
-    const acc = await fetchAccount({ publicKey, tokenId: args.tokenId })
+    const tokenAddress = PublicKey.fromBase58(args.tokenAddress);
+    const tokenId = TokenId.derive(tokenAddress);
+    console.log("tokenId", tokenId);
+    const acc = await fetchAccount({ publicKey, tokenId: tokenId });
     const balance = acc?.account ? acc.account.balance : UInt64.zero;
     return JSON.stringify(balance.toJSON());
   },

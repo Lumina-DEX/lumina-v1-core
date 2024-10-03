@@ -48,10 +48,9 @@ const Withdraw = ({ accountState }) => {
   }, [pool, zkState.network]);
 
   const getBalanceToken = async (user, token) => {
-    const poolTokenId = TokenId.derive(PublicKey.fromBase58(pool));
     const balanceLiquidity = await zkState.zkappWorkerClient!.getBalanceToken(
       user,
-      TokenId.toBase58(poolTokenId)
+      pool
     );
     let amtOut = balanceLiquidity / 10 ** 9;
     console.log("bal", balance);

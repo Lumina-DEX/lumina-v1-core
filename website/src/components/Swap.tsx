@@ -63,7 +63,7 @@ const Swap = ({ accountState }) => {
   const getBalanceToken = async (user, token) => {
     const balanceToken = await zkState.zkappWorkerClient!.getBalanceToken(
       user,
-      token.tokenId
+      token.address
     );
     let amtOut = balanceToken / 10 ** 9;
     console.log("bal", balance);

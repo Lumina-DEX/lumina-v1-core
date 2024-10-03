@@ -124,12 +124,12 @@ const Liquidity = ({ accountState }) => {
   const getBalanceToken = async (user, token) => {
     const balanceToken = await zkState.zkappWorkerClient!.getBalanceToken(
       user,
-      token.tokenId
+      token.address
     );
-    const poolTokenId = TokenId.derive(PublicKey.fromBase58(pool));
+    
     const balanceLiquidity = await zkState.zkappWorkerClient!.getBalanceToken(
       user,
-      TokenId.toBase58(poolTokenId)
+      token.poolAddress
     );
     let amtOut = balanceToken / 10 ** 9;
     let liqOut = balanceLiquidity / 10 ** 9;
