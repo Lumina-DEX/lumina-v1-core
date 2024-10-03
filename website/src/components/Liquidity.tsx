@@ -7,13 +7,14 @@ import { PublicKey, TokenId } from "o1js";
 import CurrencyFormat from "react-currency-format";
 import { poolToka } from "@/utils/addresses";
 import TokenMenu from "./TokenMenu";
+import Balance from "./Balance";
 
 // @ts-ignore
 const Liquidity = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
   const [loading, setLoading] = useState(false);
   const [liquidityMinted, setLiquidityMinted] = useState(0);
-  const [token, setToken] = useState();
+  const [token, setToken] = useState({ address: "", poolAddress: "" });
 
   useEffect(() => {
     if (window && (window as any).mina) {
@@ -29,7 +30,6 @@ const Liquidity = ({ accountState }) => {
   const [toAmount, setToAmount] = useState("0.0");
   const [slippagePercent, setSlippagePercent] = useState<number>(1);
   const [data, setData] = useState({ amountAIn: 0, amountBIn: 0, balanceAMax: 0, balanceBMax: 0, supplyMin: 0, liquidity: 0 });
-  const [balance, setBalance] = useState({ token: "0", liquidity: "0" });
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -114,28 +114,6 @@ const Liquidity = ({ accountState }) => {
 
   }
 
-  useEffect(() => {
-    if (token) {
-      console.log("token", JSON.stringify(token));
-      getBalanceToken(zkState.publicKeyBase58, token).then(x => setBalance(x));
-    }
-  }, [token, zkState.network]);
-
-  const getBalanceToken = async (user, token) => {
-    const balanceToken = await zkState.zkappWorkerClient!.getBalanceToken(
-      user,
-      token.address
-    );
-    
-    const balanceLiquidity = await zkState.zkappWorkerClient!.getBalanceToken(
-      user,
-      token.poolAddress
-    );
-    let amtOut = balanceToken / 10 ** 9;
-    let liqOut = balanceLiquidity / 10 ** 9;
-    return { token: amtOut.toFixed(2), liquidity: liqOut.toFixed(2) };
-  }
-
   function toFixedIfNecessary(value, dp) {
     return +parseFloat(value).toFixed(dp);
   }
@@ -178,10 +156,10 @@ const Liquidity = ({ accountState }) => {
             {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu setToken={setToken} pool={pool} setPool={setPool} />}
           </div>
           <div>
-            Your token balance : {balance.token}
+            Your token balance : <Balance tokenAddress={token.address}></Balance>
           </div>
           <div>
-            Your liquidity balance : {balance.liquidity}
+            Your liquidity balance : <Balance tokenAddress={token.poolAddress}></Balance>
           </div>
           <div>
             <span>Liquidity minted : {toFixedIfNecessary(liquidityMinted, 2)}</span>

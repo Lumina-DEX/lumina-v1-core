@@ -7,6 +7,7 @@ import { PublicKey } from "o1js";
 import CurrencyFormat from "react-currency-format";
 import { poolToka } from "@/utils/addresses";
 import TokenMenu from "./TokenMenu";
+import Balance from "./Balance";
 
 type Percent = number | string;
 
@@ -17,7 +18,7 @@ const Swap = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
 
   const [pool, setPool] = useState(poolToka);
-  const [token, setToken] = useState();
+  const [token, setToken] = useState({ address: "" });
 
   const [loading, setLoading] = useState(false);
 
@@ -40,8 +41,6 @@ const Swap = ({ accountState }) => {
 
   const [data, setData] = useState({ amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 });
 
-  const [balance, setBalance] = useState("0.0");
-
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -51,24 +50,6 @@ const Swap = ({ accountState }) => {
     }, 500);
     return () => clearTimeout(delayDebounceFn)
   }, [fromAmount, toDai, slippagePercent, pool, zkState.network]);
-
-
-  useEffect(() => {
-    if (token) {
-      console.log("token", JSON.stringify(token));
-      getBalanceToken(zkState.publicKeyBase58, token).then(x => setBalance(x));
-    }
-  }, [token, zkState.network]);
-
-  const getBalanceToken = async (user, token) => {
-    const balanceToken = await zkState.zkappWorkerClient!.getBalanceToken(
-      user,
-      token.address
-    );
-    let amtOut = balanceToken / 10 ** 9;
-    console.log("bal", balance);
-    return amtOut.toFixed(2);
-  }
 
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
@@ -162,7 +143,7 @@ const Swap = ({ accountState }) => {
             {!toDai ? <span className="w-24 text-center">MINA</span> : <TokenMenu pool={pool} setToken={setToken} setPool={setPool} />}
           </div>
           <div>
-            Your token balance : {balance}
+            Your token balance : <Balance tokenAddress={token.address}></Balance>
           </div>
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap

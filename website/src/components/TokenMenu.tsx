@@ -21,34 +21,45 @@ const TokenMenu = ({ pool, setPool, setToken }) => {
   useEffect(() => {
     console.log("token", pool);
     console.log("accountState update");
+    getTokens().then();
 
+
+  }, [accountState.network]);
+
+  const getTokens = async () => {
     const network = accountState.network === minaTestnet ? "mina-devnet" : "zeko-devnet";
 
-    Addresses.getList().then((x: any) => {
+    const listed = await Addresses.getList()
 
-      const tokens = x?.tokens?.filter(z => z.chainId === network);
-      setTokenList(tokens);
-      const poolExist = tokens.find(z => z.poolAddress === pool);
-      if (!poolExist && tokens?.length) {
+    // @ts-ignore
+    const tokens = listed?.tokens?.filter(z => z.chainId === network);
+    setTokenList(tokens);
+
+
+    const fetchEvent = await Addresses.getEventList(network === "zeko-devnet");
+    setEventList([]);
+    if (fetchEvent?.length) {
+      setEventList(fetchEvent);
+
+    }
+
+    const poolExist = tokens.find(z => z.poolAddress === pool);
+    if (!poolExist && tokens?.length) {
+      const poolExist = fetchEvent?.find(z => z.poolAddress === pool);
+      if (poolExist) {
+        setToken(poolExist);
+        setCurrent(poolExist);
+      } else {
         // if this pool didn't exist for this network we select the first token
         setPool(tokens[0].poolAddress);
         setToken(tokens[0]);
         setCurrent(tokens[0]);
-      } else {
-        setToken(poolExist);
-        setCurrent(poolExist);
       }
-    });
-
-    Addresses.getEventList(network === "zeko-devnet").then(x => {
-      setEventList([]);
-      if (x?.length) {
-        setEventList(x)
-      }
+    } else {
+      setToken(poolExist);
+      setCurrent(poolExist);
     }
-    );
-
-  }, [accountState.network]);
+  }
 
   const selectPool = (pool: any) => {
     setPool(pool.poolAddress);

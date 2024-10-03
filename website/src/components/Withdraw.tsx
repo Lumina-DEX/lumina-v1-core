@@ -7,13 +7,14 @@ import { PublicKey, TokenId } from "o1js";
 import CurrencyFormat from "react-currency-format";
 import TokenMenu from "./TokenMenu";
 import { poolToka } from "@/utils/addresses";
+import Balance from "./Balance";
 
 // @ts-ignore
 const Withdraw = ({ accountState }) => {
   const [mina, setMina] = useState<any>();
 
   const [loading, setLoading] = useState(false);
-  const [token, setToken] = useState();
+  const [token, setToken] = useState({ address: "", poolAddress: "" });
 
   useEffect(() => {
     if (window && (window as any).mina) {
@@ -30,7 +31,6 @@ const Withdraw = ({ accountState }) => {
   const [toToken, setToToken] = useState(0);
   const [slippagePercent, setSlippagePercent] = useState<number>(1);
   const [data, setData] = useState({ amountAOut: 0, amountBOut: 0, balanceAMin: 0, balanceBMin: 0, supplyMax: 0, liquidity: 0 });
-  const [balance, setBalance] = useState("0.0");
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -41,21 +41,6 @@ const Withdraw = ({ accountState }) => {
     return () => clearTimeout(delayDebounceFn)
   }, [fromAmount, slippagePercent]);
 
-  useEffect(() => {
-    if (pool) {
-      getBalanceToken(zkState.publicKeyBase58, pool).then(x => setBalance(x));
-    }
-  }, [pool, zkState.network]);
-
-  const getBalanceToken = async (user, token) => {
-    const balanceLiquidity = await zkState.zkappWorkerClient!.getBalanceToken(
-      user,
-      pool
-    );
-    let amtOut = balanceLiquidity / 10 ** 9;
-    console.log("bal", balance);
-    return amtOut.toFixed(2);
-  }
 
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {
     console.log("getLiquidityAmount", fromAmt);
@@ -137,7 +122,7 @@ const Withdraw = ({ accountState }) => {
             <span>Token out : {toFixedIfNecessary(toToken, 2)}</span>
           </div>
           <div>
-            Your liquidity balance : {balance}
+            Your liquidity balance : <Balance tokenAddress={token.poolAddress}></Balance>
           </div>
           <button onClick={withdrawLiquidity} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Withdraw Liquidity
