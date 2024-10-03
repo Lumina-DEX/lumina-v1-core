@@ -12,7 +12,7 @@ const TokenMenu = ({ pool, setPool, setToken }) => {
   const [tokenList, setTokenList] = useState([]);
   const [eventList, setEventList] = useState([]);
   const accountState = useAccount();
-  const [current, setCurrent] = useState();
+  const [current, setCurrent] = useState({ symbol: "" });
   const [open, setOpen] = useState(false);
   const [indexed, setIndexed] = useState([]);
   const handleOpen = () => setOpen(true);
@@ -80,7 +80,7 @@ const TokenMenu = ({ pool, setPool, setToken }) => {
 
   return (
     <div>
-      <button onClick={handleOpen} className=" ml-3 p-1 bg-white">{current?.symbol} &#x25BC;</button>
+      <button onClick={handleOpen} className=" ml-3 p-1 bg-white">{current.symbol} &#x25BC;</button>
       <Modal
         open={open}
         onClose={handleClose}
