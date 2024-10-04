@@ -7,3 +7,4 @@ export * from "./helper.js";
 export * from "./Faucet.js";
 export * from "./PoolTokenHolder.js";
 export * from "./PoolFactory.js";
+export * from "./PoolData.js";

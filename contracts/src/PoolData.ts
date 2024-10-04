@@ -1,6 +1,4 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
-import { PoolMina, mulDiv, SwapEvent } from './indexmina.js';
-
 
 
 export interface PoolDataDeployProps extends Exclude<DeployArgs, undefined> {

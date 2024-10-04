@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
-import { PoolMina, mulDiv, SwapEvent } from './indexmina.js';
+import { PoolMina, mulDiv, SwapEvent, PoolData } from './indexmina.js';
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
@@ -7,13 +7,30 @@ import { PoolMina, mulDiv, SwapEvent } from './indexmina.js';
 export class PoolTokenHolder extends SmartContract {
 
     events = {
-        swap: SwapEvent
+        swap: SwapEvent,
+        upgrade: Field
     };
 
     async deploy() {
         await super.deploy();
 
         Bool(false).assertTrue("You can't directly deploy a token holder");
+    }
+
+    /**
+    * Upgrade to a new version
+    * @param vk new verification key
+    */
+    @method async updateVerificationKey(vk: VerificationKey) {
+        const pool = new PoolMina(this.address);
+        const poolDataAddress = pool.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const currentHash = poolData.poolHolderHash.getAndRequireEquals();
+
+        vk.hash.assertEquals(currentHash, "Incorrect verification key");
+
+        this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", vk.hash);
     }
 
     // swap from mina to this token through the pool
