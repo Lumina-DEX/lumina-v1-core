@@ -51,7 +51,7 @@ export class PoolFactory extends TokenContractV2 {
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
         permissions.setPermissions = Permissions.impossible();
-        permissions.setVerificationKey = Permissions.VerificationKey.impossibleDuringCurrentVersion();
+        permissions.setVerificationKey = Permissions.VerificationKey.proofOrSignature();
         this.account.permissions.set(permissions);
     }
 
@@ -103,7 +103,7 @@ export class PoolFactory extends TokenContractV2 {
                 ...Permissions.default(),
                 // only proof to prevent signature owner to steal liquidity
                 access: Permissions.proof(),
-                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },
@@ -143,7 +143,7 @@ export class PoolFactory extends TokenContractV2 {
             isSome: Bool(true),
             value: {
                 ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },

@@ -44,7 +44,7 @@ export class PoolData extends SmartContract {
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
         permissions.setPermissions = Permissions.impossible();
-        permissions.setVerificationKey = Permissions.VerificationKey.impossibleDuringCurrentVersion();
+        permissions.setVerificationKey = Permissions.VerificationKey.proofDuringCurrentVersion();
         this.account.permissions.set(permissions);
     }
 
