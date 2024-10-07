@@ -1,16 +1,16 @@
 import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString } from 'o1js';
-import { FungibleToken, PoolMina, PoolTokenHolder } from './indexmina.js';
+import { FungibleToken, PoolData, PoolMina, PoolTokenHolder } from './indexmina.js';
 
 
-const contractData = "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";
-const contractHash = Field("6022389358534772890668465393330190115210352413664341627702449400961108940743");
-const contractHolderData = "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";
-const contractHolderHash = Field("14876228843422336231707155776674524464588865100857502212615881432279939190870");
+export const contractData = "AAA2tQIIBHKSrVWtNzwxsg2j+cP4kkSbM8VS0mb2c9FXHULwoRgin6xmq3jTn6YzUw0EhrbGTKLN2THJQWssrgsNuXeRsenYbvwA0MaC7n8P8w4WANI2cpJcx9ME865cNif/mHQ+iMX3u1hX+cAqdHjpLQg28mnLq2rDCbcbU57KLgvZLB8CVCtX5v1Dff5rNWLYSCsPniweVTbqXuVDWo4sQWrji8foJfgI2gZdHq4auLTMVolulcIozYo6DAnhUjKoCZDig/ayQ64MwAC4+1+DnSPOK2/KOo/lmcKdJSGkK9O3zOMxx64l+MCyB5z6Vh+BXyIReOtHroCQ2eCnUDgdKJsJmPM+ClZdKlIMTrsQGScKdEkpZPMMvUz0nK0iQyz8cx1GFKoeJJNPh18vYuxZ23P+9bQzaqpHh60HqQUAH1ZJMDlfDbWdXNIG8G2yY206/2d5fOGICtTOPYqlvB0MbPUzrzOlikREexVGfsL+1g0+Ygu261Bd2HVkjRy9uDin16y2OweXx1BXkE79iugi4FiGjNU8xc29XynfooE2C3RZAiRBOTpfhs4Lk/CmN82+ySG5+RV/FjcHT6fgPLkJAD7LTxzCtUwev5bvzO/DTqQplJ70KKwkdGGZD5H698UeQ9Lh7qK2rq3Nv59FVdB3v2498nh59ajqRgnZfLO2uwZ2e2J48PQnCnW7Bi7pzvsOyoI9GI5KS198DY+grKjFJELjvy6Hda9vjeU6/iIQpmhaHhhb2H6N+XC5JqaPSO0QRM14MWKdqJW7ao5nxP+xdUdN+g3Bay43MekrZyla7yUxfP6H9FRzGwn1wA4M6gGrAp+5+/QQVfZeoIqAiGaKOYfOYZ1aIjv4OMPpReO6ndLrOhuQ8iHoavv5RpzKq4k89X2NXcc2+ljugZhLiHHpLh2HwudulvJmQb5zv2L5JTuIWwdqpT+/V7iD5t/FKuFxoTH0IavUfHffotBTpTmbOjqVX5mrkGiBk/Qqpg/Z46D/regBaG6ULXmUKqRS2rkgOApFTxi4j/fj4zhPyIfOLKrZ+dIMZHyqCoEYxW3guRYfI7BVYkz+vVWYFrHKsQFtAE7cFms6fcNyjwxfCx1YCuNnOVwdZtPmlp90axwcTBhL/Z4ambYE0VSpOSGIrLkwAAGArRT/eZyR6bmZSfE0n87plGGu5TUrARAz50P1QyTEhHaLF4XN2xnX/bY2VH8qY1YIxZ2vUQUVPR5IE9lfGzUl/F4uQ18skteuZHhT+5D+jtgbRp/Qtgz0fgI4wZYeReByx7MM+LtmdXotx9hZ7Tl/eJtLALIfm6qFrZ+Pki/JZQCptglut/7C4qaLa7kujlGMp8/zd0szedvRvxu2FXx9bA6U2wvZ++iZjdnjTsfPPfi7MiXHAAvcOfKRmpkS8cV2OHioPwI87VnzvTgAKC9bAd9RWTFiIH0XW8tUiyf7Fij/wpbIaP07PzSxaa+2eQ85DF/yzlmHqtT+M7a8H3pPoKyuqFVtlnLtjRRmXThS4SUREN7MQ4snspBjSXsgvLX7+eRr7BoeyLfb08fS1qenk4cQH3dFBXlUgbKMvTfFOx6Tq2rQnoOzRtBGS0mQ4JLDdRFqOdXCqneHTVbOMhMbNExhupYLRcrfEva1v7CsnGnTMNU9R3W9bmPYMqQGmgtOTkr/iNNibXAQZMLu0x115LH+TVOjlt1wnuL7djM82flAib6TGn6RVZ+qUeW2WQyMlTiCQ9FxUfnnE5AfHU9qs+/VR5QymOLIJlsr/pgsZnjxp/u77sQFqlXjkOAAbglBzJSLEeHBnz9incE1EeuPUzC6568VPG/rFgqvRzHPks4XTbB0jaIH6Cv0W7UP1Eg12hFFercJyf+pKc8RLwBozRlEKTkGk7MLQXcfwwffKzLb/CMAsACOKk+NkfmZAIB/oj8Pjk1pCPzzFYirNcQeyoFXaQu3Fprld83gEiwsiiVVc43BARrR08bEoTOeuY5OqZkZPsWdBKmo/Cke9z1oXeR42vCq4kwKxptQi0kt8h11U5xYfEwSkWowvegsA0YvHCcdeMdhkJoECBDsnoJ/mEI8EM0bpjWX/GALM2c1m5YOMow81l+xJjeQEQz6YmTlnM90RuEhi5qP1pCZizsgdrnNtdOaKDDLdrGu91l+R0QG12gc/z7/PJaXRyQDN9C/1L4eFWsTsO+lCwmOz6gp++yG+JxTiPFD6ElMVXkDRzr/6Kbq8kQAz2A7L5dHpaSpSCZdtHOrlJ0XR3hPESsnat7Jj4ZIwCL9QPTIURIgO7xWRGvt3bMT2PzMHttYAC5X/5ZRtef+gyRKsk//hcGVkUv5gqBgt6Pd0n/doxwpP0ApaWzyTWxen8d3zg3rf5k6nFjGqtchDJN1FtvQrR0=";
+export const contractHash = Field("27869273158675798351694849109960400575836124893377122482851082053344555026095");
+export const contractHolderData = "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";
+export const contractHolderHash = Field("100256026807092237802505900034423214154714674118890126680283461605332538867");
 
 export interface PoolMinaDeployProps extends Exclude<DeployArgs, undefined> {
     symbol: string;
     src: string;
-    protocol: PublicKey;
+    poolData: PublicKey;
 }
 
 export class PoolCreationEvent extends Struct({
@@ -33,25 +33,41 @@ export class PoolCreationEvent extends Struct({
  */
 export class PoolFactory extends TokenContractV2 {
 
-    @state(PublicKey) protocol = State<PublicKey>();
+    @state(PublicKey) poolData = State<PublicKey>();
 
     events = {
-        poolAdded: PoolCreationEvent
+        poolAdded: PoolCreationEvent,
+        upgrade: Field
     };
 
     async deploy(args: PoolMinaDeployProps) {
         await super.deploy(args);
-        args.protocol.isEmpty().assertFalse("Protocol empty");
+        args.poolData.isEmpty().assertFalse("Pool data empty");
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
-        this.protocol.set(args.protocol);
+        this.poolData.set(args.poolData);
 
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
         permissions.setPermissions = Permissions.impossible();
         permissions.setVerificationKey = Permissions.VerificationKey.impossibleDuringCurrentVersion();
         this.account.permissions.set(permissions);
+    }
+
+    /**
+     * Upgrade to a new version
+     * @param vk new verification key
+     */
+    @method async updateVerificationKey(vk: VerificationKey) {
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const currentHash = poolData.poolHash.getAndRequireEquals();
+
+        vk.hash.assertEquals(currentHash, "Incorrect verification key");
+
+        this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", vk.hash);
     }
 
     @method
@@ -95,15 +111,18 @@ export class PoolFactory extends TokenContractV2 {
 
         // set poolAccount initial state
         let tokenFields = token.toFields();
-        let protocolFields = this.protocol.getAndRequireEquals().toFields();
+        let poolDataAddress = this.poolData.getAndRequireEquals();
+        let poolData = new PoolData(poolDataAddress);
+        let protocolFields = poolData.protocol.getAndRequireEquals().toFields();
+        let poolDataFields = poolDataAddress.toFields();
 
         poolAccount.body.update.appState = [
             { isSome: Bool(true), value: tokenFields[0] },
             { isSome: Bool(true), value: tokenFields[1] },
             { isSome: Bool(true), value: protocolFields[0] },
             { isSome: Bool(true), value: protocolFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: poolDataFields[0] },
+            { isSome: Bool(true), value: poolDataFields[1] },
             { isSome: Bool(true), value: Field(0) },
             { isSome: Bool(true), value: Field(0) },
         ];

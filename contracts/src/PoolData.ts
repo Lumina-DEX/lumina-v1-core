@@ -86,7 +86,7 @@ export class PoolData extends SmartContract {
 
         // two steps upgrade to prevent bad update
         this.newOwner.set(newOwner);
-        this.emitEvent("upgradePoolHolder", newOwner);
+        this.emitEvent("setNewOwner", newOwner);
     }
 
     @method async acceptOwnership() {
