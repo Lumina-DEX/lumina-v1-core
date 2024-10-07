@@ -113,7 +113,8 @@ export class PoolFactory extends TokenContractV2 {
         let tokenFields = token.toFields();
         let poolDataAddress = this.poolData.getAndRequireEquals();
         let poolData = new PoolData(poolDataAddress);
-        let protocolFields = poolData.protocol.getAndRequireEquals().toFields();
+        let protocolAddress = poolData.protocol.getAndRequireEquals();
+        let protocolFields = protocolAddress.toFields();
         let poolDataFields = poolDataAddress.toFields();
 
         poolAccount.body.update.appState = [

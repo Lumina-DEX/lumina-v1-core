@@ -130,6 +130,7 @@ describe('Pool Factory Mina', () => {
       await zkApp.createPool(zkPoolAddress, zkTokenAddress);
     });
 
+    //console.log("Pool creation", txn3.toPretty());
     console.log("Pool creation au", txn3.transaction.accountUpdates.length);
     await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
@@ -162,6 +163,8 @@ describe('Pool Factory Mina', () => {
     expect(liquidityUser.value).toEqual(expected);
     expect(liquidityProtocol.value).toEqual(expectedProtocol);
 
+    const protocolOwner = await zkPool.protocol.fetch();
+    expect(protocolOwner?.toBase58()).toEqual(aliceAccount?.toBase58());
 
     const balanceToken = Mina.getBalance(zkPoolAddress, zkToken.deriveTokenId());
     expect(balanceToken.value).toEqual(amtToken.value);
