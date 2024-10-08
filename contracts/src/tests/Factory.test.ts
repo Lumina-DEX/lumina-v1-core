@@ -163,9 +163,6 @@ describe('Pool Factory Mina', () => {
     expect(liquidityUser.value).toEqual(expected);
     expect(liquidityProtocol.value).toEqual(expectedProtocol);
 
-    const protocolOwner = await zkPool.protocol.fetch();
-    expect(protocolOwner?.toBase58()).toEqual(aliceAccount?.toBase58());
-
     const balanceToken = Mina.getBalance(zkPoolAddress, zkToken.deriveTokenId());
     expect(balanceToken.value).toEqual(amtToken.value);
 

@@ -112,18 +112,15 @@ export class PoolFactory extends TokenContractV2 {
         // set poolAccount initial state
         let tokenFields = token.toFields();
         let poolDataAddress = this.poolData.getAndRequireEquals();
-        let poolData = new PoolData(poolDataAddress);
-        let protocolAddress = poolData.protocol.getAndRequireEquals();
-        let protocolFields = protocolAddress.toFields();
         let poolDataFields = poolDataAddress.toFields();
 
         poolAccount.body.update.appState = [
             { isSome: Bool(true), value: tokenFields[0] },
             { isSome: Bool(true), value: tokenFields[1] },
-            { isSome: Bool(true), value: protocolFields[0] },
-            { isSome: Bool(true), value: protocolFields[1] },
             { isSome: Bool(true), value: poolDataFields[0] },
             { isSome: Bool(true), value: poolDataFields[1] },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
             { isSome: Bool(true), value: Field(0) },
             { isSome: Bool(true), value: Field(0) },
         ];

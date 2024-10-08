@@ -54,7 +54,6 @@ export class WithdrawLiquidityEvent extends Struct({
 export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
-    @state(PublicKey) protocol = State<PublicKey>();
     @state(PublicKey) poolData = State<PublicKey>();
 
     events = {
@@ -165,7 +164,9 @@ export class PoolMina extends TokenContractV2 {
         const liquidityProtocol = liquidityAmount.div(1000);
         const liquidityUser = liquidityAmount.sub(liquidityProtocol);
         // mint token
-        const protocol = this.protocol.getAndRequireEquals();
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const protocol = poolData.protocol.getAndRequireEquals();
         this.internal.mint({ address: protocol, amount: liquidityProtocol });
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
@@ -219,7 +220,9 @@ export class PoolMina extends TokenContractV2 {
         const liquidityProtocol = liquidityAmount.div(1000);
         const liquidityUser = liquidityAmount.sub(liquidityProtocol);
         // mint token
-        const protocol = this.protocol.getAndRequireEquals();
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const protocol = poolData.protocol.getAndRequireEquals();
         this.internal.mint({ address: protocol, amount: liquidityProtocol });
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
