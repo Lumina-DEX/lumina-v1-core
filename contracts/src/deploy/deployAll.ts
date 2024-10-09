@@ -249,7 +249,7 @@ async function deployFactory() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", protocol: feepayerAddress });
+                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: feepayerAddress });
             }
         );
         await tx.prove();

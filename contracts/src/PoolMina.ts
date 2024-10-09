@@ -1,5 +1,5 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, PoolTokenHolder } from './indexmina.js';
+import { BalanceChangeEvent, FungibleToken, mulDiv, PoolData, PoolTokenHolder } from './indexmina.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -54,19 +54,35 @@ export class WithdrawLiquidityEvent extends Struct({
 export class PoolMina extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token = State<PublicKey>();
-    @state(PublicKey) protocol = State<PublicKey>();
+    @state(PublicKey) poolData = State<PublicKey>();
 
     events = {
         swap: SwapEvent,
         addLiquidity: AddLiquidityEvent,
         withdrawLiquidity: WithdrawLiquidityEvent,
-        BalanceChange: BalanceChangeEvent
+        BalanceChange: BalanceChangeEvent,
+        upgrade: Field
     };
 
     async deploy() {
         await super.deploy();
 
         Bool(false).assertTrue("You can't directly deploy a pool");
+    }
+
+    /**
+    * Upgrade to a new version
+    * @param vk new verification key
+    */
+    @method async updateVerificationKey(vk: VerificationKey) {
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const currentHash = poolData.poolHash.getAndRequireEquals();
+
+        vk.hash.assertEquals(currentHash, "Incorrect verification key");
+
+        this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", vk.hash);
     }
 
     /** Approve `AccountUpdate`s that have been created outside of the token contract.
@@ -148,7 +164,9 @@ export class PoolMina extends TokenContractV2 {
         const liquidityProtocol = liquidityAmount.div(1000);
         const liquidityUser = liquidityAmount.sub(liquidityProtocol);
         // mint token
-        const protocol = this.protocol.getAndRequireEquals();
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const protocol = poolData.protocol.getAndRequireEquals();
         this.internal.mint({ address: protocol, amount: liquidityProtocol });
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
@@ -202,7 +220,9 @@ export class PoolMina extends TokenContractV2 {
         const liquidityProtocol = liquidityAmount.div(1000);
         const liquidityUser = liquidityAmount.sub(liquidityProtocol);
         // mint token
-        const protocol = this.protocol.getAndRequireEquals();
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const protocol = poolData.protocol.getAndRequireEquals();
         this.internal.mint({ address: protocol, amount: liquidityProtocol });
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
