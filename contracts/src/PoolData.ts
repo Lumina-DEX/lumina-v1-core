@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
+import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey, Poseidon } from 'o1js';
 
 
 export interface PoolDataDeployProps extends Exclude<DeployArgs, undefined> {
@@ -56,7 +56,7 @@ export class PoolData extends SmartContract {
         const owner = this.owner.getAndRequireEquals();
         // check if owner signed the tx
         AccountUpdate.createSigned(owner);
-        // todo implement check
+
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", vk.hash);
     }
