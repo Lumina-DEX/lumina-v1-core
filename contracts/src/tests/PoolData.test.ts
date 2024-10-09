@@ -67,36 +67,32 @@ describe('Pool data', () => {
     await txn0.sign([deployerKey, zkPoolDataPrivateKey]).send();
   });
 
-  it('claim faucet', async () => {
+  it('update owner', async () => {
 
-    let amt = UInt64.from(1000 * 10 ** 9);
+    let owner = await zkPoolData.owner.fetch();
+    expect(owner?.toBase58()).toEqual(bobAccount.toBase58());
     let txn = await Mina.transaction(senderAccount, async () => {
-      await zkToken.mint(zkFaucetAddress, amt);
+      await zkPoolData.setNewOwner(senderAccount);
     });
     await txn.prove();
-    await txn.sign([senderKey, deployerKey]).send();
+    await txn.sign([senderKey, bobKey]).send();
 
+    let newowner = await zkPoolData.newOwner.fetch();
+    expect(newowner?.toBase58()).toEqual(senderAccount.toBase58());
 
-    txn = await Mina.transaction(bobAccount, async () => {
-      AccountUpdate.fundNewAccount(bobAccount, 2);
-      await zkFaucet.claim();
-      await zkToken.approveAccountUpdate(zkFaucet.self);
+    let oldowner = await zkPoolData.owner.fetch();
+    expect(oldowner?.toBase58()).toEqual(bobAccount.toBase58());
+
+    // aceept ownership
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.acceptOwnership();
     });
-    console.log("claim faucet", txn.toPretty());
     await txn.prove();
-    await txn.sign([bobKey]).send();
+    await txn.sign([senderKey]).send();
 
-    const faucetAmount = UInt64.from(100 * 10 ** 9);
-    let balanceBob = Mina.getBalance(bobAccount, zkToken.deriveTokenId());
-    expect(balanceBob.value).toEqual(faucetAmount.value);
+    let ownership = await zkPoolData.owner.fetch();
+    expect(ownership?.toBase58()).toEqual(senderAccount.toBase58());
 
-    txn = await Mina.transaction(bobAccount, async () => {
-      await zkFaucet.claim();
-      await zkToken.approveAccountUpdate(zkFaucet.self);
-    });
-    console.log("claim faucet 2", txn.toPretty());
-    await txn.prove();
-    await expect(txn.sign([bobKey]).send()).rejects.toThrow();
   });
 
 
