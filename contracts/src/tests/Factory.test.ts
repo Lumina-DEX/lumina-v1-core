@@ -94,8 +94,6 @@ describe('Pool Factory Mina', () => {
     const txn0 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
       await zkPoolData.deploy({
-        poolHash: contractHash,
-        poolHolderHash: contractHolderHash,
         owner: bobAccount,
         protocol: aliceAccount
       });

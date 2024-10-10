@@ -3,6 +3,7 @@ import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, Mina, P
 import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolMina, PoolTokenHolder } from '../indexmina';
 import { PoolSampleTest } from '../PoolSampleTest';
 import { PoolUpgradeTest } from '../PoolUpgradeTest';
+import { PoolHolderUpgradeTest } from '../PoolHolderUpgradeTest';
 
 let proofsEnabled = false;
 
@@ -202,7 +203,6 @@ describe('Pool data', () => {
   });
 
   it('update pool', async () => {
-    console.log("update pool");
     const newVK = await PoolUpgradeTest.compile();
     const key = newVK.verificationKey;
 
@@ -215,7 +215,25 @@ describe('Pool data', () => {
 
     let poolDatav2 = new PoolUpgradeTest(zkPoolAddress);
     let version = await poolDatav2.version();
-    expect(version?.toBigInt()).toEqual(2n);
+    expect(version?.toBigInt()).toEqual(33n);
+
+  });
+
+
+  it('update pool holder', async () => {
+    const newVK = await PoolHolderUpgradeTest.compile();
+    const key = newVK.verificationKey;
+
+    const txn1 = await Mina.transaction(deployerAccount, async () => {
+      await tokenHolder.updateVerificationKey(key);
+      await zkPool.approve(tokenHolder.self);
+    });
+    await txn1.prove();
+    await txn1.sign([deployerKey, bobKey]).send();
+
+    let poolDatav2 = new PoolHolderUpgradeTest(zkPoolAddress, zkToken.deriveTokenId());
+    let version = await poolDatav2.version();
+    expect(version?.toBigInt()).toEqual(55n);
 
   });
 
@@ -234,6 +252,12 @@ describe('Pool data', () => {
 
     txn = await Mina.transaction(senderAccount, async () => {
       await zkPool.updateVerificationKey(compileKey);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await tokenHolder.updateVerificationKey(compileKey);
     });
     await txn.prove();
     await expect(txn.sign([senderKey]).send()).rejects.toThrow();

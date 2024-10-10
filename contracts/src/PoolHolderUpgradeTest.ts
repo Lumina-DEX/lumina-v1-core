@@ -4,10 +4,10 @@ import { BalanceChangeEvent, FungibleToken, mulDiv, PoolData, PoolMina, PoolToke
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class PoolUpgradeTest extends PoolMina {
+export class PoolHolderUpgradeTest extends PoolTokenHolder {
 
     @method.returns(UInt64)
     async version() {
-        return UInt64.from(33);
+        return UInt64.from(55);
     }
 }
