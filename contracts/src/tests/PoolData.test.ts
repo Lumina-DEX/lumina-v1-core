@@ -1,10 +1,10 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
-import { AccountUpdate, Bool, CircuitString, fetchAccount, Field, Mina, Poseidon, PrivateKey, PublicKey, UInt64, UInt8, VerificationKey } from 'o1js';
+import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, Mina, Poseidon, PrivateKey, PublicKey, UInt64, UInt8, VerificationKey } from 'o1js';
 import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolMina, PoolTokenHolder } from '../indexmina';
 import { PoolSampleTest } from '../PoolSampleTest';
 import { PoolUpgradeTest } from '../PoolUpgradeTest';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 
 describe('Pool data', () => {
@@ -38,21 +38,21 @@ describe('Pool data', () => {
   beforeAll(async () => {
     //const analyze = await Faucet.analyzeMethods();
     //getGates(analyze);
-    vk = await PoolSampleTest.compile();
-    const compileResult = await PoolUpgradeTest.compile();
+
+    const cache = Cache.FileSystem('./cache');
+
+    console.time('compile PoolData');
+    await PoolData.compile({ cache });
+    vk = await PoolSampleTest.compile({ cache });
+    const compileResult = await PoolUpgradeTest.compile({ cache });
     compileKey = compileResult.verificationKey;
-    if (proofsEnabled) {
-      console.time('compile PoolData');
-      await FungibleTokenAdmin.compile();
-      await FungibleToken.compile();
-      await PoolData.compile();
-      await PoolFactory.compile();
-      await PoolMina.compile();
-      await PoolTokenHolder.compile();
-      const compileResult = await PoolUpgradeTest.compile();
-      compileKey = compileResult.verificationKey;
-      console.timeEnd('compile PoolData');
-    }
+    await FungibleTokenAdmin.compile({ cache });
+    await FungibleToken.compile({ cache });
+    await PoolFactory.compile({ cache });
+    await PoolMina.compile({ cache });
+    await PoolTokenHolder.compile({ cache });
+    compileKey = compileResult.verificationKey;
+    console.timeEnd('compile PoolData');
 
     function getGates(analyze: any) {
       for (const key in analyze) {
@@ -141,30 +141,10 @@ describe('Pool data', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
 
-    // mint token to user
-    await mintToken(senderAccount);
   });
 
-  async function mintToken(user: PublicKey) {
-    // token are minted to original deployer, so just transfer it for test
-    let txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkToken.mint(user, UInt64.from(1000 * 10 ** 9));
-    });
-    await txn.prove();
-    await txn.sign([deployerKey, zkTokenPrivateKey]).send();
-
-    txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkToken.mint(deployerAccount, UInt64.from(1000 * 10 ** 9));
-    });
-    await txn.prove();
-    await txn.sign([deployerKey, zkTokenPrivateKey]).send();
-
-  }
 
   it('update owner', async () => {
-
     let owner = await zkPoolData.owner.fetch();
     expect(owner?.toBase58()).toEqual(bobAccount.toBase58());
     let txn = await Mina.transaction(senderAccount, async () => {
