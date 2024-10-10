@@ -11,7 +11,7 @@ export interface PoolDataDeployProps extends Exclude<DeployArgs, undefined> {
 /**
  * Pool informations, use to manage protocol, receiver and verification key update
  */
-export class PoolData extends SmartContract {
+export class PoolSampleTest extends SmartContract {
 
     events = {
         upgradePool: Field,
@@ -61,22 +61,22 @@ export class PoolData extends SmartContract {
         this.emitEvent("upgrade", vk.hash);
     }
 
-    @method async setPoolVerificationKeyHash(hash: Field) {
+    @method async setPoolVerificationKey(vk: VerificationKey) {
         const owner = this.owner.getAndRequireEquals();
         // check if owner signed the tx
         AccountUpdate.createSigned(owner);
 
-        this.poolHash.set(hash);
-        this.emitEvent("upgradePool", hash);
+        this.poolHash.set(vk.hash);
+        this.emitEvent("upgradePool", vk.hash);
     }
 
-    @method async setPoolHolderVerificationKeyHash(hash: Field) {
+    @method async setPoolHolderVerificationKey(vk: VerificationKey) {
         const owner = this.owner.getAndRequireEquals();
         // check if owner signed the tx
         AccountUpdate.createSigned(owner);
 
-        this.poolHolderHash.set(hash);
-        this.emitEvent("upgradePoolHolder", hash);
+        this.poolHolderHash.set(vk.hash);
+        this.emitEvent("upgradePoolHolder", vk.hash);
     }
 
     @method async setNewOwner(newOwner: PublicKey) {
@@ -106,5 +106,10 @@ export class PoolData extends SmartContract {
 
         this.protocol.set(newProtocol);
         this.emitEvent("updateProtocol", newProtocol);
+    }
+
+    @method.returns(UInt64)
+    async version() {
+        return UInt64.from(2);
     }
 }
