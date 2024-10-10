@@ -163,4 +163,63 @@ describe('Pool data', () => {
     expect(version?.toBigInt()).toEqual(2n);
 
   });
+
+  it('failed without owner key', async () => {
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.updateVerificationKey(vk.verificationKey);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setNewOwner(senderAccount);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setNewProtocol(senderAccount);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setPoolHolderVerificationKeyHash(hashPoolHolder);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setPoolVerificationKeyHash(hashPoolHolder);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+  });
+
+  it('failed change owner', async () => {
+    let owner = await zkPoolData.owner.fetch();
+    expect(owner?.toBase58()).toEqual(bobAccount.toBase58());
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setNewOwner(aliceAccount);
+    });
+    await txn.prove();
+    await txn.sign([senderKey, bobKey]).send();
+
+    let newowner = await zkPoolData.newOwner.fetch();
+    expect(newowner?.toBase58()).toEqual(aliceAccount.toBase58());
+
+    let oldowner = await zkPoolData.owner.fetch();
+    expect(oldowner?.toBase58()).toEqual(bobAccount.toBase58());
+
+    // aceept ownership
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.acceptOwnership();
+    });
+    await txn.prove();
+    // you need to sign with the new owner key to get the ownership
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    let ownership = await zkPoolData.owner.fetch();
+    expect(ownership?.toBase58()).toEqual(bobAccount.toBase58());
+  });
 });
