@@ -17,5 +17,9 @@ const poolHolderKey = await PoolTokenHolder.compile();
 
 console.log("poolKey", poolKey);
 console.log("poolHolderKey", poolHolderKey);
-console.log("poolKey hash", poolKey.verificationKey.hash.toString());
-console.log("poolHolderKey hash", poolHolderKey.verificationKey.hash.toString());
+console.log("poolKey hash", poolKey.verificationKey.hash.toBigInt());
+console.log("poolHolderKey hash", poolHolderKey.verificationKey.hash.toBigInt());
+console.log("poolKey hash string", poolKey.verificationKey.hash.toString());
+
+const testHash = Field("27869273158675798351694849109960400575836124893377122482851082053344555026095");
+console.log("testHash", testHash.toBigInt());

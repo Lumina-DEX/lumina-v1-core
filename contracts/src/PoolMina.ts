@@ -81,7 +81,11 @@ export class PoolMina extends TokenContractV2 {
 
         vk.hash.assertEquals(currentHash, "Incorrect verification key");
 
+        const hash = this.self.update.verificationKey.value.hash;
+        Provable.log("hash", hash);
         this.account.verificationKey.set(vk);
+        const newHash = this.self.update.verificationKey.value.hash;
+        Provable.log("newHash", newHash);
         this.emitEvent("upgrade", vk.hash);
     }
 

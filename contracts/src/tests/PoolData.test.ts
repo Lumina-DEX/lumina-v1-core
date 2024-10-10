@@ -1,11 +1,11 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, CircuitString, fetchAccount, Field, Mina, Poseidon, PrivateKey, PublicKey, UInt64, UInt8, VerificationKey } from 'o1js';
-import { contractHash, contractHolderHash, Faucet, PoolData } from '../indexmina';
+import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolMina, PoolTokenHolder } from '../indexmina';
 import { PoolSampleTest } from '../PoolSampleTest';
+import { PoolUpgradeTest } from '../PoolUpgradeTest';
 
 let proofsEnabled = false;
 
-const vk = await PoolSampleTest.compile();
 
 describe('Pool data', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -14,19 +14,43 @@ describe('Pool data', () => {
     senderKey: PrivateKey,
     bobAccount: Mina.TestPublicKey,
     bobKey: PrivateKey,
+    compileKey: VerificationKey,
+    vk: any,
     aliceAccount: Mina.TestPublicKey,
     aliceKey: PrivateKey,
+    zkAppAddress: PublicKey,
+    zkAppPrivateKey: PrivateKey,
+    zkApp: PoolFactory,
+    zkPoolAddress: PublicKey,
+    zkPoolPrivateKey: PrivateKey,
+    zkPool: PoolMina,
     zkPoolDataAddress: PublicKey,
     zkPoolDataPrivateKey: PrivateKey,
-    zkPoolData: PoolData;
+    zkPoolData: PoolData,
+    zkTokenAdminAddress: PublicKey,
+    zkTokenAdminPrivateKey: PrivateKey,
+    zkTokenAdmin: FungibleTokenAdmin,
+    zkTokenAddress: PublicKey,
+    zkTokenPrivateKey: PrivateKey,
+    zkToken: FungibleToken,
+    tokenHolder: PoolTokenHolder;
 
   beforeAll(async () => {
     //const analyze = await Faucet.analyzeMethods();
     //getGates(analyze);
-
+    vk = await PoolSampleTest.compile();
+    const compileResult = await PoolUpgradeTest.compile();
+    compileKey = compileResult.verificationKey;
     if (proofsEnabled) {
       console.time('compile PoolData');
+      await FungibleTokenAdmin.compile();
+      await FungibleToken.compile();
       await PoolData.compile();
+      await PoolFactory.compile();
+      await PoolMina.compile();
+      await PoolTokenHolder.compile();
+      const compileResult = await PoolUpgradeTest.compile();
+      compileKey = compileResult.verificationKey;
       console.timeEnd('compile PoolData');
     }
 
@@ -51,9 +75,27 @@ describe('Pool data', () => {
     bobKey = bobAccount.key;
     aliceKey = aliceAccount.key;
 
+    zkAppPrivateKey = PrivateKey.random();
+    zkAppAddress = zkAppPrivateKey.toPublicKey();
+    zkApp = new PoolFactory(zkAppAddress);
+
+    zkPoolPrivateKey = PrivateKey.random();
+    zkPoolAddress = zkPoolPrivateKey.toPublicKey();
+    zkPool = new PoolMina(zkPoolAddress);
+
+    zkTokenAdminPrivateKey = PrivateKey.random();
+    zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
+    zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
+
     zkPoolDataPrivateKey = PrivateKey.random();
     zkPoolDataAddress = zkPoolDataPrivateKey.toPublicKey();
     zkPoolData = new PoolData(zkPoolDataAddress);
+
+    zkTokenPrivateKey = PrivateKey.random();
+    zkTokenAddress = zkTokenPrivateKey.toPublicKey();
+    zkToken = new FungibleToken(zkTokenAddress);
+
+    tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken.deriveTokenId());
 
     const txn0 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
@@ -68,7 +110,58 @@ describe('Pool data', () => {
     await txn0.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn0.sign([deployerKey, zkPoolDataPrivateKey]).send();
+
+    const txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress });
+      await zkTokenAdmin.deploy({
+        adminPublicKey: deployerAccount,
+      });
+      await zkToken.deploy({
+        symbol: "LTA",
+        src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+      });
+      await zkToken.initialize(
+        zkTokenAdminAddress,
+        UInt8.from(9),
+        Bool(false),
+      )
+    });
+    await txn.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
+
+    const txn3 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(zkPoolAddress, zkTokenAddress);
+    });
+
+    console.log("Pool creation au", txn3.transaction.accountUpdates.length);
+    await txn3.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
+
+    // mint token to user
+    await mintToken(senderAccount);
   });
+
+  async function mintToken(user: PublicKey) {
+    // token are minted to original deployer, so just transfer it for test
+    let txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await zkToken.mint(user, UInt64.from(1000 * 10 ** 9));
+    });
+    await txn.prove();
+    await txn.sign([deployerKey, zkTokenPrivateKey]).send();
+
+    txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await zkToken.mint(deployerAccount, UInt64.from(1000 * 10 ** 9));
+    });
+    await txn.prove();
+    await txn.sign([deployerKey, zkTokenPrivateKey]).send();
+
+  }
 
   it('update owner', async () => {
 
@@ -161,6 +254,28 @@ describe('Pool data', () => {
     let poolDatav2 = new PoolSampleTest(zkPoolDataAddress);
     let version = await poolDatav2.version();
     expect(version?.toBigInt()).toEqual(2n);
+
+  });
+
+  it('update pool', async () => {
+    if (!proofsEnabled) {
+      // return;
+    }
+    console.log("update pool");
+    const newVK = await PoolUpgradeTest.compile();
+    const key = newVK.verificationKey;
+    key.hash = Field(2);
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setPoolVerificationKeyHash(Field(2));
+    });
+    await txn.prove();
+    await txn.sign([senderKey, bobKey]).send();
+
+    const txn1 = await Mina.transaction(deployerAccount, async () => {
+      await zkPool.updateVerificationKey(key);
+    });
+    await txn1.prove();
+    await txn1.sign([deployerKey]).send();
 
   });
 
