@@ -77,15 +77,12 @@ export class PoolMina extends TokenContractV2 {
     @method async updateVerificationKey(vk: VerificationKey) {
         const poolDataAddress = this.poolData.getAndRequireEquals();
         const poolData = new PoolData(poolDataAddress);
-        const currentHash = poolData.poolHash.getAndRequireEquals();
+        const owner = poolData.owner.getAndRequireEquals();
 
-        vk.hash.assertEquals(currentHash, "Incorrect verification key");
+        // only owner can update a pool
+        AccountUpdate.createSigned(owner);
 
-        const hash = this.self.update.verificationKey.value.hash;
-        Provable.log("hash", hash);
         this.account.verificationKey.set(vk);
-        const newHash = this.self.update.verificationKey.value.hash;
-        Provable.log("newHash", newHash);
         this.emitEvent("upgrade", vk.hash);
     }
 

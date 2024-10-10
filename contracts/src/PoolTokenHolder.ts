@@ -25,9 +25,10 @@ export class PoolTokenHolder extends SmartContract {
         const pool = new PoolMina(this.address);
         const poolDataAddress = pool.poolData.getAndRequireEquals();
         const poolData = new PoolData(poolDataAddress);
-        const currentHash = poolData.poolHolderHash.getAndRequireEquals();
+        const owner = poolData.owner.getAndRequireEquals();
 
-        vk.hash.assertEquals(currentHash, "Incorrect verification key");
+        // only owner can update a pool
+        AccountUpdate.createSigned(owner);
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", vk.hash);

@@ -62,9 +62,10 @@ export class PoolFactory extends TokenContractV2 {
     @method async updateVerificationKey(vk: VerificationKey) {
         const poolDataAddress = this.poolData.getAndRequireEquals();
         const poolData = new PoolData(poolDataAddress);
-        const currentHash = poolData.poolHash.getAndRequireEquals();
+        const owner = poolData.owner.getAndRequireEquals();
 
-        vk.hash.assertEquals(currentHash, "Incorrect verification key");
+        // only owner can update a pool
+        AccountUpdate.createSigned(owner);
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", vk.hash);

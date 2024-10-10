@@ -4,8 +4,6 @@ import { Field, SmartContract, state, State, method, Permissions, PublicKey, Acc
 export interface PoolDataDeployProps extends Exclude<DeployArgs, undefined> {
     protocol: PublicKey;
     owner: PublicKey;
-    poolHash: Field;
-    poolHolderHash: Field;
 }
 
 /**
@@ -25,21 +23,15 @@ export class PoolData extends SmartContract {
     @state(PublicKey) protocol = State<PublicKey>();
     @state(PublicKey) owner = State<PublicKey>();
     @state(PublicKey) newOwner = State<PublicKey>();
-    @state(Field) poolHash = State<Field>();
-    @state(Field) poolHolderHash = State<Field>();
 
     async deploy(args: PoolDataDeployProps) {
         await super.deploy();
 
         args.protocol.isEmpty().assertFalse("Protocol empty");
         args.owner.isEmpty().assertFalse("Owner empty");
-        args.poolHash.equals(Field.empty()).assertFalse("Pool verification key hash empty");
-        args.poolHolderHash.equals(Field.empty()).assertFalse("Pool token holder verification key hash empty");
 
         this.protocol.set(args.protocol);
         this.owner.set(args.owner);
-        this.poolHash.set(args.poolHash);
-        this.poolHolderHash.set(args.poolHolderHash);
 
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
@@ -59,24 +51,6 @@ export class PoolData extends SmartContract {
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", vk.hash);
-    }
-
-    @method async setPoolVerificationKeyHash(hash: Field) {
-        const owner = this.owner.getAndRequireEquals();
-        // check if owner signed the tx
-        AccountUpdate.createSigned(owner);
-
-        this.poolHash.set(hash);
-        this.emitEvent("upgradePool", hash);
-    }
-
-    @method async setPoolHolderVerificationKeyHash(hash: Field) {
-        const owner = this.owner.getAndRequireEquals();
-        // check if owner signed the tx
-        AccountUpdate.createSigned(owner);
-
-        this.poolHolderHash.set(hash);
-        this.emitEvent("upgradePoolHolder", hash);
     }
 
     @method async setNewOwner(newOwner: PublicKey) {
