@@ -365,7 +365,7 @@ async function swapMina() {
         const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
 
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await dexTokenHolder.swapFromMina(feepayerAddress, amountIn, expectedOut, balanceMax, balanceMin);
+            await dexTokenHolder.swapFromMina(feepayerAddress, UInt64.from(5), amountIn, expectedOut, balanceMax, balanceMin);
             await zkToken.approveAccountUpdate(dexTokenHolder.self);
         });
         await tx.prove();
@@ -398,7 +398,7 @@ async function swapToken() {
         const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
 
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkApp.swapFromToken(feepayerAddress, amountIn, expectedOut, balanceMax, balanceMin);
+            await zkApp.swapFromToken(feepayerAddress, UInt64.from(5), amountIn, expectedOut, balanceMax, balanceMin);
         });
         await tx.prove();
         console.log("swap token proof", tx.toPretty());

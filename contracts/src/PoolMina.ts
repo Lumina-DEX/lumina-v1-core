@@ -56,6 +56,9 @@ export class PoolMina extends TokenContractV2 {
     @state(PublicKey) token = State<PublicKey>();
     @state(PublicKey) poolData = State<PublicKey>();
 
+    // max fee for frontend 0.15 %
+    static maxFee: UInt64 = UInt64.from(15);
+
     events = {
         swap: SwapEvent,
         addLiquidity: AddLiquidityEvent,
@@ -235,12 +238,13 @@ export class PoolMina extends TokenContractV2 {
         return liquidityUser;
     }
 
-    @method async swapFromToken(frontend: PublicKey, amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
+    @method async swapFromToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountMinaOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
         amountMinaOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
+        taxFeeFrontend.assertLessThanOrEqual(PoolMina.maxFee, "Frontend fee exceed max fees");
 
         let tokenContract = new FungibleToken(this.token.getAndRequireEquals());
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -248,12 +252,11 @@ export class PoolMina extends TokenContractV2 {
         tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
-        // working on fee integration
-
         let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
-        // 0.25% tax fee directly on amount out
-        const feeLP = amountOutBeforeFee.mul(2).div(1000);
-        const feeFrontend = amountOutBeforeFee.mul(5).div(10000);
+        // 0.20% tax fee for liquidity provider directly on amount out
+        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
+        // 0.15% fee max for the frontend
+        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
 
         let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend);
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");

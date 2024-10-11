@@ -35,21 +35,23 @@ export class PoolTokenHolder extends SmartContract {
     }
 
     // swap from mina to this token through the pool
-    @method async swapFromMina(frontend: PublicKey, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
+    @method async swapFromMina(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
         amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
+        taxFeeFrontend.assertLessThanOrEqual(PoolMina.maxFee, "Frontend fee exceed max fees");
 
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         // calculate amount token out, No tax for the moment (probably in a next version),   
         let amountOutBeforeFee = mulDiv(balanceOutMin, amountMinaIn, balanceInMax.add(amountMinaIn));
-        // 0.25% tax fee directly on amount out
-        const feeLP = amountOutBeforeFee.mul(2).div(1000);
-        const feeFrontend = amountOutBeforeFee.mul(5).div(10000);
+        // 0.20% tax fee for liquidity provider directly on amount out
+        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
+        // 0.15% fee max for the frontend
+        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
 
         let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend);
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
