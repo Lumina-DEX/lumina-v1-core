@@ -177,7 +177,7 @@ describe('Pool Factory Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 2);
+      AccountUpdate.fundNewAccount(senderAccount, 1);
       await newPool.supplyFirstLiquidities(amt, amtToken);
     });
     console.log("supplyFirstLiquidities", txn.toPretty());
@@ -187,12 +187,9 @@ describe('Pool Factory Mina', () => {
 
 
     const liquidityUser = Mina.getBalance(senderAccount, newPool.deriveTokenId());
-    const liquidityProtocol = Mina.getBalance(aliceAccount, newPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(liquidityProtocol.value);
-    const expectedProtocol = amt.value.add(amtToken.value).div(1000);
+    const expected = amt.value.add(amtToken.value).sub(PoolMina.minimunLiquidity.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
-    expect(liquidityProtocol.value).toEqual(expectedProtocol);
 
 
     const balanceToken = Mina.getBalance(newPool.address, zkTokenNew.deriveTokenId());
@@ -230,7 +227,7 @@ describe('Pool Factory Mina', () => {
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 2);
+      AccountUpdate.fundNewAccount(senderAccount, 1);
       await zkPool.supplyFirstLiquidities(amt, amtToken);
     });
     await txn.prove();

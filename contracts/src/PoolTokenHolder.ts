@@ -52,8 +52,10 @@ export class PoolTokenHolder extends SmartContract {
         const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
         // 0.15% fee max for the frontend
         const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
+        // 0.05% to the protocol  
+        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
 
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend);
+        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
         let sender = this.sender.getUnconstrainedV2();
@@ -65,9 +67,16 @@ export class PoolTokenHolder extends SmartContract {
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
         let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
         frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
+        // send fee to protocol
         let pool = new PoolMina(this.address);
-        await pool.swapFromMina(amountMinaIn, balanceInMax);
+        const poolDataAddress = pool.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const protocol = poolData.protocol.getAndRequireEquals();
+        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
+        let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
+        protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+
+        await pool.swapFromMina(protocol, amountMinaIn, balanceInMax);
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }

@@ -58,6 +58,7 @@ export class PoolMina extends TokenContractV2 {
 
     // max fee for frontend 0.15 %
     static maxFee: UInt64 = UInt64.from(15);
+    static minimunLiquidity: UInt64 = UInt64.from(1000);
 
     events = {
         swap: SwapEvent,
@@ -164,14 +165,8 @@ export class PoolMina extends TokenContractV2 {
         senderToken.send({ to: tokenAccount, amount: amountToken });
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
-        // 0.1 % as protocol fees       
-        const liquidityProtocol = liquidityAmount.div(1000);
-        const liquidityUser = liquidityAmount.sub(liquidityProtocol);
-        // mint token
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = poolData.protocol.getAndRequireEquals();
-        this.internal.mint({ address: protocol, amount: liquidityProtocol });
+        const liquidityUser = liquidityAmount.sub(PoolMina.minimunLiquidity);
+        // mint token       
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
@@ -220,14 +215,8 @@ export class PoolMina extends TokenContractV2 {
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amountToken });
 
-        // 0.1 % as protocol fees       
-        const liquidityProtocol = liquidityAmount.div(1000);
-        const liquidityUser = liquidityAmount.sub(liquidityProtocol);
+        const liquidityUser = liquidityAmount;
         // mint token
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = poolData.protocol.getAndRequireEquals();
-        this.internal.mint({ address: protocol, amount: liquidityProtocol });
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
@@ -257,8 +246,10 @@ export class PoolMina extends TokenContractV2 {
         const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
         // 0.15% fee max for the frontend
         const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
+        // 0.05% to the protocol  
+        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
 
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend);
+        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
@@ -274,6 +265,12 @@ export class PoolMina extends TokenContractV2 {
         // send mina to frontend (if not empty)
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
         await this.send({ to: frontendReceiver, amount: feeFrontend });
+        // send mina to protocol
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const protocol = await poolData.getProtocol();
+        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
+        await this.send({ to: protocolReceiver, amount: feeProtocol });
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
     }
@@ -283,9 +280,14 @@ export class PoolMina extends TokenContractV2 {
      * @param amountMinaIn mina amount in
      * @param balanceInMax actual reserve max in
      */
-    @method async swapFromMina(amountMinaIn: UInt64, balanceInMax: UInt64) {
+    @method async swapFromMina(protocol: PublicKey, amountMinaIn: UInt64, balanceInMax: UInt64) {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
+
+        // check if the protocol address is correct
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        poolData.protocol.requireEquals(protocol);
 
         this.account.balance.requireBetween(UInt64.one, balanceInMax);
         let sender = this.sender.getUnconstrainedV2();
