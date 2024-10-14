@@ -81,4 +81,14 @@ export class PoolData extends SmartContract {
         this.protocol.set(newProtocol);
         this.emitEvent("updateProtocol", newProtocol);
     }
+
+    @method.returns(PublicKey) async getProtocol() {
+        const protocol = this.protocol.getAndRequireEquals();
+        return protocol;
+    }
+
+    @method.returns(PublicKey) async getOwner() {
+        const owner = this.owner.getAndRequireEquals();
+        return owner;
+    }
 }

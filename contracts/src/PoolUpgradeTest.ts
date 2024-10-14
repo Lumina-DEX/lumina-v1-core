@@ -8,6 +8,7 @@ export class PoolUpgradeTest extends PoolMina {
 
     @method.returns(UInt64)
     async version() {
+        this.account.balance.requireBetween(UInt64.zero, UInt64.MAXINT());
         return UInt64.from(33);
     }
 }

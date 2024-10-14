@@ -23,9 +23,9 @@ export class PoolTokenHolder extends SmartContract {
     */
     @method async updateVerificationKey(vk: VerificationKey) {
         const pool = new PoolMina(this.address);
-        const poolDataAddress = pool.poolData.getAndRequireEquals();
+        const poolDataAddress = await pool.getPoolData();
         const poolData = new PoolData(poolDataAddress);
-        const owner = poolData.owner.getAndRequireEquals();
+        const owner = await poolData.getOwner();
 
         // only owner can update a pool
         AccountUpdate.createSigned(owner);

@@ -80,7 +80,7 @@ export class PoolMina extends TokenContractV2 {
     @method async updateVerificationKey(vk: VerificationKey) {
         const poolDataAddress = this.poolData.getAndRequireEquals();
         const poolData = new PoolData(poolDataAddress);
-        const owner = poolData.owner.getAndRequireEquals();
+        const owner = await poolData.getOwner();
 
         // only owner can update a pool
         AccountUpdate.createSigned(owner);
@@ -317,6 +317,10 @@ export class PoolMina extends TokenContractV2 {
         await this.send({ to: sender, amount: amountMina });
 
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMina, amountTokenOut, amountLiquidityIn: liquidityAmount }));
+    }
 
+    @method.returns(PublicKey) async getPoolData() {
+        const poolData = this.poolData.getAndRequireEquals();
+        return poolData;
     }
 }

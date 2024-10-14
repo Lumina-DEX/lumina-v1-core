@@ -138,7 +138,7 @@ describe('Pool data', () => {
       await zkApp.createPool(zkPoolAddress, zkTokenAddress);
     });
 
-    console.log("Pool creation au", txn3.transaction.accountUpdates.length);
+    //console.log("Pool creation au", txn3.transaction.accountUpdates.length);
     await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
@@ -206,10 +206,11 @@ describe('Pool data', () => {
     const newVK = await PoolUpgradeTest.compile();
     const key = newVK.verificationKey;
 
-
+    console.log("Pool data", zkPoolDataAddress.toBase58());
     const txn1 = await Mina.transaction(deployerAccount, async () => {
       await zkPool.updateVerificationKey(key);
     });
+    console.log("update pool", txn1.toPretty());
     await txn1.prove();
     await txn1.sign([deployerKey, bobKey]).send();
 
@@ -226,8 +227,9 @@ describe('Pool data', () => {
 
     const txn1 = await Mina.transaction(deployerAccount, async () => {
       await tokenHolder.updateVerificationKey(key);
-      await zkPool.approve(tokenHolder.self);
+      await zkToken.approveAccountUpdate(tokenHolder.self);
     });
+    console.log("update pool holder", txn1.toPretty());
     await txn1.prove();
     await txn1.sign([deployerKey, bobKey]).send();
 
