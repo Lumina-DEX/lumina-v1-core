@@ -25,9 +25,9 @@ docker run -it   --env NETWORK_TYPE="single-node"  --env PROOF_LEVEL="full"   --
 
 Pool factory, to create only one pool by pair, avoids liquidity fragmentation.
 
-0.1 % liquidity tax as protocol fees.
+0.05% for Lumina as creator and maintainer of the protocol  
 
-0.2 % fee tax as liquidity provider fees.
+0.25% for liquidity providers  
 
-0.05 % fee tax as frontend provider fees (the frontend need only to pass his public key address to swap method to collect fees).
+between 0-0.15% for frontend operators
 
