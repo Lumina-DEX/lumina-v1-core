@@ -4,12 +4,12 @@
 
 Smartcontracts are hosted directly on the Mina blockchain and do not require an intermediary to be executed.
 
-It is based on a model of transaction fees attributed to the various players enabling this dex to function: 
+It is based on a model of transaction fees allocated to the various players who make it possible for this dex to function : 
 - 0.25% for liquidity providers  
 - between 0-0.15% for frontend operators, allowing free competition between them  
 - 0.05% for Lumina as creator and maintainer of the protocol  
 
-It is completely permissionless, these access methods are public and require no special rights to add/withdraw liquidities, swap or create a pool.
+It is permissionless, these access methods are public and require no special rights to add/withdraw liquidities, swap or create a pool.
 
 ## One transaction
 
@@ -19,7 +19,7 @@ What's more, a slippage has been implemented to enable several users to perform 
 
 ## Fungible Token Standard
 
-This dex respects the [standard fungible token](https://github.com/o1-labs/rfcs/blob/main/0014-fungible-token-standard.md) and therefore allows Mina/Fungible token pools to be created.
+This dex respects the [fungible token standard](https://github.com/o1-labs/rfcs/blob/main/0014-fungible-token-standard.md) and therefore allows Mina/Fungible token pools to be created.
 
 
 ## Multichain
