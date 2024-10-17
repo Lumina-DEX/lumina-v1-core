@@ -4,6 +4,8 @@
 
 Smartcontracts are hosted directly on the Mina blockchain and do not require an intermediary to be executed.
 
+No DA is needed, everything is stored and managed on chain.
+
 It is based on a model of transaction fees allocated to the various players who make it possible for this dex to function : 
 - 0.25% for liquidity providers  
 - between 0-0.15% for frontend operators, allowing free competition between them  
