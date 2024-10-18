@@ -178,43 +178,43 @@ export class Pool extends TokenContractV2 {
         return liquidityUser;
     }
 
-    private async sendToken(tokenAddress: PublicKey, amount: UInt64) {
-        let tokenContract = new FungibleToken(tokenAddress);
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
-        let sender = this.sender.getUnconstrainedV2();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
 
-        // send token to the pool
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAddress, amount: amount });
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
-    }
 
-    private async sendMina(amount: UInt64) {
-        let sender = this.sender.getUnconstrainedV2();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        let senderUpdate = AccountUpdate.createSigned(sender);
-        senderUpdate.send({ to: this.self, amount: amount });
-    }
-
-    @method.returns(UInt64) async supplyLiquidity(amountMina: UInt64, amountToken: UInt64, reserveMinaMax: UInt64, reserveTokenMax: UInt64, supplyMin: UInt64) {
-        amountMina.assertGreaterThan(UInt64.zero, "Amount mina can't be zero");
-        amountToken.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
-        reserveTokenMax.assertGreaterThan(UInt64.zero, "Reserve token max can't be zero");
-        reserveMinaMax.assertGreaterThan(UInt64.zero, "Reserve mina max can't be zero");
+    @method.returns(UInt64) async supplyLiquidity(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64) {
+        amountToken0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
+        amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
+        reserveToken1Max.assertGreaterThan(UInt64.zero, "Reserve token 1 max can't be zero");
+        reserveToken0Max.assertGreaterThan(UInt64.zero, "Reserve token 0 max can't be zero");
         supplyMin.assertGreaterThan(UInt64.zero, "Supply min can't be zero");
 
-        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
-        let tokenContract = new FungibleToken(this.token0.getAndRequireEquals());
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        // if token 0 is empty so it's a Mina/Token pool
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
 
-        tokenAccount.account.balance.requireBetween(UInt64.one, reserveTokenMax);
-        this.account.balance.requireBetween(UInt64.one, reserveMinaMax);
+        // if token 0 is empty we send mina to the pool
+        const amountMina = Provable.if(token0.equals(PublicKey.empty()), amountToken0, UInt64.zero);
+        await this.sendMina(amountMina);
+
+        // if token 0 is not empty we send fungible token to the pool
+        const amount0 = Provable.if(token0.equals(PublicKey.empty()), UInt64.zero, amountToken0);
+        await this.sendToken(token0, amount0);
+        // send token 1
+        await this.sendToken(token1, amountToken1);
+
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
+        const tokenId0 = TokenId.derive(token0);
+        const tokenId1 = TokenId.derive(token1);
+        const token0Account = AccountUpdate.create(this.address, tokenId0);
+        const token1Account = AccountUpdate.create(this.address, tokenId1);
+
+        token0Account.account.balance.requireBetween(UInt64.one, reserveToken0Max);
+        token1Account.account.balance.requireBetween(UInt64.one, reserveToken1Max);
         circulationUpdate.account.balance.requireBetween(supplyMin, UInt64.MAXINT());
 
         // calculate liquidity token output simply as amountX * liquiditySupply / reserveX 
-        const liquidityMina = mulDiv(amountMina, supplyMin, reserveMinaMax);
-        const liquidityToken = mulDiv(amountToken, supplyMin, reserveTokenMax);
+        const liquidityMina = mulDiv(amountToken0, supplyMin, reserveToken0Max);
+        const liquidityToken = mulDiv(amountToken1, supplyMin, reserveToken1Max);
         // 0.1 % of error max between these 2 liquidities, prevent to send too much token or mina 
         const percentError = liquidityMina.div(1000);
         const liquidityMin = liquidityMina.sub(percentError);
@@ -225,24 +225,14 @@ export class Pool extends TokenContractV2 {
         const liquidityAmount = Provable.if(liquidityMina.lessThan(liquidityToken), liquidityMina, liquidityToken);
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity out can't be zero");
 
-        // send mina to the pool
+
         let sender = this.sender.getUnconstrainedV2();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        let senderUpdate = AccountUpdate.createSigned(sender);
-        senderUpdate.send({ to: this.self, amount: amountMina });
-
-        // send token to the pool
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amountToken });
-
         const liquidityUser = liquidityAmount;
         // mint token
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
-
-        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountMina, amountTokenIn: amountToken, amountLiquidityOut: liquidityUser }));
+        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountToken0, amountTokenIn: amountToken1, amountLiquidityOut: liquidityUser }));
 
         return liquidityUser;
     }
@@ -345,5 +335,24 @@ export class Pool extends TokenContractV2 {
     @method.returns(PublicKey) async getPoolData() {
         const poolData = this.poolData.getAndRequireEquals();
         return poolData;
+    }
+
+    private async sendToken(tokenAddress: PublicKey, amount: UInt64) {
+        let tokenContract = new FungibleToken(tokenAddress);
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        let sender = this.sender.getUnconstrainedV2();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
+
+        // send token to the pool
+        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
+        senderToken.send({ to: tokenAddress, amount: amount });
+        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+    }
+
+    private async sendMina(amount: UInt64) {
+        let sender = this.sender.getUnconstrainedV2();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
+        let senderUpdate = AccountUpdate.createSigned(sender);
+        senderUpdate.send({ to: this.self, amount: amount });
     }
 }
