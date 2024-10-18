@@ -6,6 +6,10 @@ import { Pool, mulDiv, SwapEvent, PoolData, FungibleToken } from './indexmina.js
  */
 export class PoolHolder extends SmartContract {
 
+    @state(PublicKey) token0 = State<PublicKey>();
+    @state(PublicKey) token1 = State<PublicKey>();
+    @state(PublicKey) poolData = State<PublicKey>();
+
     events = {
         swap: SwapEvent,
         upgrade: Field
@@ -37,6 +41,9 @@ export class PoolHolder extends SmartContract {
     // swap from mina to this token through the pool
     @method async swapFromMina(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
+        // if token 0 is empty so it's a Mina/Token pool
+        this.token0.requireEquals(PublicKey.empty());
+
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
@@ -68,15 +75,12 @@ export class PoolHolder extends SmartContract {
         let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
         frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
         // send fee to protocol
-        let pool = new Pool(this.address);
-        const poolDataAddress = pool.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = poolData.protocol.getAndRequireEquals();
-        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
+        const protocolReceiver = await this.getProtocolReceiver();
         let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
         protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        await pool.swapFromMina(protocol, amountMinaIn, balanceInMax);
+        let pool = new Pool(this.address);
+        await pool.swapFromMina(amountMinaIn, balanceInMax);
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }
@@ -94,9 +98,8 @@ export class PoolHolder extends SmartContract {
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         // check if token match
-        let pool = new Pool(this.address);
-        const token0Address = pool.token0.getAndRequireEquals();
-        const token1Address = pool.token0.getAndRequireEquals();
+        const token0Address = this.token0.getAndRequireEquals();
+        const token1Address = this.token1.getAndRequireEquals();
         const tokenId0 = TokenId.derive(token0Address);
         const tokenId1 = TokenId.derive(token1Address);
         this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Inccorect token id");
@@ -126,21 +129,16 @@ export class PoolHolder extends SmartContract {
         frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
         // send fee to protocol
-
-        const poolDataAddress = pool.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = poolData.protocol.getAndRequireEquals();
-        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
+        const protocolReceiver = await this.getProtocolReceiver();
         let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
         protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
-        await pool.checkData(protocol, token0Address, token1Address);
 
         const otherPool = new PoolHolder(this.address, tokenIdIn);
         await otherPool.swapFromOtherToken(amountTokenIn, balanceInMax);
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
     }
+
 
     /**
      * Don't call this method directly or you will just lost tokens
@@ -180,6 +178,14 @@ export class PoolHolder extends SmartContract {
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
         await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
+    }
+
+    private async getProtocolReceiver(): Promise<PublicKey> {
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const protocol = await poolData.getProtocol();
+        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
+        return protocolReceiver;
     }
 
 }

@@ -284,32 +284,17 @@ export class Pool extends TokenContractV2 {
      * @param amountMinaIn mina amount in
      * @param balanceInMax actual reserve max in
      */
-    @method async swapFromMina(protocol: PublicKey, amountMinaIn: UInt64, balanceInMax: UInt64) {
+    @method async swapFromMina(amountMinaIn: UInt64, balanceInMax: UInt64) {
         // if token 0 is empty so it's a Mina/Token pool
         this.token0.requireEquals(PublicKey.empty());
 
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
-        // check if the protocol address is correct
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        poolData.protocol.requireEquals(protocol);
-
         this.account.balance.requireBetween(UInt64.one, balanceInMax);
         let sender = this.sender.getUnconstrainedV2();
         let senderSigned = AccountUpdate.createSigned(sender);
         await senderSigned.send({ to: this.self, amount: amountMinaIn });
-    }
-
-    @method async checkData(protocol: PublicKey, token0: PublicKey, token1: PublicKey) {
-        this.token0.requireEquals(token0);
-        this.token1.requireEquals(token1);
-
-        // check if the protocol address is correct
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        poolData.protocol.requireEquals(protocol);
     }
 
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
