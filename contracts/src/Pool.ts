@@ -141,19 +141,12 @@ export class Pool extends TokenContractV2 {
     }
 
 
-    @method.returns(UInt64) async supplyFirstLiquidities(amountMina: UInt64, amountToken: UInt64) {
-        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
-        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
-        balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
-
-        amountToken.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
-        amountMina.assertGreaterThan(UInt64.zero, "Amount mina can't be zero");
-
-        // remove minimun liquidity amount, we mint token to the protocol fees
-        const liquidityAmount = amountToken.add(amountMina);
-
-        let tokenContract = new FungibleToken(this.token0.getAndRequireEquals());
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+    @method.returns(UInt64) async supplyFirstLiquiditiesMina(amountMina: UInt64, amountToken: UInt64) {
+        // if token 0 is empty so it's a Mina/Token pool
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        token0.equals(PublicKey.empty()).assertTrue("Call supplyFirstLiquiditiesToken for Token pool");
+        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
 
         // send mina to the pool
         let sender = this.sender.getUnconstrainedV2();
@@ -162,18 +155,62 @@ export class Pool extends TokenContractV2 {
         senderUpdate.send({ to: this.self, amount: amountMina });
 
         // send token to the pool
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amountToken });
+        await this.sendToken(token1, amountToken);
 
+        // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
+        const liquidityUser = await this.mintFirstLiquidities(amountMina, amountToken);
+
+        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountMina, amountTokenIn: amountToken, amountLiquidityOut: liquidityUser }));
+
+        return liquidityUser;
+    }
+
+    @method.returns(UInt64) async supplyFirstLiquiditiesToken(amountToken0: UInt64, amountToken1: UInt64) {
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        token0.equals(PublicKey.empty()).assertFalse("Call supplyFirstLiquiditiesMina for Mina pool");
+        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+
+        // send token to the pool
+        await this.sendToken(token0, amountToken0);
+        await this.sendToken(token1, amountToken1);
+
+        // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
+        const liquidityUser = await this.mintFirstLiquidities(amountToken0, amountToken1);
+
+        let sender = this.sender.getUnconstrainedV2();
+        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountToken0, amountTokenIn: amountToken1, amountLiquidityOut: liquidityUser }));
+
+        return liquidityUser;
+    }
+
+    private async sendToken(tokenAddress: PublicKey, amount: UInt64) {
+        let tokenContract = new FungibleToken(tokenAddress);
+        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
+        let sender = this.sender.getUnconstrainedV2();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
+
+        // send token to the pool
+        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
+        senderToken.send({ to: tokenAddress, amount: amount });
+        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+    }
+
+    private async mintFirstLiquidities(amount0: UInt64, amount1: UInt64) {
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
+        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
+        balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
+
+        amount0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
+        amount1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
+
+        const liquidityAmount = amount0.add(amount1);
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
         const liquidityUser = liquidityAmount.sub(Pool.minimunLiquidity);
         // mint token       
+        let sender = this.sender.getUnconstrainedV2();
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
-
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
-
-        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountMina, amountTokenIn: amountToken, amountLiquidityOut: liquidityUser }));
 
         return liquidityUser;
     }
