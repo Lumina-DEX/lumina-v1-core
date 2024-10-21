@@ -148,17 +148,21 @@ export class Pool extends TokenContractV2 {
         // if token 0 is empty so it's a Mina/Token pool
         const token0 = this.token0.getAndRequireEquals();
         const token1 = this.token1.getAndRequireEquals();
+        Provable.log("token0", token0);
+        Provable.log("token1", token1);
         token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
 
         // if token 0 is empty we send mina to the pool
         const amountMina = Provable.if(token0.equals(PublicKey.empty()), amountToken0, UInt64.zero);
-        await this.sendMina(amountMina);
+        //await this.sendMina(amountMina);
 
         // if token 0 is not empty we send fungible token to the pool
         const amount0 = Provable.if(token0.equals(PublicKey.empty()), UInt64.zero, amountToken0);
         await this.sendToken(token0, amount0);
         // send token 1
         await this.sendToken(token1, amountToken1);
+
+        Provable.log("token sent");
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
@@ -345,7 +349,7 @@ export class Pool extends TokenContractV2 {
 
         // send token to the pool
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAddress, amount: amount });
+        senderToken.send({ to: tokenAccount, amount: amount });
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
     }
 
