@@ -6,9 +6,9 @@
 2. Add Zeko devnet network to Auro [https://docs.zeko.io/for_end_users](https://docs.zeko.io/for_end_users)
 3. Create your Wallet address on ‘Zeko Devnet’ following the prompts in Auro
 4. Faucet your devnet accounts
-  a. Visit [https://beta.luminadex.com/faucet](https://beta.luminadex.com/faucet)
-  b. Select ‘Official Mina Faucet’ and follow the instructions
-  c. Select ‘Official Zeko Faucet’ and follow the instructions
+    a. Visit [https://beta.luminadex.com/faucet](https://beta.luminadex.com/faucet)
+    b. Select ‘Official Mina Faucet’ and follow the instructions
+    c. Select ‘Official Zeko Faucet’ and follow the instructions
 
 ## Test Lumina; Faucet, Swap, and Pool
 Mina Devnet Testing
