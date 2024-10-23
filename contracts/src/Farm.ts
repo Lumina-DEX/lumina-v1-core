@@ -102,14 +102,60 @@ export class Farm extends TokenContractV2 {
     }
 
     @method
-    async deposit(amount: UInt64) {
-        const poolAddress = this.pool.getAndRequireEquals();
+    async deployStorage() {
         const sender = this.sender.getUnconstrainedV2();
 
-        const farmStorage = new FarmStorage(sender, this.deriveTokenId());
-        farmStorage.deposit(poolAddress, amount);
+        const newStorage = AccountUpdate.create(sender, this.deriveTokenId());
+        // Require this account didn't already exist
+        newStorage.account.isNew.requireEquals(Bool(true));
+
+        // set pool account vk and permission
+        newStorage.body.update.verificationKey = { isSome: Bool(true), value: { data: "", hash: Field(123n) } };
+        newStorage.body.update.permissions = {
+            isSome: Bool(true),
+            value: {
+                ...Permissions.default(),
+                // only proof to prevent signature owner to steal liquidity
+                access: Permissions.proof(),
+                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
+                send: Permissions.proof(),
+                setPermissions: Permissions.impossible()
+            },
+        };
+
+        const poolAddress = this.pool.getAndRequireEquals();
+        const poolFields = poolAddress.toFields();
+
+        // init value
+        newStorage.body.update.appState = [
+            { isSome: Bool(true), value: poolFields[0] },
+            { isSome: Bool(true), value: poolFields[1] },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
+        ];
 
     }
 
+    @method
+    async checkPool(poolAddress: PublicKey) {
+        this.pool.requireEquals(poolAddress);
+    }
 
+    @method
+    async deposit(amount: UInt64) {
+        const sender = this.sender.getAndRequireSignatureV2();
+        const newStorage = new FarmStorage(sender, this.deriveTokenId());
+        newStorage.deposit(amount);
+    }
+
+    @method
+    async withdraw(amount: UInt64) {
+        const sender = this.sender.getAndRequireSignatureV2();
+        const newStorage = new FarmStorage(sender, this.deriveTokenId());
+        newStorage.deposit(amount);
+    }
 }
