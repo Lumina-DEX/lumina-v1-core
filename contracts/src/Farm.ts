@@ -158,4 +158,11 @@ export class Farm extends TokenContractV2 {
         const newStorage = new FarmStorage(sender, this.deriveTokenId());
         newStorage.deposit(amount);
     }
+
+    @method
+    async withdrawReward() {
+        const sender = this.sender.getAndRequireSignatureV2();
+        const newStorage = new FarmStorage(sender, this.deriveTokenId());
+        const points = newStorage.withdrawReward();
+    }
 }
