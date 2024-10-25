@@ -15,7 +15,7 @@ export class FarmRewardHolder extends SmartContract {
     // Farming for one pool
     @state(PublicKey) pool = State<PublicKey>();
     @state(PublicKey) owner = State<PublicKey>();
-
+    @state(UInt64) tokenByPoints = State<UInt64>();
 
     events = {
         upgrade: Field,
@@ -61,8 +61,9 @@ export class FarmRewardHolder extends SmartContract {
         const newStorage = new FarmStorage(sender, tokenId);
         const points = await newStorage.withdrawReward();
 
+        const tokenByPoints = this.tokenByPoints.getAndRequireEquals();
+        const amount = tokenByPoints.mul(points);
 
-        // todo calculate reward by points
-        this.send({ to: sender, amount: points });
+        this.send({ to: sender, amount: amount });
     }
 }

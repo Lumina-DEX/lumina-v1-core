@@ -57,6 +57,6 @@ export class FarmPoolHolder extends SmartContract {
         const sender = this.sender.getAndRequireSignatureV2();
         const tokenId = TokenId.derive(this.address);
         const newStorage = new FarmStorage(sender, tokenId);
-        newStorage.withdraw(amount);
+        await newStorage.withdraw(amount);
     }
 }

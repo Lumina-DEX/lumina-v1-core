@@ -149,20 +149,7 @@ export class Farm extends TokenContractV2 {
     async deposit(amount: UInt64) {
         const sender = this.sender.getAndRequireSignatureV2();
         const newStorage = new FarmStorage(sender, this.deriveTokenId());
-        newStorage.deposit(amount);
+        await newStorage.deposit(amount);
     }
 
-    @method
-    async withdraw(amount: UInt64) {
-        const sender = this.sender.getAndRequireSignatureV2();
-        const newStorage = new FarmStorage(sender, this.deriveTokenId());
-        newStorage.deposit(amount);
-    }
-
-    @method
-    async withdrawReward() {
-        const sender = this.sender.getAndRequireSignatureV2();
-        const newStorage = new FarmStorage(sender, this.deriveTokenId());
-        const points = newStorage.withdrawReward();
-    }
 }
