@@ -174,8 +174,8 @@ export class Pool extends TokenContractV2 {
         const liquidityUser = liquidityAmount.sub(Pool.minimunLiquidity);
         // mint token       
         let sender = this.sender.getUnconstrainedV2();
-        this.internal.mint({ address: sender, amount: liquidityUser });
-        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
+        //this.internal.mint({ address: sender, amount: liquidityUser });
+        //this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
         this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountToken0, amountTokenIn: amountToken1, amountLiquidityOut: liquidityUser }));
 
