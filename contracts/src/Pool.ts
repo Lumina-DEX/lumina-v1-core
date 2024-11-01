@@ -341,6 +341,11 @@ export class Pool extends TokenContractV2 {
         return poolData;
     }
 
+    @method.returns(PublicKey) async getToken0() {
+        const token0 = this.token0.getAndRequireEquals();
+        return token0;
+    }
+
     private async sendToken(tokenAddress: PublicKey, amount: UInt64) {
         let tokenContract = new FungibleToken(tokenAddress);
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());

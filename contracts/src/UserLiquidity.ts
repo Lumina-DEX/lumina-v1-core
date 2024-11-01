@@ -1,5 +1,5 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types, SmartContract } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, PoolData, PoolHolder } from './indexmina.js';
+import { BalanceChangeEvent, FungibleToken, mulDiv, Pool, PoolData, PoolHolder } from './indexmina.js';
 
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
@@ -35,8 +35,9 @@ export class PoolLiquidity extends SmartContract {
     * @param vk new verification key
     */
     @method async updateVerificationKey(vk: VerificationKey) {
-        const pool = this.pool.getAndRequireEquals();
-        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolAddress = this.pool.getAndRequireEquals();
+        const pool = new Pool(poolAddress);
+        const poolDataAddress = await pool.getPoolData();
         const poolData = new PoolData(poolDataAddress);
         const owner = await poolData.getOwner();
 
@@ -56,8 +57,10 @@ export class PoolLiquidity extends SmartContract {
     }
 
     @method async addLiquidity(amountToken: UInt64) {
+        const poolAddress = this.pool.getAndRequireEquals();
+        const pool = new Pool(poolAddress);
+        const tokenAddress = await pool.getToken0();
         const amount = this.token0Amount.getAndRequireEquals();
-        const tokenAddress = this.token0.getAndRequireEquals();
         tokenAddress.equals(PublicKey.empty()).assertFalse("You can't call this method on mina pool");
 
         let tokenContract = new FungibleToken(tokenAddress);
@@ -74,10 +77,5 @@ export class PoolLiquidity extends SmartContract {
         this.token0Amount.set(newAmount);
     }
 
-
-    @method.returns(PublicKey) async getPoolData() {
-        const poolData = this.poolData.getAndRequireEquals();
-        return poolData;
-    }
 
 }
