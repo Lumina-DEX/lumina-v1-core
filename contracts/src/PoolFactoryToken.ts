@@ -89,9 +89,9 @@ export class PoolFactoryToken extends TokenContractV2 {
 
         publicKey.isEmpty().assertFalse("publicKey is empty");
 
-        // let tokenAccount = AccountUpdate.create(publicKey, this.deriveTokenId());
+        let tokenAccount = AccountUpdate.create(publicKey, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
-        // tokenAccount.account.balance.requireEquals(UInt64.zero);
+        tokenAccount.account.balance.requireEquals(UInt64.zero);
 
         // create a pool as this new address
         const poolAccount = AccountUpdate.createSigned(newAccount);
@@ -191,30 +191,13 @@ export class PoolFactoryToken extends TokenContractV2 {
         ];
 
 
-        // create a liquidity token holder as this new address
-        const tokenId = TokenId.derive(newAccount);
-        const liquidityAccount = AccountUpdate.createSigned(newAccount, tokenId);
-        // Require this account didn't already exist
-        liquidityAccount.account.isNew.requireEquals(Bool(true));
-        liquidityAccount.body.update.permissions = {
-            isSome: Bool(true),
-            value: {
-                ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
-                // This is necessary in order to allow burn circulation supply without signature
-                send: Permissions.none(),
-                setPermissions: Permissions.impossible()
-            },
-        };
-
         // we mint one token to check if this pool exist 
-        //   this.internal.mint({ address: tokenAccount, amount: UInt64.one });
+        this.internal.mint({ address: tokenAccount, amount: UInt64.one });
 
         const fungibleToken0 = new FungibleToken(token0);
         const fungibleToken1 = new FungibleToken(token1);
         await fungibleToken0.approveAccountUpdate(poolHolderAccount0);
         await fungibleToken1.approveAccountUpdate(poolHolderAccount1);
-        await poolAccount.approve(liquidityAccount);
 
         const sender = this.sender.getUnconstrainedV2();
         this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, tokenAddress: token0 }));
