@@ -310,30 +310,20 @@ export class Pool extends TokenContractV2 {
         await senderSigned.send({ to: this.self, amount: amountMinaIn });
     }
 
-    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+    @method async checkLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
         amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
-        this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
+        const supplyLiquidity = this.totalSupply.getAndRequireEquals();
+        supplyLiquidity.assertLessThanOrEqual(supplyMax);
 
         const sender = this.sender.getUnconstrainedV2();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
-        liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
-
-        const amountMina = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
-        amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
-
-        // burn liquidity from user and current supply
-        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2()
         await this.internal.burn({ address: sender, amount: liquidityAmount });
 
-        // send mina to user
-        await this.send({ to: sender, amount: amountMina });
 
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMina, amountTokenOut, amountLiquidityIn: liquidityAmount }));
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMinaMin, amountTokenOut, amountLiquidityIn: liquidityAmount }));
     }
 
     @method.returns(PublicKey) async getPoolData() {
