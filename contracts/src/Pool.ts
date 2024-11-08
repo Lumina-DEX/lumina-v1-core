@@ -245,7 +245,8 @@ export class Pool extends TokenContractV2 {
         amountMinaOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
         taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
 
-        let tokenContract = new FungibleToken(this.token0.getAndRequireEquals());
+        const token0 = this.token0.getAndRequireEquals();
+        let tokenContract = new FungibleToken(token0);
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
 
         tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
