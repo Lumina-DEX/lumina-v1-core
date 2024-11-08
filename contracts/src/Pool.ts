@@ -1,4 +1,4 @@
-import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types, Mina } from 'o1js';
+import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
 import { BalanceChangeEvent, FungibleToken, mulDiv, PoolData, PoolHolder } from './indexmina.js';
 
 export class SwapEvent extends Struct({
@@ -56,7 +56,6 @@ export class Pool extends TokenContractV2 {
     @state(PublicKey) token0 = State<PublicKey>();
     @state(PublicKey) token1 = State<PublicKey>();
     @state(PublicKey) poolData = State<PublicKey>();
-    @state(UInt64) totalSupply = State<UInt64>();
 
     // max fee for frontend 0.15 %
     static maxFee: UInt64 = UInt64.from(15);
@@ -146,9 +145,6 @@ export class Pool extends TokenContractV2 {
         amountToken0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
         amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
 
-        const balanceLiquidity = this.totalSupply.getAndRequireEquals();
-        balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
-
         // if token 0 is empty so it's a Mina/Token pool
         const token0 = this.token0.getAndRequireEquals();
         const token1 = this.token1.getAndRequireEquals();
@@ -169,13 +165,17 @@ export class Pool extends TokenContractV2 {
         Provable.log("token sent");
 
         // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
+        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
+        balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
+
         const liquidityAmount = amount0.add(amountToken1);
         // on first mint remove minimal liquidity amount to prevent from inflation attack
         const liquidityUser = liquidityAmount.sub(Pool.minimunLiquidity);
         // mint token       
         let sender = this.sender.getUnconstrainedV2();
         this.internal.mint({ address: sender, amount: liquidityUser });
-        this.totalSupply.set(liquidityAmount);
+        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
         this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountToken0, amountTokenIn: amountToken1, amountLiquidityOut: liquidityUser }));
 
@@ -310,26 +310,56 @@ export class Pool extends TokenContractV2 {
         await senderSigned.send({ to: this.self, amount: amountMinaIn });
     }
 
+    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
+        reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
+        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
+        supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
+
+        this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
+
+        const sender = this.sender.getUnconstrainedV2();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
+        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
+        liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
+
+        const amountMina = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
+        amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
+
+        // burn liquidity from user and current supply
+        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2()
+        await this.internal.burn({ address: sender, amount: liquidityAmount });
+
+        // send mina to user
+        await this.send({ to: sender, amount: amountMina });
+
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMina, amountTokenOut, amountLiquidityIn: liquidityAmount }));
+    }
+
     @method async checkLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
         amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
-        const supplyLiquidity = this.totalSupply.getAndRequireEquals();
-        supplyLiquidity.assertLessThanOrEqual(supplyMax);
-
         const sender = this.sender.getUnconstrainedV2();
-        await this.internal.burn({ address: sender, amount: liquidityAmount });
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
+        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
+        liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
 
+        // burn liquidity from user and current supply
+        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2();
+        await this.internal.burn({ address: sender, amount: liquidityAmount });
 
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMinaMin, amountTokenOut, amountLiquidityIn: liquidityAmount }));
     }
+
 
     @method.returns(PublicKey) async getPoolData() {
         const poolData = this.poolData.getAndRequireEquals();
         return poolData;
     }
+
 
     @method.returns(PublicKey) async getToken0() {
         const token0 = this.token0.getAndRequireEquals();

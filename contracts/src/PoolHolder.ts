@@ -158,10 +158,10 @@ export class PoolHolder extends SmartContract {
 
 
     // check if they are no exploit possible  
-    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenMin: UInt64, reserveMinaMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
+    @method async withdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
-        reserveTokenMin.assertGreaterThan(UInt64.zero, "Reserve token min can't be zero");
-        amountTokenMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
+        reserveToken1Min.assertGreaterThan(UInt64.zero, "Reserve token min can't be zero");
+        amountToken1Min.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // check if token match
@@ -170,22 +170,21 @@ export class PoolHolder extends SmartContract {
 
         let poolTokenZ = new PoolHolder(this.address, tokenId1);
 
-        this.account.balance.requireBetween(reserveTokenMin, UInt64.MAXINT());
+        this.account.balance.requireBetween(reserveToken0Min, UInt64.MAXINT());
 
         // calculate amount token out
-        const amountToken = mulDiv(liquidityAmount, reserveTokenMin, supplyMax);
-        amountToken.assertGreaterThanOrEqual(amountTokenMin, "Insufficient amount token out");
+        const amountToken = mulDiv(liquidityAmount, reserveToken0Min, supplyMax);
+        amountToken.assertGreaterThanOrEqual(amountToken0Min, "Insufficient amount token out");
 
         const sender = this.sender.getUnconstrainedV2();
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, reserveTokenMin, supplyMax);
+        await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
-        const account = AccountUpdate.create(token1Address);
-        //const token = new FungibleToken(token1Address);
-        account.approve(poolTokenZ.self);
+        const token1 = new FungibleToken(token1Address);
+        await token1.approveAccountUpdate(poolTokenZ.self);
 
     }
 
