@@ -332,7 +332,7 @@ async function swapMina() {
         await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToken.deriveTokenId() });
 
         let amountIn = UInt64.from(1.3 * 10 ** 9);
-        let dexTokenHolder = new PoolTokenHolder(zkAppAddress, zkToken.deriveTokenId());
+        let dexTokenHolder = new PoolHolder(zkAppAddress, zkToken.deriveTokenId());
 
         const reserveIn = Mina.getBalance(zkAppAddress);
         const reserveOut = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
@@ -343,7 +343,7 @@ async function swapMina() {
         const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
 
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await dexTokenHolder.swapFromMina(feepayerAddress, UInt64.from(5), amountIn, expectedOut, balanceMax, balanceMin);
+            await dexTokenHolder.swapFromToken(feepayerAddress, UInt64.from(5), amountIn, expectedOut, balanceMax, balanceMin);
             await zkToken.approveAccountUpdate(dexTokenHolder.self);
         });
         await tx.prove();
