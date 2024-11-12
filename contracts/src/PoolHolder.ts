@@ -104,7 +104,11 @@ export class PoolHolder extends SmartContract {
         const tokenId1 = TokenId.derive(token1Address);
         this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Inccorect token id");
 
-        const tokenIdIn = Provable.if(this.self.tokenId.equals(tokenId0), tokenId0, tokenId1);
+        const tokenIdIn = Provable.if(this.tokenId.equals(tokenId0), tokenId1, tokenId0);
+        const tokenAddressIn = Provable.if(this.tokenId.equals(tokenId0), token1Address, token0Address);
+
+        const otherPool = AccountUpdate.create(this.address, tokenIdIn);
+        otherPool.account.balance.requireBetween(UInt64.one, balanceInMax);
 
         // calculate amount token out, No tax for the moment (probably in a next version),   
         let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
@@ -133,29 +137,12 @@ export class PoolHolder extends SmartContract {
         let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
         protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        const otherPool = new PoolHolder(this.address, tokenIdIn);
-        await otherPool.swapFromOtherToken(amountTokenIn, balanceInMax);
+        const tokenIn = new FungibleToken(tokenAddressIn);
+        await tokenIn.approveAccountUpdate(otherPool);
+        await tokenIn.transfer(sender, this.address, amountTokenIn);
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
     }
-
-
-    /**
-     * Don't call this method directly or you will just lost tokens
-     * @param amountIn token amount in
-     * @param balanceInMax actual reserve max in
-     */
-    @method async swapFromOtherToken(amountIn: UInt64, balanceInMax: UInt64) {
-
-        amountIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-
-        this.account.balance.requireBetween(UInt64.one, balanceInMax);
-
-        let accountUpdate = await this.send({ to: this.self, amount: amountIn });
-        accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-    }
-
 
     // check if they are no exploit possible  
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {

@@ -316,12 +316,14 @@ describe('Pool Factory Token', () => {
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    const reserveIn = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    const reserveOut = Mina.getBalance(zkPoolAddress, zkToken1.deriveTokenId());
+    const reserveIn = Mina.getBalance(zkPoolAddress, zkToken1.deriveTokenId());
+    const reserveOut = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
-    const balanceMin = reserveIn.sub(reserveIn.div(100));
-    const balanceMax = reserveOut.add(reserveOut.div(100));
+    console.log("current bal in", reserveIn.toBigInt());
+
+    const balanceMin = reserveOut.sub(reserveOut.div(100));
+    const balanceMax = reserveIn.add(reserveIn.div(100));
 
     const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
     const optimalOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
