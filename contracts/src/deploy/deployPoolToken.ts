@@ -98,7 +98,7 @@ let zkFaucetAddress = zkFaucetKey.toPublicKey();
 let zkFaucet = new Faucet(zkFaucetAddress, zkToken.deriveTokenId());
 
 let zkTokaAddress = PublicKey.fromBase58("B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w");
-let zkToka = new FungibleToken(zkTokenAddress);
+let zkToka = new FungibleToken(zkTokaAddress);
 
 console.log("tokenStandard", zkTokenAddress.toBase58());
 console.log("pool", zkAppAddress.toBase58());
@@ -302,6 +302,11 @@ async function addLiquidity() {
         console.log("add liquidity");
         let amt = UInt64.from(5000 * 10 ** 9);
         let amtMina = UInt64.from(20 * 10 ** 9);
+        await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToken.deriveTokenId() });
+        const account = await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToka.deriveTokenId() });
+        console.log("nonce toka", account.account?.nonce.toBigint());
+        await fetchAccount({ publicKey: feepayerAddress, tokenId: zkApp.deriveTokenId() });
+        await fetchAccount({ publicKey: zkAppAddress, tokenId: zkApp.deriveTokenId() });
         const token = await zkApp.token0.fetch();
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
             AccountUpdate.fundNewAccount(feepayerAddress, 1);
