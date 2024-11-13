@@ -61,19 +61,16 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
     await fs.readFile(config.feepayerKeyPath, 'utf8'));
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-// B62qjmz2oEe8ooqBmvj3a6fAbemfhk61rjxTYmUMP9A6LPdsBLmRAxK
-let zkAppKey = PrivateKey.fromBase58("EKEVcNxyPchkFYBvkzPvPz9PVPNPKPEkM33QNpPGPfet7Ga4MBQZ");
-// B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w
-let zkTokenPrivateKey = PrivateKey.fromBase58("EKDpsCUu1roVtrqoprUyseGZVKbPLZMvGagBoN7WRUVHzDWBUWFj");
-// B62qmZpuEkuf3MeH2WAkxzXRJMBMmZHb1JxSZqqQR8T3jtt2FUTy9wK
-let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKDym4pZnbRVmWtubWaBgEeQ5GHrhtQc1KyD6sJm5cFaDWcj3vai");
+// B62qj5TFJJU9poNB9xYZDSn9UeJGFfVHACEzmYTHVSwU4QsDh2uYdL6
+let zkAppKey = PrivateKey.fromBase58("EKFPnkGeFtKbfma2ihFjRtfveCnr4WXHupMVams68EDRH6WpYdM8");
+// B62qq7cGn7rx6wwbjMP2Q2c8nm3nuwH3JPAuezzihZjNLhV66KCK9Ct
+let zkTokenPrivateKey = PrivateKey.fromBase58("EKEk3mQKdVvp42q5ixsLHgFcWanXNFmtGd6qcWyjo4mxLCz5YQa4");
+// B62qk8EiCmt3XtpXVRJ41WbcyZKruTkpKnNNTb6kiwLvXaRzBzWPLdD
+let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKEnTVvNkmeNn8pb1TZXb3n7NHhn8k2rAG8a6CdY5F7Bnno2j1xQ");
 // B62qnigaSA2ZdhmGuKfQikjYKxb6V71mLq3H8RZzvkH4htHBEtMRUAG
 let zkFaucetKey = PrivateKey.fromBase58("EKDrpqX83AMJPT4X2dpPhAESbtrL96YV85gGCjECiK523LnBNqka");
-// B62qpfZ1egTLiRyX2DxfeFENrumeZowycer3Y5J9pKbiGVkgQBDkhW3
-let zkFactoryKey = PrivateKey.fromBase58("EKFaHTuesnx5QDU2DBAZmZBMhPTnEPCib3g83gvvQtaSBUx5thZW");
-// B62qkrzCSQXVgjaWBc2evMGne2KMnx62MYFXdtQGKVc9G8eBQ1KYhk1
-let zkEthKey = PrivateKey.fromBase58("EKEmhcRYSzhcS6j5DSBDopneC4jd6HdFhK32JwJVghViY9gPNLAe");
-// weth address B62qqKNnNRpCtgcBexw5khZSpk9K2d9Z7Wzcyir3WZcVd15Bz8eShVi
+// B62qqJ2zzVh9xJdt25SpFgmcMtaMgHvCNZdYqRh1tjVPu1rScJ67tSd
+let zkFactoryKey = PrivateKey.fromBase58("EKE5rPE8TrRWhffPXYAXPBxZ328g1La27A1UuL7hVdjJAEEMmdEB");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
@@ -99,15 +96,15 @@ let zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
 let zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
 let zkFaucetAddress = zkFaucetKey.toPublicKey();
 let zkFaucet = new Faucet(zkFaucetAddress, zkToken.deriveTokenId());
-let zkEthAddress = zkEthKey.toPublicKey();
-let zkEth = new Pool(zkEthAddress);
+
+let zkTokaAddress = PublicKey.fromBase58("B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w");
+let zkToka = new FungibleToken(zkTokenAddress);
 
 console.log("tokenStandard", zkTokenAddress.toBase58());
 console.log("pool", zkAppAddress.toBase58());
 console.log("factory", zkFactoryKey.toBase58());
 console.log("zkTokenAdmin", zkTokenAdminAddress.toBase58());
 console.log("zkFaucet", zkFaucetAddress.toBase58());
-console.log("zkEth", zkEthAddress.toBase58());
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
@@ -192,7 +189,7 @@ async function deployToken() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 4);
+                AccountUpdate.fundNewAccount(feepayerAddress, 3);
                 await zkTokenAdmin.deploy({
                     adminPublicKey: feepayerAddress,
                 });
@@ -208,7 +205,8 @@ async function deployToken() {
             }
         );
         await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, zkTokenPrivateKey]).send();
+        //console.log("tx", tx.toPretty());
+        let sentTx = await tx.sign([feepayerKey, zkTokenPrivateKey, zkTokenAdminPrivateKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
         }
@@ -225,8 +223,8 @@ async function deployPool() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkAppAddress, zkTokenAddress, zkTokenAddress);
+                AccountUpdate.fundNewAccount(feepayerAddress, 5);
+                await zkFactory.createPool(zkAppAddress, zkTokaAddress, zkTokenAddress);
             }
         );
         await tx.prove();
@@ -306,7 +304,7 @@ async function addLiquidity() {
         let amtMina = UInt64.from(20 * 10 ** 9);
         const token = await zkApp.token0.fetch();
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, 2);
+            AccountUpdate.fundNewAccount(feepayerAddress, 1);
             await zkApp.supplyFirstLiquidities(amtMina, amt);
         });
         console.log("tx liquidity", tx.toPretty());
