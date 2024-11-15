@@ -175,7 +175,7 @@ describe('Pool Factory Token', () => {
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
+      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
     });
     console.log("supplyFirstLiquidities", txn.toPretty());
     console.log("supplyFirstLiquidities au", txn.transaction.accountUpdates.length);
@@ -202,7 +202,7 @@ describe('Pool Factory Token', () => {
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
+      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
     });
     //console.log("supplyFirstLiquidities", txn.toPretty());
     console.log("supplyFirstLiquidities au", txn.transaction.accountUpdates.length);
@@ -235,7 +235,7 @@ describe('Pool Factory Token', () => {
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
+      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
     });
     console.log("supplyFirstLiquidities", txn.toPretty());
     await txn.prove();
@@ -280,7 +280,7 @@ describe('Pool Factory Token', () => {
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
+      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
     });
     console.log("createPool au", txn.transaction.accountUpdates.length);
     await txn.prove();
@@ -296,7 +296,7 @@ describe('Pool Factory Token', () => {
     let amtToken2 = UInt64.from(5 * 10 ** 9);
     txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkPool.supplyLiquidity(amtMina, amtToken2, amt, amtToken, liquidityUser);
+      await zkPool.supplyLiquidityToken(amtMina, amtToken2, amt, amtToken, liquidityUser);
     });
     console.log("add liquidity from mina", txn.toPretty());
     console.log("add liquidity from mina au", txn.transaction.accountUpdates.length);
@@ -311,7 +311,7 @@ describe('Pool Factory Token', () => {
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
+      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();

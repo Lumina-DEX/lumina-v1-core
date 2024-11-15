@@ -141,7 +141,7 @@ export class Pool extends TokenContractV2 {
     }
 
 
-    @method.returns(UInt64) async supplyFirstLiquidities(amountToken0: UInt64, amountToken1: UInt64) {
+    @method.returns(UInt64) async supplyFirstLiquiditiesToken(amountToken0: UInt64, amountToken1: UInt64) {
         amountToken0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
         amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
 
@@ -182,9 +182,7 @@ export class Pool extends TokenContractV2 {
         return liquidityUser;
     }
 
-
-
-    @method.returns(UInt64) async supplyLiquidity(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64) {
+    @method.returns(UInt64) async supplyLiquidityToken(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64) {
         amountToken0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
         amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
         reserveToken1Max.assertGreaterThan(UInt64.zero, "Reserve token 1 max can't be zero");
@@ -234,103 +232,7 @@ export class Pool extends TokenContractV2 {
         return liquidityUser;
     }
 
-    @method async swapFromToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
-        // if token 0 is empty so it's a Mina/Token pool
-        this.token0.requireEquals(PublicKey.empty());
-
-        amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
-        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-        amountMinaOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
-        amountMinaOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
-        taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
-
-        const token0 = this.token0.getAndRequireEquals();
-        let tokenContract = new FungibleToken(token0);
-        let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
-
-        tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
-        this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
-
-        let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
-        // 0.20% tax fee for liquidity provider directly on amount out
-        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
-        // 0.15% fee max for the frontend
-        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
-        // 0.05% to the protocol  
-        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
-
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
-        amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
-
-        // send token to the pool
-        let sender = this.sender.getUnconstrainedV2();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amountTokenIn });
-
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
-
-        // send mina to user
-        await this.send({ to: sender, amount: amountOut });
-        // send mina to frontend (if not empty)
-        const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
-        await this.send({ to: frontendReceiver, amount: feeFrontend });
-        // send mina to protocol
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = await poolData.getProtocol();
-        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
-        await this.send({ to: protocolReceiver, amount: feeProtocol });
-
-        this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
-    }
-
-    /**
-     * Don't call this method directly, use pool token holder or you will just lost mina
-     * @param amountMinaIn mina amount in
-     * @param balanceInMax actual reserve max in
-     */
-    @method async swapFromMina(amountMinaIn: UInt64, balanceInMax: UInt64) {
-        // if token 0 is empty so it's a Mina/Token pool
-        this.token0.requireEquals(PublicKey.empty());
-
-        amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-
-        this.account.balance.requireBetween(UInt64.one, balanceInMax);
-        let sender = this.sender.getUnconstrainedV2();
-        let senderSigned = AccountUpdate.createSigned(sender);
-        await senderSigned.send({ to: this.self, amount: amountMinaIn });
-    }
-
-    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
-        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
-        reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
-        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
-        supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
-
-        this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
-
-        const sender = this.sender.getUnconstrainedV2();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
-        liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
-
-        const amountMina = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
-        amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
-
-        // burn liquidity from user and current supply
-        await this.internal.burn({ address: liquidityAccount, amount: liquidityAmount });
-        await this.internal.burn({ address: sender, amount: liquidityAmount });
-
-        // send mina to user
-        await this.send({ to: sender, amount: amountMina });
-
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMina, amountTokenOut, amountLiquidityIn: liquidityAmount }));
-    }
-
-    @method async checkLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+    @method async checkLiquidityToken(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
         amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");

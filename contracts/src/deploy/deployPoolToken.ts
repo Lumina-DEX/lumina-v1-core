@@ -340,7 +340,7 @@ async function addLiquidity() {
         const token = await zkApp.token0.fetch();
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
             AccountUpdate.fundNewAccount(feepayerAddress, 1);
-            await zkApp.supplyFirstLiquidities(amtMina, amt);
+            await zkApp.supplyFirstLiquiditiesToken(amtMina, amt);
         });
         console.log("tx liquidity", tx.toPretty());
         await tx.prove();

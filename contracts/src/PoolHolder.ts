@@ -39,53 +39,6 @@ export class PoolHolder extends SmartContract {
     }
 
     // swap from mina to this token through the pool
-    @method async swapFromMina(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
-    ) {
-        // if token 0 is empty so it's a Mina/Token pool
-        this.token0.requireEquals(PublicKey.empty());
-
-        amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
-        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-        amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
-        amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
-        taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
-
-        this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
-
-        // calculate amount token out, No tax for the moment (probably in a next version),   
-        let amountOutBeforeFee = mulDiv(balanceOutMin, amountMinaIn, balanceInMax.add(amountMinaIn));
-        // 0.20% tax fee for liquidity provider directly on amount out
-        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
-        // 0.15% fee max for the frontend
-        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
-        // 0.05% to the protocol  
-        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
-
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
-        amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
-
-        let sender = this.sender.getUnconstrainedV2();
-
-        // send token to the user
-        let receiverUpdate = this.send({ to: sender, amount: amountOut })
-        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-        // send fee to frontend (if not empty)
-        const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
-        let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
-        frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-        // send fee to protocol
-        const protocolReceiver = await this.getProtocolReceiver();
-        let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
-        protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
-        let pool = new Pool(this.address);
-        await pool.swapFromMina(amountMinaIn, balanceInMax);
-
-        this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
-    }
-
-    // swap from mina to this token through the pool
     @method async swapFromToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
@@ -195,15 +148,7 @@ export class PoolHolder extends SmartContract {
         let receiverUpdate = this.send({ to: sender, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        // const token1Address = this.token1.getAndRequireEquals();
-        // const token = new FungibleToken(token1Address);
-        // this.self.balanceChange = Int64.fromUnsigned(amountToken).negV2();
-        // const senderAccount = AccountUpdate.create(sender, token.deriveTokenId());
-        // senderAccount.balanceChange = Int64.fromUnsigned(amountToken);
-
-        // await token.approveAccountUpdates([this.self, senderAccount]);
-
-        await pool.checkLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
+        await pool.checkLiquidityToken(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
     }
 
     private async getProtocolReceiver(): Promise<PublicKey> {
