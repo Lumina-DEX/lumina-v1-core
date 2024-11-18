@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey, TokenContractV2 } from 'o1js';
-import { FungibleToken } from '../indexmina.js';
+import { FungibleToken } from '../indexpool.js';
 
 
 export interface FaucetDeployProps extends Exclude<DeployArgs, undefined> {

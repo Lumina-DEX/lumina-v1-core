@@ -1,6 +1,6 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, Mina, Poseidon, PrivateKey, PublicKey, UInt64, UInt8, VerificationKey } from 'o1js';
-import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolTokenHolder, Pool } from '../indexmina';
+import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolTokenHolder, Pool } from '../index';
 import { PoolSampleTest } from './PoolSampleTest';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
 import { PoolHolderUpgradeTest } from './PoolHolderUpgradeTest';

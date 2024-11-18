@@ -1,5 +1,5 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, PoolData, PoolTokenHolder } from '../indexmina.js';
+import { BalanceChangeEvent, FungibleToken, mulDiv, PoolData, PoolTokenHolder } from '../indexpool.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,

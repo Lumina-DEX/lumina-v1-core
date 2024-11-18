@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey, TokenId, Int64 } from 'o1js';
-import { Pool, mulDiv, SwapEvent, PoolData, FungibleToken } from '../indexmina.js';
+import { Pool, mulDiv, SwapEvent, PoolData, FungibleToken } from '../indexpool.js';
 
 /**
  * Token holder contract, manage swap and liquidity remove functions

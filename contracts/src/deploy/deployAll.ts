@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolTokenHolder, FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool } from '../indexmina.js';
+import { PoolTokenHolder, FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool } from '../index.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
