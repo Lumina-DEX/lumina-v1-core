@@ -1,9 +1,9 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, Mina, Poseidon, PrivateKey, PublicKey, UInt64, UInt8, VerificationKey } from 'o1js';
-import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolMina, PoolTokenHolder } from '../indexmina';
-import { PoolSampleTest } from '../PoolSampleTest';
-import { PoolUpgradeTest } from '../PoolUpgradeTest';
-import { PoolHolderUpgradeTest } from '../PoolHolderUpgradeTest';
+import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolTokenHolder, Pool } from '../indexmina';
+import { PoolSampleTest } from './PoolSampleTest';
+import { PoolUpgradeTest } from './PoolUpgradeTest';
+import { PoolHolderUpgradeTest } from './PoolHolderUpgradeTest';
 
 let proofsEnabled = false;
 
@@ -24,7 +24,7 @@ describe('Pool data', () => {
     zkApp: PoolFactory,
     zkPoolAddress: PublicKey,
     zkPoolPrivateKey: PrivateKey,
-    zkPool: PoolMina,
+    zkPool: Pool,
     zkPoolDataAddress: PublicKey,
     zkPoolDataPrivateKey: PrivateKey,
     zkPoolData: PoolData,
@@ -52,7 +52,7 @@ describe('Pool data', () => {
       await FungibleTokenAdmin.compile({ cache });
       await FungibleToken.compile({ cache });
       await PoolFactory.compile({ cache });
-      await PoolMina.compile({ cache });
+      await Pool.compile({ cache });
       await PoolTokenHolder.compile({ cache });
       console.timeEnd('compile PoolData');
     }
@@ -85,7 +85,7 @@ describe('Pool data', () => {
 
     zkPoolPrivateKey = PrivateKey.random();
     zkPoolAddress = zkPoolPrivateKey.toPublicKey();
-    zkPool = new PoolMina(zkPoolAddress);
+    zkPool = new Pool(zkPoolAddress);
 
     zkTokenAdminPrivateKey = PrivateKey.random();
     zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();

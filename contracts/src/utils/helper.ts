@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey } from 'o1js';
-import { mulDiv } from './indexmina.js';
+import { mulDiv } from '../indexmina.js';
 
 
 export function getAmountOut(amountIn: number, balanceIn: number, balanceOut: number, percent: number) {

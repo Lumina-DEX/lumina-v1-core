@@ -14,9 +14,8 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolMina, PoolTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolHolder, Pool, PoolData } from '../indexmina.js';
+import { FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolTokenHolder, Pool, PoolData } from '../indexmina.js';
 import readline from "readline/promises";
-import { PoolFactoryToken } from '../PoolFactoryToken.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -91,7 +90,7 @@ let feepayerAddress = feepayerKey.toPublicKey();
 let zkAppAddress = zkAppKey.toPublicKey();
 let zkPoolDataAddress = zkPoolDataKey.toPublicKey();
 let zkFactoryAddress = zkFactoryKey.toPublicKey();
-let zkFactory = new PoolFactoryToken(zkFactoryAddress);
+let zkFactory = new PoolFactory(zkFactoryAddress);
 let zkApp = new Pool(zkAppAddress);
 let zkTokenAddress = zkTokenPrivateKey.toPublicKey();
 let zkToken = new FungibleToken(zkTokenAddress);
@@ -117,9 +116,9 @@ const cache: Cache = Cache.FileSystem('./cache');
 const key = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
-await PoolHolder.compile({ cache });
+await PoolTokenHolder.compile({ cache });
 await PoolData.compile({ cache });
-await PoolFactoryToken.compile({ cache });
+await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
 //const keyV2 = await PoolMinaV2.compile({ cache });
 
@@ -229,7 +228,7 @@ async function deployPool() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 5);
-                await zkFactory.createPool(zkAppAddress, zkTokaAddress, zkTokenAddress);
+                await zkFactory.createPoolToken(zkAppAddress, zkTokaAddress, zkTokenAddress);
             }
         );
         await tx.prove();
@@ -367,7 +366,7 @@ async function swapMina() {
         await fetchAccount({ publicKey: feepayerAddress, tokenId: zkToka.deriveTokenId() });
 
         let amountIn = UInt64.from(1.3 * 10 ** 9);
-        let dexTokenHolder = new PoolHolder(zkAppAddress, zkToken.deriveTokenId());
+        let dexTokenHolder = new PoolTokenHolder(zkAppAddress, zkToken.deriveTokenId());
 
         const reserveIn = Mina.getBalance(zkAppAddress, zkToka.deriveTokenId());
         const reserveOut = Mina.getBalance(zkAppAddress, zkToken.deriveTokenId());
@@ -411,7 +410,7 @@ async function swapToken() {
         const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
 
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkApp.swapFromToken(feepayerAddress, UInt64.from(5), amountIn, expectedOut, balanceMax, balanceMin);
+            await zkApp.swapTokenForMina(feepayerAddress, UInt64.from(5), amountIn, expectedOut, balanceMax, balanceMin);
         });
         await tx.prove();
         console.log("swap token proof", tx.toPretty());

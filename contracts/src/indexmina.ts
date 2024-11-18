@@ -1,12 +1,9 @@
 
-export * from './MathLibrary.js';
+export * from './pool/MathLibrary.js';
 export * from 'mina-fungible-token';
-export * from './MinaTokenHolder.js';
-export * from './PoolMina.js';
-export * from "./helper.js";
-export * from "./Faucet.js";
-export * from "./PoolTokenHolder.js";
-export * from "./PoolFactory.js";
-export * from "./PoolData.js";
-export * from "./PoolHolder.js";
-export { Pool } from "./Pool.js";
+export * from "./utils/helper.js";
+export * from "./utils/Faucet.js";
+export * from "./pool/PoolFactory.js";
+export * from "./pool/PoolData.js";
+export * from "./pool/PoolTokenHolder.js";
+export * from "./pool/Pool.js";

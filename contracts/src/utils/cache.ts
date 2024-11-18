@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory } from './indexmina.js';
+import { Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory } from '../indexmina.js';
 import readline from "readline/promises";
 import path from 'path';
 
@@ -10,7 +10,7 @@ const cache = Cache.FileSystem('./cache');
 for (let index = 0; index < 6; index++) {
     // compile 3 time to get all files
     await PoolFactory.compile({ cache });
-    await PoolMina.compile({ cache });
+    await Pool.compile({ cache });
     await FungibleToken.compile({ cache });
     await FungibleTokenAdmin.compile({ cache });
     await PoolTokenHolder.compile({ cache });

@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolMina, Faucet, PoolFactory, PoolTokenHolder, PoolData, contractHash, contractHolderHash } from '../indexmina';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, PoolTokenHolder, PoolData, contractHash, contractHolderHash, Pool } from '../indexmina';
 
 let proofsEnabled = false;
 
@@ -19,7 +19,7 @@ describe('Pool Factory Mina', () => {
     zkApp: PoolFactory,
     zkPoolAddress: PublicKey,
     zkPoolPrivateKey: PrivateKey,
-    zkPool: PoolMina,
+    zkPool: Pool,
     zkPoolDataAddress: PublicKey,
     zkPoolDataPrivateKey: PrivateKey,
     zkPoolData: PoolData,
@@ -32,7 +32,7 @@ describe('Pool Factory Mina', () => {
     tokenHolder: PoolTokenHolder;
 
   beforeAll(async () => {
-    const analyze = await PoolMina.analyzeMethods();
+    const analyze = await Pool.analyzeMethods();
     getGates(analyze);
 
     if (proofsEnabled) {
@@ -41,7 +41,7 @@ describe('Pool Factory Mina', () => {
       await FungibleToken.compile();
       await PoolData.compile();
       await PoolFactory.compile();
-      await PoolMina.compile();
+      await Pool.compile();
       await PoolTokenHolder.compile();
       console.timeEnd('compile pool');
     }
@@ -73,7 +73,7 @@ describe('Pool Factory Mina', () => {
 
     zkPoolPrivateKey = PrivateKey.random();
     zkPoolAddress = zkPoolPrivateKey.toPublicKey();
-    zkPool = new PoolMina(zkPoolAddress);
+    zkPool = new Pool(zkPoolAddress);
 
     zkTokenAdminPrivateKey = PrivateKey.random();
     zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
@@ -165,7 +165,7 @@ describe('Pool Factory Mina', () => {
     });
     await txn1.prove();
     await txn1.sign([deployerKey, newPoolKey]).send();
-    const newPool = new PoolMina(newPoolKey.toPublicKey());
+    const newPool = new Pool(newPoolKey.toPublicKey());
 
     const txn2 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
@@ -187,7 +187,7 @@ describe('Pool Factory Mina', () => {
 
 
     const liquidityUser = Mina.getBalance(senderAccount, newPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(PoolMina.minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(Pool.minimunLiquidity.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
 
@@ -214,7 +214,7 @@ describe('Pool Factory Mina', () => {
 
   it('failed directly deploy a pool', async () => {
     const newPoolKey = PrivateKey.random();
-    const newPool = new PoolMina(newPoolKey.toPublicKey());
+    const newPool = new Pool(newPoolKey.toPublicKey());
     await expect(Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
       await newPool.deploy();

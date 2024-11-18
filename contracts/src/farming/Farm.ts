@@ -1,6 +1,6 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
-import { BalanceChangeEvent, PoolMina, mulDiv, PoolData, PoolHolder } from './indexmina.js';
-import { FarmStorage } from './FarmStorage.js';
+import { BalanceChangeEvent, Pool, mulDiv, PoolData, PoolTokenHolder } from '../indexmina.js';
+import { FarmStorage } from './FarmStorage';
 
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
     pool: PublicKey;

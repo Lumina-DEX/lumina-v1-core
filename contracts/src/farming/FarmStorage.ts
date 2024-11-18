@@ -1,5 +1,5 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types, SmartContract } from 'o1js';
-import { BalanceChangeEvent, PoolMina, mulDiv, PoolData, PoolHolder } from './indexmina.js';
+import { BalanceChangeEvent, Pool, mulDiv, PoolData, PoolTokenHolder } from '../indexmina.js';
 
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
     pool: PublicKey;
@@ -37,7 +37,7 @@ export class FarmStorage extends SmartContract {
     @method
     async deposit(amount: UInt64) {
         const poolAddress = this.pool.getAndRequireEquals();
-        const pool = new PoolMina(poolAddress);
+        const pool = new Pool(poolAddress);
 
         const sender = this.sender.getUnconstrainedV2();
         this.address.assertEquals(sender);
@@ -65,7 +65,7 @@ export class FarmStorage extends SmartContract {
     @method
     async withdraw(amount: UInt64) {
         const poolAddress = this.pool.getAndRequireEquals();
-        const pool = new PoolMina(poolAddress);
+        const pool = new Pool(poolAddress);
 
         const currentAmount = this.amount.getAndRequireEquals();
         amount.assertLessThanOrEqual(currentAmount, "Insuffisient amount");

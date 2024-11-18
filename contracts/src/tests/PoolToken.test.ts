@@ -1,8 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, MinaTokenHolder, mulDiv, PoolMina, Faucet, PoolFactory, PoolTokenHolder, PoolData, contractHash, contractHolderHash, Pool, PoolHolder } from '../indexmina';
-import { PoolFactoryToken } from '../PoolFactoryToken';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, PoolData, contractHash, contractHolderHash, Pool, PoolTokenHolder } from '../indexmina';
 
 let proofsEnabled = false;
 
@@ -17,7 +16,7 @@ describe('Pool Factory Token', () => {
     aliceKey: PrivateKey,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
-    zkApp: PoolFactoryToken,
+    zkApp: PoolFactory,
     zkPoolAddress: PublicKey,
     zkPoolPrivateKey: PrivateKey,
     zkPool: Pool,
@@ -33,10 +32,10 @@ describe('Pool Factory Token', () => {
     zkTokenAddress1: PublicKey,
     zkTokenPrivateKey1: PrivateKey,
     zkToken1: FungibleToken,
-    tokenHolder: PoolHolder;
+    tokenHolder: PoolTokenHolder;
 
   beforeAll(async () => {
-    const analyze = await PoolMina.analyzeMethods();
+    const analyze = await Pool.analyzeMethods();
     getGates(analyze);
 
     if (proofsEnabled) {
@@ -45,7 +44,7 @@ describe('Pool Factory Token', () => {
       await FungibleToken.compile();
       await PoolData.compile();
       await PoolFactory.compile();
-      await PoolMina.compile();
+      await Pool.compile();
       await PoolTokenHolder.compile();
       console.timeEnd('compile pool');
     }
@@ -73,7 +72,7 @@ describe('Pool Factory Token', () => {
 
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
-    zkApp = new PoolFactoryToken(zkAppAddress);
+    zkApp = new PoolFactory(zkAppAddress);
 
     zkPoolPrivateKey = PrivateKey.random();
     zkPoolAddress = zkPoolPrivateKey.toPublicKey();
@@ -101,7 +100,7 @@ describe('Pool Factory Token', () => {
     zkTokenAddress1 = zkTokenPrivateKey1.toPublicKey();
     zkToken1 = new FungibleToken(zkTokenAddress1);
 
-    tokenHolder = new PoolHolder(zkPoolAddress, zkToken0.deriveTokenId());
+    tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken0.deriveTokenId());
 
 
     const txn0 = await Mina.transaction(deployerAccount, async () => {
@@ -155,7 +154,7 @@ describe('Pool Factory Token', () => {
 
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 5);
-      await zkApp.createPool(zkPoolAddress, zkTokenAddress0, zkTokenAddress1);
+      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1);
     });
 
     //console.log("Pool creation", txn3.toPretty());
@@ -211,7 +210,7 @@ describe('Pool Factory Token', () => {
 
 
     const liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(PoolMina.minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(Pool.minimunLiquidity.value);
     expect(liquidityUser.value).toEqual(expected);
 
     txn = await Mina.transaction(senderAccount, async () => {
@@ -287,7 +286,7 @@ describe('Pool Factory Token', () => {
     await txn.sign([senderKey]).send();
 
     let liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(PoolMina.minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(Pool.minimunLiquidity.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
 
