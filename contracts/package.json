@@ -28,7 +28,7 @@
     "testprivate": "node --experimental-vm-modules node_modules/jest/bin/jest.js privatepool.test",
     "lint": "npx eslint src/* --fix",
     "patch": "node patch.js",
-    "doc": "npx typedoc src/indexpool.ts --out ./docs"
+    "doc": "npx typedoc src/indexpool.ts --out ../docs"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",
