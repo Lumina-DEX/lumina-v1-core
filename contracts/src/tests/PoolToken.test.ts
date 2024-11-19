@@ -257,7 +257,7 @@ describe('Pool Factory Token', () => {
     const amountMinaOut = mulDiv(liquityOut, amt, supply);
     const amountTokenOut = mulDiv(liquityOut, amtToken, supply);
     txn = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder.withdrawLiquidity(liquityOut, amountMinaOut, amountTokenOut, amt, amtToken, supply);
+      await tokenHolder.withdrawLiquidityToken(liquityOut, amountMinaOut, amountTokenOut, amt, amtToken, supply);
       await zkToken0.approveAccountUpdate(tokenHolder.self);
       //await zkToken1.approveAccountUpdate(tokenHolder.self);
     });
