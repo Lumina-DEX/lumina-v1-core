@@ -19,6 +19,7 @@ describe('Pool data', () => {
     vk: any,
     aliceAccount: Mina.TestPublicKey,
     aliceKey: PrivateKey,
+    dylanAccount: Mina.TestPublicKey,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: PoolFactory,
@@ -73,7 +74,7 @@ describe('Pool data', () => {
   beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });
     Mina.setActiveInstance(Local);
-    [deployerAccount, senderAccount, bobAccount, aliceAccount] = Local.testAccounts;
+    [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
     deployerKey = deployerAccount.key;
     senderKey = senderAccount.key;
     bobKey = bobAccount.key;
@@ -105,7 +106,8 @@ describe('Pool data', () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
       await zkPoolData.deploy({
         owner: bobAccount,
-        protocol: aliceAccount
+        protocol: aliceAccount,
+        delegator: dylanAccount
       });
 
     });
@@ -185,6 +187,26 @@ describe('Pool data', () => {
 
     let protocolNew = await zkPoolData.protocol.fetch();
     expect(protocolNew?.toBase58()).toEqual(deployerAccount.toBase58());
+
+  });
+
+  it('set delegator', async () => {
+
+    let delegator = await zkPoolData.delegator.fetch();
+    let poolAccount = zkPool.account?.delegate?.get();
+    console.log("pool account", poolAccount.toBase58());
+    expect(delegator?.toBase58()).toEqual(dylanAccount.toBase58());
+    expect(poolAccount?.toBase58()).toEqual(zkPoolAddress.toBase58());
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkPool.setDelegator();
+    });
+    await txn.prove();
+    console.log("set delegator", txn.toPretty());
+    await txn.sign([senderKey]).send();
+
+    poolAccount = zkPool.account?.delegate?.get();
+    console.log("pool account", poolAccount.toBase58());
+    expect(poolAccount?.toBase58()).toEqual(dylanAccount.toBase58());
 
   });
 

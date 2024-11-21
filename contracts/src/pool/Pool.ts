@@ -66,7 +66,8 @@ export class Pool extends TokenContractV2 {
         addLiquidity: AddLiquidityEvent,
         withdrawLiquidity: WithdrawLiquidityEvent,
         BalanceChange: BalanceChangeEvent,
-        upgrade: Field
+        upgrade: Field,
+        updateDelegator: PublicKey
     };
 
     async deploy() {
@@ -89,6 +90,19 @@ export class Pool extends TokenContractV2 {
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", vk.hash);
+    }
+
+    @method async setDelegator() {
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const delegator = await poolData.getDelegator();
+
+        const currentDelegator = this.account.delegate.getAndRequireEquals();
+        currentDelegator.equals(delegator).assertFalse("Delegator already defined");
+
+        this.account.delegate.set(delegator);
+
+        this.emitEvent("updateDelegator", delegator);
     }
 
     /** Approve `AccountUpdate`s that have been created outside of the token contract.
