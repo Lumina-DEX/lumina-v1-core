@@ -13,6 +13,7 @@ describe('Pool Factory Mina', () => {
     bobAccount: Mina.TestPublicKey,
     bobKey: PrivateKey,
     aliceAccount: Mina.TestPublicKey,
+    dylanAccount: Mina.TestPublicKey,
     aliceKey: PrivateKey,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
@@ -61,7 +62,7 @@ describe('Pool Factory Mina', () => {
   beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });
     Mina.setActiveInstance(Local);
-    [deployerAccount, senderAccount, bobAccount, aliceAccount] = Local.testAccounts;
+    [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
     deployerKey = deployerAccount.key;
     senderKey = senderAccount.key;
     bobKey = bobAccount.key;
@@ -93,7 +94,8 @@ describe('Pool Factory Mina', () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
       await zkPoolData.deploy({
         owner: bobAccount,
-        protocol: aliceAccount
+        protocol: aliceAccount,
+        delegator: dylanAccount
       });
 
     });

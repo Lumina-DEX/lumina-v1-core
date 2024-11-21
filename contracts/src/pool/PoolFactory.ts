@@ -16,12 +16,14 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
 export class PoolCreationEvent extends Struct({
     sender: PublicKey,
     poolAddress: PublicKey,
-    tokenAddress: PublicKey
+    token0Address: PublicKey,
+    token1Address: PublicKey
 }) {
     constructor(value: {
         sender: PublicKey,
         poolAddress: PublicKey,
-        tokenAddress: PublicKey
+        token0Address: PublicKey,
+        token1Address: PublicKey
     }) {
         super(value);
     }
@@ -106,6 +108,7 @@ export class PoolFactory extends TokenContractV2 {
                 access: Permissions.proof(),
                 setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
                 send: Permissions.proof(),
+                setDelegate: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },
         };
@@ -184,7 +187,7 @@ export class PoolFactory extends TokenContractV2 {
         await poolAccount.approve(liquidityAccount);
 
         const sender = this.sender.getUnconstrainedV2();
-        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, tokenAddress: token }));
+        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: PublicKey.empty(), token1Address: token }));
 
     }
 
@@ -220,6 +223,7 @@ export class PoolFactory extends TokenContractV2 {
                 access: Permissions.proof(),
                 setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
                 send: Permissions.proof(),
+                setDelegate: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },
         };
@@ -329,7 +333,7 @@ export class PoolFactory extends TokenContractV2 {
         await poolAccount.approve(liquidityAccount);
 
         const sender = this.sender.getUnconstrainedV2();
-        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, tokenAddress: token0 }));
+        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
 
     }
 

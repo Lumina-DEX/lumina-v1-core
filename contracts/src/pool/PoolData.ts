@@ -4,6 +4,7 @@ import { Field, SmartContract, state, State, method, Permissions, PublicKey, Acc
 export interface PoolDataDeployProps extends Exclude<DeployArgs, undefined> {
     protocol: PublicKey;
     owner: PublicKey;
+    delegator: PublicKey;
 }
 
 /**
@@ -17,10 +18,12 @@ export class PoolData extends SmartContract {
         upgrade: Field,
         setNewOwner: PublicKey,
         acceptOwnership: PublicKey,
-        updateProtocol: PublicKey
+        updateProtocol: PublicKey,
+        updateDelegator: PublicKey,
     };
 
     @state(PublicKey) protocol = State<PublicKey>();
+    @state(PublicKey) delegator = State<PublicKey>();
     @state(PublicKey) owner = State<PublicKey>();
     @state(PublicKey) newOwner = State<PublicKey>();
 
@@ -29,9 +32,11 @@ export class PoolData extends SmartContract {
 
         args.protocol.isEmpty().assertFalse("Protocol empty");
         args.owner.isEmpty().assertFalse("Owner empty");
+        args.delegator.isEmpty().assertFalse("Delegator empty");
 
         this.protocol.set(args.protocol);
         this.owner.set(args.owner);
+        this.delegator.set(args.delegator);
 
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
@@ -82,6 +87,15 @@ export class PoolData extends SmartContract {
         this.emitEvent("updateProtocol", newProtocol);
     }
 
+    @method async setNewDelegator(newDelegator: PublicKey) {
+        const owner = this.owner.getAndRequireEquals();
+        // check if owner signed the tx
+        AccountUpdate.createSigned(owner);
+
+        this.delegator.set(newDelegator);
+        this.emitEvent("updateDelegator", newDelegator);
+    }
+
     @method.returns(PublicKey) async getProtocol() {
         const protocol = this.protocol.getAndRequireEquals();
         return protocol;
@@ -90,5 +104,10 @@ export class PoolData extends SmartContract {
     @method.returns(PublicKey) async getOwner() {
         const owner = this.owner.getAndRequireEquals();
         return owner;
+    }
+
+    @method.returns(PublicKey) async getDelegator() {
+        const delegator = this.delegator.getAndRequireEquals();
+        return delegator;
     }
 }
