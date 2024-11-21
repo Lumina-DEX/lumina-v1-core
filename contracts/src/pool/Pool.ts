@@ -388,6 +388,11 @@ export class Pool extends TokenContractV2 {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        token0.equals(PublicKey.empty()).assertTrue("Not a mina pool");
+        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+
         // check if the protocol address is correct
         const poolDataAddress = this.poolData.getAndRequireEquals();
         const poolData = new PoolData(poolDataAddress);

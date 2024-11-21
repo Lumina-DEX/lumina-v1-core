@@ -101,6 +101,8 @@ export class PoolTokenHolder extends SmartContract {
         // check if token match
         const token0Address = this.token0.getAndRequireEquals();
         const token1Address = this.token1.getAndRequireEquals();
+        token0Address.equals(PublicKey.empty()).assertFalse("Invalid token 0 address");
+        token1Address.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
         const tokenId0 = TokenId.derive(token0Address);
         const tokenId1 = TokenId.derive(token1Address);
         this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Inccorect token id");
