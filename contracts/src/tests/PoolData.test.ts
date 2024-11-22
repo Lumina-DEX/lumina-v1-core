@@ -194,10 +194,33 @@ describe('Pool data', () => {
 
     let delegator = await zkPoolData.delegator.fetch();
     let poolAccount = zkPool.account?.delegate?.get();
-    console.log("pool account", poolAccount.toBase58());
     expect(delegator?.toBase58()).toEqual(dylanAccount.toBase58());
     expect(poolAccount?.toBase58()).toEqual(zkPoolAddress.toBase58());
+
     let txn = await Mina.transaction(senderAccount, async () => {
+      await zkPool.setDelegator();
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    poolAccount = zkPool.account?.delegate?.get();
+    expect(poolAccount?.toBase58()).toEqual(dylanAccount.toBase58());
+
+    // already set
+    await expect(Mina.transaction(senderAccount, async () => {
+      await zkPool.setDelegator();
+    })).rejects.toThrow();
+    poolAccount = zkPool.account?.delegate?.get();
+    expect(poolAccount?.toBase58()).toEqual(dylanAccount.toBase58());
+
+    // define a new delegator
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setNewDelegator(aliceAccount);
+    });
+    await txn.prove();
+    await txn.sign([senderKey, bobKey]).send();
+
+    txn = await Mina.transaction(senderAccount, async () => {
       await zkPool.setDelegator();
     });
     await txn.prove();
@@ -206,7 +229,18 @@ describe('Pool data', () => {
 
     poolAccount = zkPool.account?.delegate?.get();
     console.log("pool account", poolAccount.toBase58());
-    expect(poolAccount?.toBase58()).toEqual(dylanAccount.toBase58());
+    expect(poolAccount?.toBase58()).toEqual(aliceAccount.toBase58());
+  });
+
+
+  it('failed change delegator', async () => {
+
+    // only owner can change it
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkPoolData.setNewDelegator(aliceAccount);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
 
   });
 
@@ -319,4 +353,5 @@ describe('Pool data', () => {
     let ownership = await zkPoolData.owner.fetch();
     expect(ownership?.toBase58()).toEqual(bobAccount.toBase58());
   });
+
 });
