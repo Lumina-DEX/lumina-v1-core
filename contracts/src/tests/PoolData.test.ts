@@ -258,43 +258,6 @@ describe('Pool data', () => {
 
   });
 
-  it('update pool', async () => {
-    const newVK = await PoolUpgradeTest.compile();
-    const key = newVK.verificationKey;
-
-    console.log("Pool data", zkPoolDataAddress.toBase58());
-    const txn1 = await Mina.transaction(deployerAccount, async () => {
-      await zkPool.updateVerificationKey(key);
-    });
-    console.log("update pool", txn1.toPretty());
-    await txn1.prove();
-    await txn1.sign([deployerKey, bobKey]).send();
-
-    let poolDatav2 = new PoolUpgradeTest(zkPoolAddress);
-    let version = await poolDatav2.version();
-    expect(version?.toBigInt()).toEqual(33n);
-
-  });
-
-
-  it('update pool holder', async () => {
-    const newVK = await PoolHolderUpgradeTest.compile();
-    const key = newVK.verificationKey;
-
-    const txn1 = await Mina.transaction(deployerAccount, async () => {
-      await tokenHolder.updateVerificationKey(key);
-      await zkToken.approveAccountUpdate(tokenHolder.self);
-    });
-    console.log("update pool holder", txn1.toPretty());
-    await txn1.prove();
-    await txn1.sign([deployerKey, bobKey]).send();
-
-    let poolDatav2 = new PoolHolderUpgradeTest(zkPoolAddress, zkToken.deriveTokenId());
-    let version = await poolDatav2.version();
-    expect(version?.toBigInt()).toEqual(55n);
-
-  });
-
   it('failed without owner key', async () => {
     let txn = await Mina.transaction(senderAccount, async () => {
       await zkPoolData.updateVerificationKey(vk.verificationKey);
@@ -308,17 +271,6 @@ describe('Pool data', () => {
     await txn.prove();
     await expect(txn.sign([senderKey]).send()).rejects.toThrow();
 
-    txn = await Mina.transaction(senderAccount, async () => {
-      await zkPool.updateVerificationKey(compileKey);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder.updateVerificationKey(compileKey);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
 
     txn = await Mina.transaction(senderAccount, async () => {
       await zkPoolData.setNewProtocol(senderAccount);

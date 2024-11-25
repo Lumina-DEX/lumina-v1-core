@@ -11,31 +11,13 @@ export class PoolTokenHolder extends SmartContract {
     @state(PublicKey) poolData = State<PublicKey>();
 
     events = {
-        swap: SwapEvent,
-        upgrade: Field
+        swap: SwapEvent
     };
 
     async deploy() {
         await super.deploy();
 
         Bool(false).assertTrue("You can't directly deploy a token holder");
-    }
-
-    /**
-    * Upgrade to a new version
-    * @param vk new verification key
-    */
-    @method async updateVerificationKey(vk: VerificationKey) {
-        const pool = new Pool(this.address);
-        const poolDataAddress = await pool.getPoolData();
-        const poolData = new PoolData(poolDataAddress);
-        const owner = await poolData.getOwner();
-
-        // only owner can update a pool
-        AccountUpdate.createSigned(owner);
-
-        this.account.verificationKey.set(vk);
-        this.emitEvent("upgrade", vk.hash);
     }
 
     // swap from mina to this token through the pool

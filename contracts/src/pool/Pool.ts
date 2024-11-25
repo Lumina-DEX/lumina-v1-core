@@ -66,7 +66,6 @@ export class Pool extends TokenContractV2 {
         addLiquidity: AddLiquidityEvent,
         withdrawLiquidity: WithdrawLiquidityEvent,
         BalanceChange: BalanceChangeEvent,
-        upgrade: Field,
         updateDelegator: PublicKey
     };
 
@@ -74,22 +73,6 @@ export class Pool extends TokenContractV2 {
         await super.deploy();
 
         Bool(false).assertTrue("You can't directly deploy a pool");
-    }
-
-    /**
-    * Upgrade to a new version
-    * @param vk new verification key
-    */
-    @method async updateVerificationKey(vk: VerificationKey) {
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const owner = await poolData.getOwner();
-
-        // only owner can update a pool
-        AccountUpdate.createSigned(owner);
-
-        this.account.verificationKey.set(vk);
-        this.emitEvent("upgrade", vk.hash);
     }
 
     @method async setDelegator() {

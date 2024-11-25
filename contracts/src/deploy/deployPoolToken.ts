@@ -252,7 +252,8 @@ async function deployPoolData() {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
                 await zkPoolData.deploy({
                     protocol: feepayerAddress,
-                    owner: feepayerAddress
+                    owner: feepayerAddress,
+                    delegator: feepayerAddress
                 });
             }
         );
