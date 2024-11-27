@@ -150,10 +150,7 @@ export class Pool extends TokenContractV2 {
         const liquidityAmount = amountToken.add(amountMina);
 
         // token 0 need to be empty on mina pool
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertTrue("Not a mina pool");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(true);
 
         let tokenContract = new FungibleToken(token1);
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -189,10 +186,7 @@ export class Pool extends TokenContractV2 {
         supplyMin.assertGreaterThan(UInt64.zero, "Supply min can't be zero");
 
         // token 0 need to be empty on mina pool
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertTrue("Not a mina pool");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(true);
 
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
         let tokenContract = new FungibleToken(token1);
@@ -232,10 +226,7 @@ export class Pool extends TokenContractV2 {
         amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
 
         // if token 0 is empty so it's a Mina/Token pool
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertFalse("Invalid token 0 address");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(false);
 
         // if token 0 is not empty we send fungible token to the pool
         const amount0 = Provable.if(token0.equals(PublicKey.empty()), UInt64.zero, amountToken0);
@@ -269,10 +260,7 @@ export class Pool extends TokenContractV2 {
         supplyMin.assertGreaterThan(UInt64.zero, "Supply min can't be zero");
 
         // if token 0 is empty so it's a Mina/Token pool
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertFalse("Invalid token 0 address");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(false);
 
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
         const tokenId0 = TokenId.derive(token0);
@@ -311,10 +299,7 @@ export class Pool extends TokenContractV2 {
         taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
 
         // token 0 need to be empty on mina pool
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertTrue("Not a mina pool");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(true);
 
         let tokenContract = new FungibleToken(token1);
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -365,10 +350,7 @@ export class Pool extends TokenContractV2 {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertTrue("Not a mina pool");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(true);
 
         // check if the protocol address is correct
         const poolDataAddress = this.poolData.getAndRequireEquals();
@@ -388,10 +370,7 @@ export class Pool extends TokenContractV2 {
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // token 0 need to be empty on mina pool
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertTrue("Not a mina pool");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(true);
 
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
@@ -420,10 +399,7 @@ export class Pool extends TokenContractV2 {
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // token 0 need to be empty on mina pool
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        token0.equals(PublicKey.empty()).assertFalse("Invalid token 0 address");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        const [token0, token1] = this.checkToken(false);
 
         const sender = this.sender.getUnconstrainedV2();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
@@ -437,10 +413,13 @@ export class Pool extends TokenContractV2 {
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMinaMin, amountTokenOut, amountLiquidityIn: liquidityAmount }));
     }
 
-
-    @method.returns(PublicKey) async getPoolData() {
-        const poolData = this.poolData.getAndRequireEquals();
-        return poolData;
+    private checkToken(isMinaPool: boolean) {
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        // token 0 need to be empty on mina pool
+        token0.equals(PublicKey.empty()).assertEquals(isMinaPool, isMinaPool ? "Not a mina pool" : "Invalid token 0 address");
+        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        return [token0, token1];
     }
 
     private calculateLiquidity(amountToken0: UInt64, supplyMin: UInt64, reserveToken0Max: UInt64, amountToken1: UInt64, reserveToken1Max: UInt64) {
