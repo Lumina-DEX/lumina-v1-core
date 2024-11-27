@@ -29,7 +29,6 @@ export class PoolCreationEvent extends Struct({
     }
 }
 
-
 /**
  * Factory who create pools
  */
@@ -87,39 +86,17 @@ export class PoolFactory extends TokenContractV2 {
     async createPool(newAccount: PublicKey, token: PublicKey) {
         token.isEmpty().assertFalse("Token is empty");
 
-        const fungibleToken = new FungibleToken(token);
-
         let tokenAccount = AccountUpdate.create(token, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
 
-        // create a pool as this new address
-        const poolAccount = AccountUpdate.createSigned(newAccount);
-        // Require this account didn't already exist
-        poolAccount.account.isNew.requireEquals(Bool(true));
-
-        // set pool account vk and permission
-        poolAccount.body.update.verificationKey = { isSome: Bool(true), value: { data: contractData, hash: contractHash } };
-        poolAccount.body.update.permissions = {
-            isSome: Bool(true),
-            value: {
-                ...Permissions.default(),
-                // only proof to prevent signature owner to steal liquidity
-                access: Permissions.proof(),
-                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
-                send: Permissions.proof(),
-                setDelegate: Permissions.proof(),
-                setPermissions: Permissions.impossible()
-            },
-        };
-
-        // set poolAccount initial state, mina is equal to an empty field
+        // set account initial state, mina is equal to an empty field
         let token0Fields = PublicKey.empty().toFields();
         let token1Fields = token.toFields();
         let poolDataAddress = this.poolData.getAndRequireEquals();
         let poolDataFields = poolDataAddress.toFields();
 
-        poolAccount.body.update.appState = [
+        const appState = [
             { isSome: Bool(true), value: token0Fields[0] },
             { isSome: Bool(true), value: token0Fields[1] },
             { isSome: Bool(true), value: token1Fields[0] },
@@ -130,71 +107,27 @@ export class PoolFactory extends TokenContractV2 {
             { isSome: Bool(true), value: Field(0) },
         ];
 
-
-        // Liquidity token default name
-        poolAccount.account.tokenSymbol.set("LUM");
-
+        // create a pool as this new address
+        const poolAccount = this.createPoolAccount(newAccount, appState);
         // create a token holder as this new address
-        const poolHolderAccount = AccountUpdate.createSigned(newAccount, fungibleToken.deriveTokenId());
-        // Require this account didn't already exist
-        poolHolderAccount.account.isNew.requireEquals(Bool(true));
-
-        // set pool token holder account vk and permission
-        poolHolderAccount.body.update.verificationKey = { isSome: Bool(true), value: { data: contractHolderData, hash: contractHolderHash } };
-        poolHolderAccount.body.update.permissions = {
-            isSome: Bool(true),
-            value: {
-                ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
-                send: Permissions.proof(),
-                setPermissions: Permissions.impossible()
-            },
-        };
-
-
-        poolHolderAccount.body.update.appState = [
-            { isSome: Bool(true), value: token0Fields[0] },
-            { isSome: Bool(true), value: token0Fields[1] },
-            { isSome: Bool(true), value: token1Fields[0] },
-            { isSome: Bool(true), value: token1Fields[1] },
-            { isSome: Bool(true), value: poolDataFields[0] },
-            { isSome: Bool(true), value: poolDataFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-        ];
-
-
+        await this.createPoolHolderAccount(newAccount, token, appState);
         // create a liquidity token holder as this new address
-        const tokenId = TokenId.derive(newAccount);
-        const liquidityAccount = AccountUpdate.createSigned(newAccount, tokenId);
-        // Require this account didn't already exist
-        liquidityAccount.account.isNew.requireEquals(Bool(true));
-        liquidityAccount.body.update.permissions = {
-            isSome: Bool(true),
-            value: {
-                ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
-                // This is necessary in order to allow burn circulation supply without signature
-                send: Permissions.none(),
-                setPermissions: Permissions.impossible()
-            },
-        };
+        const liquidityAccount = this.createLiquidityAccount(newAccount);
+
+        await poolAccount.approve(liquidityAccount);
 
         // we mint one token to check if this pool exist 
         this.internal.mint({ address: tokenAccount, amount: UInt64.one });
 
-        await fungibleToken.approveAccountUpdate(poolHolderAccount);
-        await poolAccount.approve(liquidityAccount);
-
         const sender = this.sender.getUnconstrainedV2();
         this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: PublicKey.empty(), token1Address: token }));
-
     }
 
     /**
-   * Create a new pool
+   * Create a new pool token
    * @param newAccount address of the new pool
-   * @param token for which the pool is created
+   * @param token 0 of the pool
+   * @param token 1 of the pool
    */
     @method
     async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey) {
@@ -208,6 +141,42 @@ export class PoolFactory extends TokenContractV2 {
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
 
+        // set poolAccount initial state
+        let token0Fields = token0.toFields();
+        let token1Fields = token1.toFields();
+        let poolDataAddress = this.poolData.getAndRequireEquals();
+        let poolDataFields = poolDataAddress.toFields();
+
+        const appState = [
+            { isSome: Bool(true), value: token0Fields[0] },
+            { isSome: Bool(true), value: token0Fields[1] },
+            { isSome: Bool(true), value: token1Fields[0] },
+            { isSome: Bool(true), value: token1Fields[1] },
+            { isSome: Bool(true), value: poolDataFields[0] },
+            { isSome: Bool(true), value: poolDataFields[1] },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
+        ];
+
+        // create a pool as this new address
+        const poolAccount = this.createPoolAccount(newAccount, appState);
+        // create a token holders as this new address
+        await this.createPoolHolderAccount(newAccount, token0, appState);
+        await this.createPoolHolderAccount(newAccount, token1, appState);
+        // create a liquidity token holder as this new address
+        const liquidityAccount = this.createLiquidityAccount(newAccount);
+
+        await poolAccount.approve(liquidityAccount);
+
+        // we mint one token to check if this pool exist 
+        this.internal.mint({ address: tokenAccount, amount: UInt64.one });
+
+        const sender = this.sender.getUnconstrainedV2();
+        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
+
+    }
+
+    private createPoolAccount(newAccount: PublicKey, appState: { isSome: Bool; value: Field; }[]): AccountUpdate {
         // create a pool as this new address
         const poolAccount = AccountUpdate.createSigned(newAccount);
         // Require this account didn't already exist
@@ -221,7 +190,7 @@ export class PoolFactory extends TokenContractV2 {
                 ...Permissions.default(),
                 // only proof to prevent signature owner to steal liquidity
                 access: Permissions.proof(),
-                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
+                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setDelegate: Permissions.proof(),
                 setPermissions: Permissions.impossible()
@@ -229,83 +198,38 @@ export class PoolFactory extends TokenContractV2 {
         };
 
         // set poolAccount initial state
-        let token0Fields = token0.toFields();
-        let token1Fields = token1.toFields();
-        let poolDataAddress = this.poolData.getAndRequireEquals();
-        let poolDataFields = poolDataAddress.toFields();
-
-        poolAccount.body.update.appState = [
-            { isSome: Bool(true), value: token0Fields[0] },
-            { isSome: Bool(true), value: token0Fields[1] },
-            { isSome: Bool(true), value: token1Fields[0] },
-            { isSome: Bool(true), value: token1Fields[1] },
-            { isSome: Bool(true), value: poolDataFields[0] },
-            { isSome: Bool(true), value: poolDataFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-        ];
-
+        poolAccount.body.update.appState = appState;
 
         // Liquidity token default name
         poolAccount.account.tokenSymbol.set("LUM");
 
-        // create a token holder as this new address
-        const tokenId0 = TokenId.derive(token0);
-        const tokenId1 = TokenId.derive(token1);
-        const poolHolderAccount0 = AccountUpdate.createSigned(newAccount, tokenId0);
+        return poolAccount;
+    }
+
+    private async createPoolHolderAccount(newAccount: PublicKey, token: PublicKey, appState: { isSome: Bool; value: Field; }[]): Promise<AccountUpdate> {
+        const fungibleToken = new FungibleToken(token);
+        const poolHolderAccount = AccountUpdate.createSigned(newAccount, fungibleToken.deriveTokenId());
         // Require this account didn't already exist
-        poolHolderAccount0.account.isNew.requireEquals(Bool(true));
+        poolHolderAccount.account.isNew.requireEquals(Bool(true));
 
         // set pool token holder account vk and permission
-        poolHolderAccount0.body.update.verificationKey = { isSome: Bool(true), value: { data: contractHolderData, hash: contractHolderHash } };
-        poolHolderAccount0.body.update.permissions = {
+        poolHolderAccount.body.update.verificationKey = { isSome: Bool(true), value: { data: contractHolderData, hash: contractHolderHash } };
+        poolHolderAccount.body.update.permissions = {
             isSome: Bool(true),
             value: {
                 ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
+                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },
         };
 
-        poolHolderAccount0.body.update.appState = [
-            { isSome: Bool(true), value: token0Fields[0] },
-            { isSome: Bool(true), value: token0Fields[1] },
-            { isSome: Bool(true), value: token1Fields[0] },
-            { isSome: Bool(true), value: token1Fields[1] },
-            { isSome: Bool(true), value: poolDataFields[0] },
-            { isSome: Bool(true), value: poolDataFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-        ];
+        poolHolderAccount.body.update.appState = appState;
+        await fungibleToken.approveAccountUpdate(poolHolderAccount);
+        return poolHolderAccount;
+    }
 
-        const poolHolderAccount1 = AccountUpdate.createSigned(newAccount, tokenId1);
-        // Require this account didn't already exist
-        poolHolderAccount1.account.isNew.requireEquals(Bool(true));
-
-        // set pool token holder account vk and permission
-        poolHolderAccount1.body.update.verificationKey = { isSome: Bool(true), value: { data: contractHolderData, hash: contractHolderHash } };
-        poolHolderAccount1.body.update.permissions = {
-            isSome: Bool(true),
-            value: {
-                ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
-                send: Permissions.proof(),
-                setPermissions: Permissions.impossible()
-            },
-        };
-
-        poolHolderAccount1.body.update.appState = [
-            { isSome: Bool(true), value: token0Fields[0] },
-            { isSome: Bool(true), value: token0Fields[1] },
-            { isSome: Bool(true), value: token1Fields[0] },
-            { isSome: Bool(true), value: token1Fields[1] },
-            { isSome: Bool(true), value: poolDataFields[0] },
-            { isSome: Bool(true), value: poolDataFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-        ];
-
+    private createLiquidityAccount(newAccount: PublicKey): AccountUpdate {
         // create a liquidity token holder as this new address
         const tokenId = TokenId.derive(newAccount);
         const liquidityAccount = AccountUpdate.createSigned(newAccount, tokenId);
@@ -321,20 +245,6 @@ export class PoolFactory extends TokenContractV2 {
                 setPermissions: Permissions.impossible()
             },
         };
-
-
-        // we mint one token to check if this pool exist 
-        this.internal.mint({ address: tokenAccount, amount: UInt64.one });
-
-        const fungibleToken0 = new FungibleToken(token0);
-        const fungibleToken1 = new FungibleToken(token1);
-        await fungibleToken0.approveAccountUpdate(poolHolderAccount0);
-        await fungibleToken1.approveAccountUpdate(poolHolderAccount1);
-        await poolAccount.approve(liquidityAccount);
-
-        const sender = this.sender.getUnconstrainedV2();
-        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
-
+        return liquidityAccount;
     }
-
 }
