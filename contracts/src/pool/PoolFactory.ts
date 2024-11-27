@@ -160,7 +160,7 @@ export class PoolFactory extends TokenContractV2 {
 
         // create a pool as this new address
         const poolAccount = this.createPoolAccount(newAccount, appState);
-        // create a token holders as this new address
+        // create token holders as this new address
         await this.createPoolHolderAccount(newAccount, token0, appState);
         await this.createPoolHolderAccount(newAccount, token1, appState);
         // create a liquidity token holder as this new address
