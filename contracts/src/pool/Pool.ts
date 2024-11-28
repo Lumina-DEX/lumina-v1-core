@@ -175,15 +175,7 @@ export class Pool extends TokenContractV2 {
         tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
-        let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
-        // 0.20% tax fee for liquidity provider directly on amount out
-        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
-        // 0.15% fee max for the frontend
-        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
-        // 0.05% to the protocol  
-        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
-
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
+        const { feeLP, feeFrontend, feeProtocol, amountOut } = Pool.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
@@ -375,5 +367,17 @@ export class Pool extends TokenContractV2 {
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amount });
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+    }
+
+    public static getAmountOut(taxFeeFrontend: UInt64, amountTokenIn: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
+        const amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
+        // 0.20% tax fee for liquidity provider directly on amount out
+        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
+        // 0.15% fee max for the frontend
+        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
+        // 0.05% to the protocol  
+        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
+        const amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
+        return { feeLP, feeFrontend, feeProtocol, amountOut };
     }
 }

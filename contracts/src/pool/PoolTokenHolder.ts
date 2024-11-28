@@ -109,16 +109,8 @@ export class PoolTokenHolder extends SmartContract {
         const tokenIdIn = Provable.if(this.tokenId.equals(tokenId0), tokenId1, tokenId0);
         const tokenAddressIn = Provable.if(this.tokenId.equals(tokenId0), token1, token0);
 
-        // calculate amount token out, No tax for the moment (probably in a next version),   
-        let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
-        // 0.20% tax fee for liquidity provider directly on amount out
-        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
-        // 0.15% fee max for the frontend
-        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
-        // 0.05% to the protocol  
-        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
+        const { feeLP, feeFrontend, feeProtocol, amountOut } = Pool.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
 
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
         let sender = this.sender.getUnconstrainedV2();
