@@ -413,6 +413,85 @@ export class Pool extends TokenContractV2 {
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMinaMin, amountTokenOut, amountLiquidityIn: liquidityAmount }));
     }
 
+    private async supplyLiquidityU(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
+        const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
+        if (isFirstSupply) {
+            const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
+            balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
+        } else {
+            reserveToken1Max.assertGreaterThan(UInt64.zero, "Reserve token 1 max can't be zero");
+            reserveToken0Max.assertGreaterThan(UInt64.zero, "Reserve token 0 max can't be zero");
+            supplyMin.assertGreaterThan(UInt64.zero, "Supply min can't be zero");
+        }
+        amountToken0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
+        amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
+
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        // token 0 need to be empty on mina pool
+        token0.equals(PublicKey.empty()).assertEquals(isMinaPool, isMinaPool ? "Not a mina pool" : "Invalid token 0 address");
+        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+
+        let liquidityAmount = UInt64.zero;
+        let liquidityUser = UInt64.zero;
+
+        const sender = this.sender.getUnconstrainedV2();
+        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
+
+        const tokenId0 = TokenId.derive(token0);
+        const tokenId1 = TokenId.derive(token1);
+        const token0Account = isMinaPool ? AccountUpdate.create(this.address) : AccountUpdate.create(this.address, tokenId0);
+        const token1Account = AccountUpdate.create(this.address, tokenId1);
+
+        if (isFirstSupply) {
+            // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
+            const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
+            const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
+            balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
+
+            liquidityAmount = amountToken0.add(amountToken1);
+            // on first mint remove minimal liquidity amount to prevent from inflation attack
+            liquidityUser = liquidityAmount.sub(Pool.minimunLiquidity);
+        } else {
+            token0Account.account.balance.requireBetween(UInt64.one, reserveToken0Max);
+            token1Account.account.balance.requireBetween(UInt64.one, reserveToken1Max);
+            circulationUpdate.account.balance.requireBetween(supplyMin, UInt64.MAXINT());
+
+            // calculate liquidity token output simply as amountX * liquiditySupply / reserveX 
+            const liquidityToken0 = mulDiv(amountToken0, supplyMin, reserveToken0Max);
+            const liquidityToken1 = mulDiv(amountToken1, supplyMin, reserveToken1Max);
+            // 0.1 % of error max between these 2 liquidities, prevent to send too much token or mina 
+            const percentError = liquidityToken0.div(1000);
+            const liquidityMin = liquidityToken0.sub(percentError);
+            const liquidityMax = liquidityToken0.add(percentError);
+            liquidityMin.assertLessThanOrEqual(liquidityToken1, "Too much token 0 supplied");
+            liquidityMax.assertGreaterThanOrEqual(liquidityToken1, "Too much token 1 supplied");
+
+            const liquidityAmount = Provable.if(liquidityToken0.lessThan(liquidityToken1), liquidityToken0, liquidityToken1);
+            liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity out can't be zero");
+        }
+
+        if (isMinaPool) {
+            // send mina to the pool         
+            let senderUpdate = AccountUpdate.createSigned(sender);
+            senderUpdate.send({ to: this.self, amount: amountToken0 });
+        } else {
+            // send token 0 to the pool
+            let senderToken0 = AccountUpdate.createSigned(sender, tokenId0);
+            senderToken0.send({ to: token0Account, amount: amountToken0 });
+        }
+        // send token 1 to the pool
+        let senderToken1 = AccountUpdate.createSigned(sender, tokenId1);
+        senderToken1.send({ to: token1Account, amount: amountToken1 });
+
+        this.internal.mint({ address: sender, amount: liquidityUser });
+        this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
+
+        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountToken0, amountTokenIn: amountToken1, amountLiquidityOut: liquidityUser }));
+
+        return liquidityUser;
+    }
+
     private checkToken(isMinaPool: boolean) {
         const token0 = this.token0.getAndRequireEquals();
         const token1 = this.token1.getAndRequireEquals();
