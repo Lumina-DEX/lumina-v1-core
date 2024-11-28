@@ -302,7 +302,7 @@ describe('Pool Factory Mina', () => {
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 2);
-      await tokenHolder.swapFromMina(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await tokenHolder.swapFromMinaToToken(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
       await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     console.log("swap from mina", txn2.toPretty());
@@ -350,7 +350,7 @@ describe('Pool Factory Mina', () => {
 
     const txn2 = await Mina.transaction(senderAccount, async () => {
 
-      await zkPool.swapTokenForMina(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await zkPool.swapFromTokenToMina(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
     });
     console.log("swap from token", txn2.toPretty());
     console.log("swap from token au", txn2.transaction.accountUpdates.length);

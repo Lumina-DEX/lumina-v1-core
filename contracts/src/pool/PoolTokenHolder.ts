@@ -16,21 +16,20 @@ export class PoolTokenHolder extends SmartContract {
 
     async deploy() {
         await super.deploy();
-
         Bool(false).assertTrue("You can't directly deploy a token holder");
     }
 
     // swap from mina to this token through the pool
-    @method async swapFromMina(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
+    @method async swapFromMinaToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         const protocol = await this.swap(frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
         let pool = new Pool(this.address);
-        await pool.swapMinaForToken(protocol, amountMinaIn, balanceInMax);
+        await pool.swapFromMinaToToken(protocol, amountMinaIn, balanceInMax);
     }
 
 
-    // swap from mina to this token through the pool
-    @method async swapFromToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
+    // swap from token to an other token
+    @method async swapFromTokenToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         await this.swap(frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }

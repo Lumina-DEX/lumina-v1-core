@@ -158,7 +158,7 @@ export class Pool extends TokenContractV2 {
         return liquidityUser;
     }
 
-    @method async swapTokenForMina(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
+    @method async swapFromTokenToMina(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountMinaOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
@@ -214,7 +214,7 @@ export class Pool extends TokenContractV2 {
      * @param amountMinaIn mina amount in
      * @param balanceInMax actual reserve max in
      */
-    @method async swapMinaForToken(protocol: PublicKey, amountMinaIn: UInt64, balanceInMax: UInt64) {
+    @method async swapFromMinaToToken(protocol: PublicKey, amountMinaIn: UInt64, balanceInMax: UInt64) {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
