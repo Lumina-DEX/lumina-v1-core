@@ -85,42 +85,7 @@ export class PoolFactory extends TokenContractV2 {
     @method
     async createPool(newAccount: PublicKey, token: PublicKey) {
         token.isEmpty().assertFalse("Token is empty");
-
-        let tokenAccount = AccountUpdate.create(token, this.deriveTokenId());
-        // if the balance is not zero, so a pool already exist for this token
-        tokenAccount.account.balance.requireEquals(UInt64.zero);
-
-        // set account initial state, mina is equal to an empty field
-        let token0Fields = PublicKey.empty().toFields();
-        let token1Fields = token.toFields();
-        let poolDataAddress = this.poolData.getAndRequireEquals();
-        let poolDataFields = poolDataAddress.toFields();
-
-        const appState = [
-            { isSome: Bool(true), value: token0Fields[0] },
-            { isSome: Bool(true), value: token0Fields[1] },
-            { isSome: Bool(true), value: token1Fields[0] },
-            { isSome: Bool(true), value: token1Fields[1] },
-            { isSome: Bool(true), value: poolDataFields[0] },
-            { isSome: Bool(true), value: poolDataFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-        ];
-
-        // create a pool as this new address
-        const poolAccount = this.createPoolAccount(newAccount, appState);
-        // create a token holder as this new address
-        await this.createPoolHolderAccount(newAccount, token, appState);
-        // create a liquidity token holder as this new address
-        const liquidityAccount = this.createLiquidityAccount(newAccount);
-
-        await poolAccount.approve(liquidityAccount);
-
-        // we mint one token to check if this pool exist 
-        this.internal.mint({ address: tokenAccount, amount: UInt64.one });
-
-        const sender = this.sender.getUnconstrainedV2();
-        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: PublicKey.empty(), token1Address: token }));
+        await this.createAccounts(newAccount, token, PublicKey.empty(), token, false);
     }
 
     /**
@@ -132,51 +97,18 @@ export class PoolFactory extends TokenContractV2 {
     @method
     async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey) {
         token0.x.assertLessThan(token1.x, "Token 0 need to be lesser than token 1");
+        // create an address with the 2 public key as pool id
         const fields = token0.toFields().concat(token1.toFields());
         const publicKey = PublicKey.fromFields(fields);
-
         publicKey.isEmpty().assertFalse("publicKey is empty");
+        await this.createAccounts(newAccount, publicKey, token0, token1, true);
+    }
 
-        let tokenAccount = AccountUpdate.create(publicKey, this.deriveTokenId());
+    private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, isTokenPool: boolean) {
+        let tokenAccount = AccountUpdate.create(token, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
 
-        // set poolAccount initial state
-        let token0Fields = token0.toFields();
-        let token1Fields = token1.toFields();
-        let poolDataAddress = this.poolData.getAndRequireEquals();
-        let poolDataFields = poolDataAddress.toFields();
-
-        const appState = [
-            { isSome: Bool(true), value: token0Fields[0] },
-            { isSome: Bool(true), value: token0Fields[1] },
-            { isSome: Bool(true), value: token1Fields[0] },
-            { isSome: Bool(true), value: token1Fields[1] },
-            { isSome: Bool(true), value: poolDataFields[0] },
-            { isSome: Bool(true), value: poolDataFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-        ];
-
-        // create a pool as this new address
-        const poolAccount = this.createPoolAccount(newAccount, appState);
-        // create token holders as this new address
-        await this.createPoolHolderAccount(newAccount, token0, appState);
-        await this.createPoolHolderAccount(newAccount, token1, appState);
-        // create a liquidity token holder as this new address
-        const liquidityAccount = this.createLiquidityAccount(newAccount);
-
-        await poolAccount.approve(liquidityAccount);
-
-        // we mint one token to check if this pool exist 
-        this.internal.mint({ address: tokenAccount, amount: UInt64.one });
-
-        const sender = this.sender.getUnconstrainedV2();
-        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
-
-    }
-
-    private createPoolAccount(newAccount: PublicKey, appState: { isSome: Bool; value: Field; }[]): AccountUpdate {
         // create a pool as this new address
         const poolAccount = AccountUpdate.createSigned(newAccount);
         // Require this account didn't already exist
@@ -198,12 +130,61 @@ export class PoolFactory extends TokenContractV2 {
         };
 
         // set poolAccount initial state
+        const appState = this.createState(token0, token1);
         poolAccount.body.update.appState = appState;
 
         // Liquidity token default name
         poolAccount.account.tokenSymbol.set("LUM");
 
-        return poolAccount;
+        // create a token holder as this new address
+        if (isTokenPool) {
+            // only pool token need an account at token 0 address
+            await this.createPoolHolderAccount(newAccount, token0, appState);
+        }
+        await this.createPoolHolderAccount(newAccount, token1, appState);
+
+        // create a liquidity token holder as this new address
+        const tokenId = TokenId.derive(newAccount);
+        const liquidityAccount = AccountUpdate.createSigned(newAccount, tokenId);
+        // Require this account didn't already exist
+        liquidityAccount.account.isNew.requireEquals(Bool(true));
+        liquidityAccount.body.update.permissions = {
+            isSome: Bool(true),
+            value: {
+                ...Permissions.default(),
+                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+                // This is necessary in order to allow burn circulation supply without signature
+                send: Permissions.none(),
+                setPermissions: Permissions.impossible()
+            },
+        };
+
+
+        // we mint one token to check if this pool exist 
+        this.internal.mint({ address: tokenAccount, amount: UInt64.one });
+
+        await poolAccount.approve(liquidityAccount);
+
+        const sender = this.sender.getUnconstrainedV2();
+        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
+    }
+
+    private createState(token0: PublicKey, token1: PublicKey) {
+        let token0Fields = token0.toFields();
+        let token1Fields = token1.toFields();
+        let poolDataAddress = this.poolData.getAndRequireEquals();
+        let poolDataFields = poolDataAddress.toFields();
+
+        return [
+            { isSome: Bool(true), value: token0Fields[0] },
+            { isSome: Bool(true), value: token0Fields[1] },
+            { isSome: Bool(true), value: token1Fields[0] },
+            { isSome: Bool(true), value: token1Fields[1] },
+            { isSome: Bool(true), value: poolDataFields[0] },
+            { isSome: Bool(true), value: poolDataFields[1] },
+            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: Field(0) },
+        ];
     }
 
     private async createPoolHolderAccount(newAccount: PublicKey, token: PublicKey, appState: { isSome: Bool; value: Field; }[]): Promise<AccountUpdate> {
@@ -223,28 +204,8 @@ export class PoolFactory extends TokenContractV2 {
                 setPermissions: Permissions.impossible()
             },
         };
-
         poolHolderAccount.body.update.appState = appState;
         await fungibleToken.approveAccountUpdate(poolHolderAccount);
         return poolHolderAccount;
-    }
-
-    private createLiquidityAccount(newAccount: PublicKey): AccountUpdate {
-        // create a liquidity token holder as this new address
-        const tokenId = TokenId.derive(newAccount);
-        const liquidityAccount = AccountUpdate.createSigned(newAccount, tokenId);
-        // Require this account didn't already exist
-        liquidityAccount.account.isNew.requireEquals(Bool(true));
-        liquidityAccount.body.update.permissions = {
-            isSome: Bool(true),
-            value: {
-                ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
-                // This is necessary in order to allow burn circulation supply without signature
-                send: Permissions.none(),
-                setPermissions: Permissions.impossible()
-            },
-        };
-        return liquidityAccount;
     }
 }

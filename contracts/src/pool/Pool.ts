@@ -441,13 +441,7 @@ export class Pool extends TokenContractV2 {
     private async sendToken(tokenAddress: PublicKey, amount: UInt64) {
         let tokenContract = new FungibleToken(tokenAddress);
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
-        let sender = this.sender.getUnconstrainedV2();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-
-        // send token to the pool
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amount });
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+        await this.sendTokenAccount(tokenAccount, tokenAddress, amount);
     }
 
     private async sendTokenAccount(tokenAccount: AccountUpdate, tokenAddress: PublicKey, amount: UInt64) {
