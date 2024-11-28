@@ -1,5 +1,5 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
-import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, Mina, Poseidon, PrivateKey, PublicKey, UInt64, UInt8, VerificationKey } from 'o1js';
+import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8, VerificationKey } from 'o1js';
 import { contractHash, contractHolderHash, Faucet, PoolData, PoolFactory, PoolTokenHolder, Pool } from '../index';
 import { PoolSampleTest } from './PoolSampleTest';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
@@ -135,9 +135,10 @@ describe('Pool data', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
 
+    const signature = Signature.create(zkTokenPrivateKey, zkPoolAddress.toFields());
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(zkPoolAddress, zkTokenAddress);
+      await zkApp.createPool(zkPoolAddress, zkTokenAddress, zkTokenAddress, signature);
     });
 
     //console.log("Pool creation au", txn3.transaction.accountUpdates.length);

@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString } from 'o1js';
+import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString, Signature } from 'o1js';
 import { FungibleToken, PoolData, Pool, PoolTokenHolder } from '../indexpool.js';
 
 
@@ -35,6 +35,8 @@ export class PoolCreationEvent extends Struct({
 export class PoolFactory extends TokenContractV2 {
 
     @state(PublicKey) poolData = State<PublicKey>();
+    @state(PublicKey) approvedSigner = State<PublicKey>();
+    @state(PublicKey) approvedSigner2 = State<PublicKey>();
 
     events = {
         poolAdded: PoolCreationEvent,
@@ -81,33 +83,52 @@ export class PoolFactory extends TokenContractV2 {
      * Create a new pool
      * @param newAccount address of the new pool
      * @param token for which the pool is created
+     * @param signer who sign the argument
+     * @param signature who proves you can deploy this pool (only approved signer or token owner can deploy a pool)
      */
     @method
-    async createPool(newAccount: PublicKey, token: PublicKey) {
+    async createPool(newAccount: PublicKey, token: PublicKey, signer: PublicKey, signature: Signature) {
         token.isEmpty().assertFalse("Token is empty");
-        await this.createAccounts(newAccount, token, PublicKey.empty(), token, false);
+        await this.createAccounts(newAccount, token, PublicKey.empty(), token, signer, signature, false);
     }
 
     /**
-   * Create a new pool token
-   * @param newAccount address of the new pool
-   * @param token 0 of the pool
-   * @param token 1 of the pool
-   */
+     * Create a new pool token
+     * @param newAccount address of the new pool
+     * @param token 0 of the pool
+     * @param token 1 of the pool
+     * @param signer who sign the argument
+     * @param signature who proves you can deploy this pool (only approved signer or token owner can deploy a pool)
+     */
     @method
-    async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey) {
+    async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature) {
         token0.x.assertLessThan(token1.x, "Token 0 need to be lesser than token 1");
         // create an address with the 2 public key as pool id
         const fields = token0.toFields().concat(token1.toFields());
         const publicKey = PublicKey.fromFields(fields);
         publicKey.isEmpty().assertFalse("publicKey is empty");
-        await this.createAccounts(newAccount, publicKey, token0, token1, true);
+        await this.createAccounts(newAccount, publicKey, token0, token1, signer, signature, true);
     }
 
-    private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, isTokenPool: boolean) {
+    private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, isTokenPool: boolean) {
         let tokenAccount = AccountUpdate.create(token, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
+
+        // verify the signer has right to create the pool
+        const firstSigner = this.approvedSigner.getAndRequireEquals();
+        const secondSigner = this.approvedSigner2.getAndRequireEquals();
+        const signer0 = firstSigner.equals(signer);
+        const signer1 = secondSigner.equals(signer);
+        const signer2 = token1.equals(signer);
+        const signer3 = token0.equals(signer);
+        if (isTokenPool) {
+            signer0.or(signer1).or(signer2).or(signer3).assertTrue("Invalid signer");
+        } else {
+            signer0.or(signer1).or(signer2).assertTrue("Invalid signer");
+        }
+
+        signature.verify(signer, newAccount.toFields()).assertTrue("Invalid signature");
 
         // create a pool as this new address
         const poolAccount = AccountUpdate.createSigned(newAccount);

@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, PoolData, contractHash, contractHolderHash, Pool, PoolTokenHolder } from '../index';
@@ -154,9 +154,10 @@ describe('Pool Factory Token', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn2.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey1]).send();
 
+    const signature = Signature.create(zkTokenPrivateKey0, zkPoolAddress.toFields());
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 5);
-      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1);
+      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, zkTokenAddress0, signature);
     });
 
     //console.log("Pool creation", txn3.toPretty());

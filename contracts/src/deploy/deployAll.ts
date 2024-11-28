@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool } from '../index.js';
 import readline from "readline/promises";
 
@@ -222,11 +222,12 @@ async function deployToken() {
 async function deployPool() {
     try {
         console.log("deploy pool");
+        const signature = Signature.create(zkTokenPrivateKey, zkAppAddress.toFields());
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkAppAddress, zkTokenAddress);
+                await zkFactory.createPool(zkAppAddress, zkTokenAddress, zkTokenAddress, signature);
             }
         );
         await tx.prove();
@@ -268,11 +269,12 @@ async function deployPoolEth() {
     try {
         const wethAddress = PublicKey.fromBase58("B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H");
         console.log("deploy pool eth");
+        const signature = Signature.create(zkAppKey, zkEthAddress.toFields());
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkEthAddress, wethAddress);
+                await zkFactory.createPool(zkEthAddress, wethAddress, zkEthAddress, signature);
             }
         );
         await tx.prove();

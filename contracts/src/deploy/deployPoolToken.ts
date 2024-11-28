@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
 import { FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolTokenHolder, Pool, PoolData } from '../index.js';
 import readline from "readline/promises";
 
@@ -224,11 +224,12 @@ async function deployToken() {
 async function deployPool() {
     try {
         console.log("deploy pool");
+        const signature = Signature.create(zkTokenPrivateKey, zkAppAddress.toFields());
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 5);
-                await zkFactory.createPoolToken(zkAppAddress, zkTokaAddress, zkTokenAddress);
+                await zkFactory.createPoolToken(zkAppAddress, zkTokaAddress, zkTokenAddress, zkTokenAddress, signature);
             }
         );
         await tx.prove();

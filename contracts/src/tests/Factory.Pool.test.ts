@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, Sign, Signature, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, PoolTokenHolder, PoolData, contractHash, contractHolderHash, Pool } from '../index';
@@ -123,9 +123,11 @@ describe('Pool Factory Mina', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
 
+    const signature = Signature.create(zkTokenPrivateKey, zkPoolAddress.toFields());
+
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(zkPoolAddress, zkTokenAddress);
+      await zkApp.createPool(zkPoolAddress, zkTokenAddress, zkTokenAddress, signature);
     });
 
     console.log("Pool creation au", txn3.transaction.accountUpdates.length);
@@ -161,13 +163,16 @@ describe('Pool Factory Mina', () => {
 
 
     const newPoolKey = PrivateKey.random();
+    const poolAddress = newPoolKey.toPublicKey();
+    const newTokenAddress = newTokenKey.toPublicKey();
+    const signature = Signature.create(newTokenKey, poolAddress.toFields());
     const txn1 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(newPoolKey.toPublicKey(), newTokenKey.toPublicKey());
+      await zkApp.createPool(poolAddress, newTokenAddress, newTokenAddress, signature);
     });
     await txn1.prove();
     await txn1.sign([deployerKey, newPoolKey]).send();
-    const newPool = new Pool(newPoolKey.toPublicKey());
+    const newPool = new Pool(poolAddress);
 
     const txn2 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
@@ -205,9 +210,10 @@ describe('Pool Factory Mina', () => {
   it('failed deploy for same token', async () => {
 
     const newPoolKey = PrivateKey.random();
+    const signature = Signature.create(zkTokenPrivateKey, newPoolKey.toPublicKey().toFields());
     const txn1 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(newPoolKey.toPublicKey(), zkTokenAddress);
+      await zkApp.createPool(newPoolKey.toPublicKey(), zkTokenAddress, zkTokenAddress, signature);
     });
     await txn1.prove();
     await expect(txn1.sign([deployerKey, newPoolKey]).send()).rejects.toThrow();
