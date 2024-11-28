@@ -231,6 +231,9 @@ export class Pool extends TokenContractV2 {
         await senderSigned.send({ to: this.self, amount: amountMinaIn });
     }
 
+    /**
+     * Don't call this method directly, use withdrawLiquidity from PoolTokenHolder
+     */
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
@@ -260,6 +263,9 @@ export class Pool extends TokenContractV2 {
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMina, amountToken1Out: amountTokenOut, amountLiquidityIn: liquidityAmount }));
     }
 
+    /**
+     * Don't call this method directly, use withdrawLiquidityToken from PoolTokenHolder
+     */
     @method async checkLiquidityToken(liquidityAmount: UInt64, amountToken0: UInt64, amountToken1: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
@@ -316,8 +322,6 @@ export class Pool extends TokenContractV2 {
         } else {
             token0Account.account.balance.requireBetween(UInt64.one, reserveToken0Max);
             token1Account.account.balance.requireBetween(UInt64.one, reserveToken1Max);
-            Provable.log("supplyMin", supplyMin);
-            Provable.log("balanceLiquidity", balanceLiquidity);
             circulationUpdate.account.balance.requireBetween(supplyMin, UInt64.MAXINT());
 
             // calculate liquidity token output simply as amountX * liquiditySupply / reserveX 

@@ -154,56 +154,52 @@ export class PoolTokenHolder extends SmartContract {
 
     // check if they are no exploit possible  
     @method async withdrawLiquidityToken(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
-        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
-        reserveToken1Min.assertGreaterThan(UInt64.zero, "Reserve token min can't be zero");
-        amountToken1Min.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
-        supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
+        const [token0, token1] = this.checkToken(false);
 
         // check if token match
-        const token1Address = this.token1.getAndRequireEquals();
-        const tokenId1 = TokenId.derive(token1Address);
+        const tokenId0 = TokenId.derive(token0);
+        this.tokenId.assertEquals(tokenId0, "Call this method from PoolHolderAccount for token 0");
+        const tokenId1 = TokenId.derive(token1);
+
+        // withdraw token 0
+        const amountToken = this.withdraw(liquidityAmount, amountToken0Min, reserveToken0Min, supplyMax);
 
         let poolTokenZ = new PoolTokenHolder(this.address, tokenId1);
-
-        this.account.balance.requireBetween(reserveToken0Min, UInt64.MAXINT());
-
-        // calculate amount token out
-        const amountToken = mulDiv(liquidityAmount, reserveToken0Min, supplyMax);
-        amountToken.assertGreaterThanOrEqual(amountToken0Min, "Insufficient amount token out");
-
-        const sender = this.sender.getUnconstrainedV2();
-        // send token to the user
-        let receiverUpdate = this.send({ to: sender, amount: amountToken });
-        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
         await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
-        const token1 = new FungibleToken(token1Address);
-        await token1.approveAccountUpdate(poolTokenZ.self);
-
+        const fungibleToken1 = new FungibleToken(token1);
+        await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
     }
 
-    @method async subWithdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenMin: UInt64, reserveMinaMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
+    /**
+    * Don't call this method directly, use withdrawLiquidityToken for token 0
+    */
+    @method async subWithdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
+        // withdraw token 1
+        const amountToken = this.withdraw(liquidityAmount, amountToken1Min, reserveToken1Min, supplyMax);
+
+        let pool = new Pool(this.address);
+        await pool.checkLiquidityToken(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, supplyMax);
+    }
+
+    private withdraw(liquidityAmount: UInt64, amountTokenMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveTokenMin.assertGreaterThan(UInt64.zero, "Reserve token min can't be zero");
         amountTokenMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
-        let pool = new Pool(this.address);
-
-        this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
+        this.account.balance.requireBetween(reserveTokenMin, UInt64.MAXINT());
 
         // calculate amount token out
-        const amountToken = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
-        amountToken.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount token out");
+        const amountToken = mulDiv(liquidityAmount, reserveTokenMin, supplyMax);
+        amountToken.assertGreaterThanOrEqual(amountTokenMin, "Insufficient amount token out");
 
         const sender = this.sender.getUnconstrainedV2();
         // send token to the user
-
         let receiverUpdate = this.send({ to: sender, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        await pool.checkLiquidityToken(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
+        return amountToken;
     }
 
     private async getProtocolReceiver(): Promise<PublicKey> {
@@ -212,6 +208,15 @@ export class PoolTokenHolder extends SmartContract {
         const protocol = await poolData.getProtocol();
         const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
         return protocolReceiver;
+    }
+
+    private checkToken(isMinaPool: boolean) {
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        // token 0 need to be empty on mina pool
+        token0.equals(PublicKey.empty()).assertEquals(isMinaPool, isMinaPool ? "Not a mina pool" : "Invalid token 0 address");
+        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
+        return [token0, token1];
     }
 
 }
