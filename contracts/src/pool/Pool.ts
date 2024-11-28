@@ -17,14 +17,14 @@ export class SwapEvent extends Struct({
 
 export class AddLiquidityEvent extends Struct({
     sender: PublicKey,
-    amountMinaIn: UInt64,
-    amountTokenIn: UInt64,
+    amountToken0In: UInt64,
+    amountToken1In: UInt64,
     amountLiquidityOut: UInt64
 }) {
     constructor(value: {
         sender: PublicKey,
-        amountMinaIn: UInt64,
-        amountTokenIn: UInt64,
+        amountToken0In: UInt64,
+        amountToken1In: UInt64,
         amountLiquidityOut: UInt64
     }) {
         super(value);
@@ -34,14 +34,14 @@ export class AddLiquidityEvent extends Struct({
 export class WithdrawLiquidityEvent extends Struct({
     sender: PublicKey,
     amountLiquidityIn: UInt64,
-    amountMinaOut: UInt64,
-    amountTokenOut: UInt64,
+    amountToken0Out: UInt64,
+    amountToken1Out: UInt64,
 }) {
     constructor(value: {
         sender: PublicKey,
         amountLiquidityIn: UInt64,
-        amountMinaOut: UInt64,
-        amountTokenOut: UInt64,
+        amountToken0Out: UInt64,
+        amountToken1Out: UInt64,
     }) {
         super(value);
     }
@@ -257,13 +257,13 @@ export class Pool extends TokenContractV2 {
         // send mina to user
         await this.send({ to: sender, amount: amountMina });
 
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMina, amountTokenOut, amountLiquidityIn: liquidityAmount }));
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMina, amountToken1Out: amountTokenOut, amountLiquidityIn: liquidityAmount }));
     }
 
-    @method async checkLiquidityToken(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+    @method async checkLiquidityToken(liquidityAmount: UInt64, amountToken0: UInt64, amountToken1: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
-        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
+        amountToken0.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // token 0 need to be empty on mina pool
@@ -278,7 +278,7 @@ export class Pool extends TokenContractV2 {
         liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2();
         await this.internal.burn({ address: sender, amount: liquidityAmount });
 
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountMinaOut: amountMinaMin, amountTokenOut, amountLiquidityIn: liquidityAmount }));
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken0, amountToken1Out: amountToken1, amountLiquidityIn: liquidityAmount }));
     }
 
     private async supply(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
@@ -348,7 +348,7 @@ export class Pool extends TokenContractV2 {
         this.internal.mint({ address: sender, amount: liquidityUser });
         this.internal.mint({ address: circulationUpdate, amount: liquidityAmount });
 
-        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountMinaIn: amountToken0, amountTokenIn: amountToken1, amountLiquidityOut: liquidityUser }));
+        this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountToken0In: amountToken0, amountToken1In: amountToken1, amountLiquidityOut: liquidityUser }));
 
         return liquidityUser;
     }
