@@ -23,107 +23,16 @@ export class PoolTokenHolder extends SmartContract {
     // swap from mina to this token through the pool
     @method async swapFromMina(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
-        amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
-        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-        amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
-        amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
-        taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
-
-        this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
-
-        // calculate amount token out, No tax for the moment (probably in a next version),   
-        let amountOutBeforeFee = mulDiv(balanceOutMin, amountMinaIn, balanceInMax.add(amountMinaIn));
-        // 0.20% tax fee for liquidity provider directly on amount out
-        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
-        // 0.15% fee max for the frontend
-        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
-        // 0.05% to the protocol  
-        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
-
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
-        amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
-
-        let sender = this.sender.getUnconstrainedV2();
-
-        // send token to the user
-        let receiverUpdate = this.send({ to: sender, amount: amountOut })
-        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-        // send fee to frontend (if not empty)
-        const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
-        let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
-        frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-        // send fee to protocol
+        const protocol = await this.swap(frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
         let pool = new Pool(this.address);
-        const poolDataAddress = pool.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = poolData.protocol.getAndRequireEquals();
-        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
-        let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
-        protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
         await pool.swapMinaForToken(protocol, amountMinaIn, balanceInMax);
-
-        this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountMinaIn, amountOut }));
     }
 
 
     // swap from mina to this token through the pool
     @method async swapFromToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
-        amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
-        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
-        amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
-        amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
-        taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
-
-        this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
-
-        // check if token match
-        const [token0, token1] = this.checkToken(false);
-        const tokenId0 = TokenId.derive(token0);
-        const tokenId1 = TokenId.derive(token1);
-        this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Inccorect token id");
-
-        const tokenIdIn = Provable.if(this.tokenId.equals(tokenId0), tokenId1, tokenId0);
-        const tokenAddressIn = Provable.if(this.tokenId.equals(tokenId0), token1, token0);
-
-        const otherPool = AccountUpdate.create(this.address, tokenIdIn);
-        otherPool.account.balance.requireBetween(UInt64.one, balanceInMax);
-
-        // calculate amount token out, No tax for the moment (probably in a next version),   
-        let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
-        // 0.20% tax fee for liquidity provider directly on amount out
-        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
-        // 0.15% fee max for the frontend
-        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
-        // 0.05% to the protocol  
-        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
-
-        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
-        amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
-
-        let sender = this.sender.getUnconstrainedV2();
-
-        // send token to the user
-        let receiverUpdate = this.send({ to: sender, amount: amountOut })
-        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-        // send fee to frontend (if not empty)
-        const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
-        let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
-        frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
-        // send fee to protocol
-        const protocolReceiver = await this.getProtocolReceiver();
-        let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
-        protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
-        const tokenIn = new FungibleToken(tokenAddressIn);
-        await tokenIn.approveAccountUpdate(otherPool);
-        await tokenIn.transfer(sender, this.address, amountTokenIn);
-
-        this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
+        await this.swap(frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }
 
     // check if they are no exploit possible  
@@ -182,11 +91,66 @@ export class PoolTokenHolder extends SmartContract {
         return amountToken;
     }
 
-    private async getProtocolReceiver(): Promise<PublicKey> {
+    private async swap(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
+        amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
+        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
+        balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
+        amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
+        amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
+        taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
+
+        this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
+
+        // check if token match
+        const [token0, token1] = this.checkToken(isMinaPool);
+        const tokenId0 = TokenId.derive(token0);
+        const tokenId1 = TokenId.derive(token1);
+        this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Inccorect token id");
+
+        const tokenIdIn = Provable.if(this.tokenId.equals(tokenId0), tokenId1, tokenId0);
+        const tokenAddressIn = Provable.if(this.tokenId.equals(tokenId0), token1, token0);
+
+        // calculate amount token out, No tax for the moment (probably in a next version),   
+        let amountOutBeforeFee = mulDiv(balanceOutMin, amountTokenIn, balanceInMax.add(amountTokenIn));
+        // 0.20% tax fee for liquidity provider directly on amount out
+        const feeLP = mulDiv(amountOutBeforeFee, UInt64.from(2), UInt64.from(1000));
+        // 0.15% fee max for the frontend
+        const feeFrontend = mulDiv(amountOutBeforeFee, taxFeeFrontend, UInt64.from(10000));
+        // 0.05% to the protocol  
+        const feeProtocol = mulDiv(amountOutBeforeFee, UInt64.from(5), UInt64.from(10000));
+
+        let amountOut = amountOutBeforeFee.sub(feeLP).sub(feeFrontend).sub(feeProtocol);
+        amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
+
+        let sender = this.sender.getUnconstrainedV2();
+
+        // send token to the user
+        let receiverUpdate = this.send({ to: sender, amount: amountOut })
+        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+        // send fee to frontend (if not empty)
+        const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
+        let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
+        frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+
+        // send fee to protocol
         const poolDataAddress = this.poolData.getAndRequireEquals();
         const poolData = new PoolData(poolDataAddress);
         const protocol = await poolData.getProtocol();
         const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
+        let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
+        protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+
+        if (!isMinaPool) {
+            // transfer other token if is not a mina pool
+            const otherPool = AccountUpdate.create(this.address, tokenIdIn);
+            otherPool.account.balance.requireBetween(UInt64.one, balanceInMax);
+            const tokenIn = new FungibleToken(tokenAddressIn);
+            await tokenIn.approveAccountUpdate(otherPool);
+            await tokenIn.transfer(sender, this.address, amountTokenIn);
+        }
+
+        this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
+
         return protocolReceiver;
     }
 
