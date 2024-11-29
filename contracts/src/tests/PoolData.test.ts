@@ -35,6 +35,9 @@ describe('Pool data', () => {
     zkTokenAddress: PublicKey,
     zkTokenPrivateKey: PrivateKey,
     zkToken: FungibleToken,
+    zkToken2PrivateKey: PrivateKey,
+    zkToken2Address: PublicKey,
+    zkToken2: FungibleToken,
     tokenHolder: PoolTokenHolder;
 
   beforeAll(async () => {
@@ -100,6 +103,10 @@ describe('Pool data', () => {
     zkTokenAddress = zkTokenPrivateKey.toPublicKey();
     zkToken = new FungibleToken(zkTokenAddress);
 
+    zkToken2PrivateKey = PrivateKey.random();
+    zkToken2Address = zkToken2PrivateKey.toPublicKey();
+    zkToken2 = new FungibleToken(zkToken2Address);
+
     tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken.deriveTokenId());
 
     const txn0 = await Mina.transaction(deployerAccount, async () => {
@@ -134,6 +141,22 @@ describe('Pool data', () => {
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
+
+    const txn5 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 2);
+      await zkToken2.deploy({
+        symbol: "LTA",
+        src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+      });
+      await zkToken2.initialize(
+        zkTokenAdminAddress,
+        UInt8.from(9),
+        Bool(false),
+      )
+    });
+    await txn5.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn5.sign([deployerKey, zkToken2PrivateKey]).send();
 
     const signature = Signature.create(zkTokenPrivateKey, zkPoolAddress.toFields());
     const txn3 = await Mina.transaction(deployerAccount, async () => {
@@ -278,6 +301,18 @@ describe('Pool data', () => {
     });
     await txn.prove();
     await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkApp.updateApprovedSigner(senderAccount);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkApp.updateApprovedSigner2(senderAccount);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
   });
 
   it('failed change owner', async () => {
@@ -305,6 +340,95 @@ describe('Pool data', () => {
 
     let ownership = await zkPoolData.owner.fetch();
     expect(ownership?.toBase58()).toEqual(bobAccount.toBase58());
+  });
+
+  it('deploy pool with first authorized account', async () => {
+    const newPool = PrivateKey.random();
+    const newPoolAddress = newPool.toPublicKey();
+    const signature = Signature.create(bobKey, newPoolAddress.toFields());
+    const txn3 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(newPoolAddress, zkToken2Address, bobAccount, signature);
+    });
+
+    //console.log("Pool creation au", txn3.transaction.accountUpdates.length);
+    await txn3.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn3.sign([deployerKey, newPool]).send();
+  });
+
+  it('deploy pool with second authorized account', async () => {
+    const newPool = PrivateKey.random();
+    const newPoolAddress = newPool.toPublicKey();
+    const signature = Signature.create(aliceKey, newPoolAddress.toFields());
+    const txn3 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(newPoolAddress, zkToken2Address, aliceAccount, signature);
+    });
+
+    //console.log("Pool creation au", txn3.transaction.accountUpdates.length);
+    await txn3.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn3.sign([deployerKey, newPool]).send();
+  });
+
+  it('deploy pool failed with unauthorized account', async () => {
+    const newPool = PrivateKey.random();
+    const newPoolAddress = newPool.toPublicKey();
+    const signature = Signature.create(senderKey, newPoolAddress.toFields());
+
+    await expect(Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(newPoolAddress, zkToken2Address, senderAccount, signature);
+    })).rejects.toThrow();
+
+    // empty account failed too
+    await expect(Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(newPoolAddress, zkToken2Address, PublicKey.empty(), signature);
+    })).rejects.toThrow();
+
+    // works after authorized this account
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkApp.updateApprovedSigner(senderAccount);
+    });
+    await txn.prove();
+    await txn.sign([senderKey, bobKey]).send();
+
+    const txn3 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(newPoolAddress, zkToken2Address, senderAccount, signature);
+    });
+
+    await txn3.prove();
+    await txn3.sign([deployerKey, newPool]).send();
+  });
+
+  it('update signer 2', async () => {
+    const newPool = PrivateKey.random();
+    const newPoolAddress = newPool.toPublicKey();
+    const signature = Signature.create(senderKey, newPoolAddress.toFields());
+
+    await expect(Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(newPoolAddress, zkToken2Address, senderAccount, signature);
+    })).rejects.toThrow();
+
+
+    // works after authorized this account
+    let txn = await Mina.transaction(senderAccount, async () => {
+      await zkApp.updateApprovedSigner2(senderAccount);
+    });
+    await txn.prove();
+    await txn.sign([senderKey, bobKey]).send();
+
+    const txn3 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 4);
+      await zkApp.createPool(newPoolAddress, zkToken2Address, senderAccount, signature);
+    });
+
+    await txn3.prove();
+    await txn3.sign([deployerKey, newPool]).send();
   });
 
 });

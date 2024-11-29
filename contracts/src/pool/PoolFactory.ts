@@ -31,18 +31,6 @@ export class PoolCreationEvent extends Struct({
     }
 }
 
-export class UpdateSignerEvent extends Struct({
-    approvedSigner: PublicKey,
-    approvedSigner2: PublicKey
-}) {
-    constructor(value: {
-        approvedSigner: PublicKey,
-        approvedSigner2: PublicKey
-    }) {
-        super(value);
-    }
-}
-
 /**
  * Factory who create pools
  */
@@ -55,7 +43,8 @@ export class PoolFactory extends TokenContractV2 {
     events = {
         poolAdded: PoolCreationEvent,
         upgrade: Field,
-        updateSigner: UpdateSignerEvent
+        updateSigner: PublicKey,
+        updateSigner2: PublicKey
     };
 
     async deploy(args: PoolDeployProps) {
@@ -85,15 +74,16 @@ export class PoolFactory extends TokenContractV2 {
         this.emitEvent("upgrade", vk.hash);
     }
 
-    /**
- * Upgrade to a new version
- * @param vk new verification key
- */
-    @method async updateApprovedSigner(newSigner: PublicKey, newSigner2: PublicKey) {
+    @method async updateApprovedSigner(newSigner: PublicKey) {
         await this.getOwnerSignature();
         this.approvedSigner.set(newSigner);
-        this.approvedSigner2.set(newSigner2);
-        this.emitEvent("updateSigner", new UpdateSignerEvent({ approvedSigner: newSigner, approvedSigner2: newSigner2 }));
+        this.emitEvent("updateSigner", newSigner);
+    }
+
+    @method async updateApprovedSigner2(newSigner: PublicKey) {
+        await this.getOwnerSignature();
+        this.approvedSigner2.set(newSigner);
+        this.emitEvent("updateSigner2", newSigner);
     }
 
     @method
@@ -138,6 +128,7 @@ export class PoolFactory extends TokenContractV2 {
         tokenAccount.account.balance.requireEquals(UInt64.zero);
 
         // verify the signer has right to create the pool
+        signer.equals(PublicKey.empty()).assertFalse("Empty signer");
         const firstSigner = this.approvedSigner.getAndRequireEquals();
         const secondSigner = this.approvedSigner2.getAndRequireEquals();
         const signer0 = firstSigner.equals(signer);
