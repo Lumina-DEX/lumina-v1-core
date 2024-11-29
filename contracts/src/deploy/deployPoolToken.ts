@@ -278,7 +278,7 @@ async function deployFactory() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress });
+                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress, approvedSigner: feepayerAddress, approvedSigner2: feepayerAddress });
             }
         );
         await tx.prove();

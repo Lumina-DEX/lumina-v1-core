@@ -11,6 +11,8 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     symbol: string;
     src: string;
     poolData: PublicKey;
+    approvedSigner: PublicKey;
+    approvedSigner2: PublicKey;
 }
 
 export class PoolCreationEvent extends Struct({
@@ -29,6 +31,18 @@ export class PoolCreationEvent extends Struct({
     }
 }
 
+export class UpdateSignerEvent extends Struct({
+    approvedSigner: PublicKey,
+    approvedSigner2: PublicKey
+}) {
+    constructor(value: {
+        approvedSigner: PublicKey,
+        approvedSigner2: PublicKey
+    }) {
+        super(value);
+    }
+}
+
 /**
  * Factory who create pools
  */
@@ -40,7 +54,8 @@ export class PoolFactory extends TokenContractV2 {
 
     events = {
         poolAdded: PoolCreationEvent,
-        upgrade: Field
+        upgrade: Field,
+        updateSigner: UpdateSignerEvent
     };
 
     async deploy(args: PoolDeployProps) {
@@ -50,6 +65,8 @@ export class PoolFactory extends TokenContractV2 {
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
         this.poolData.set(args.poolData);
+        this.approvedSigner.set(args.approvedSigner);
+        this.approvedSigner2.set(args.approvedSigner2);
 
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
@@ -63,15 +80,20 @@ export class PoolFactory extends TokenContractV2 {
      * @param vk new verification key
      */
     @method async updateVerificationKey(vk: VerificationKey) {
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const owner = poolData.owner.getAndRequireEquals();
-
-        // only owner can update a pool
-        AccountUpdate.createSigned(owner);
-
+        await this.getOwnerSignature();
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", vk.hash);
+    }
+
+    /**
+ * Upgrade to a new version
+ * @param vk new verification key
+ */
+    @method async updateApprovedSigner(newSigner: PublicKey, newSigner2: PublicKey) {
+        await this.getOwnerSignature();
+        this.approvedSigner.set(newSigner);
+        this.approvedSigner2.set(newSigner2);
+        this.emitEvent("updateSigner", new UpdateSignerEvent({ approvedSigner: newSigner, approvedSigner2: newSigner2 }));
     }
 
     @method
@@ -120,13 +142,9 @@ export class PoolFactory extends TokenContractV2 {
         const secondSigner = this.approvedSigner2.getAndRequireEquals();
         const signer0 = firstSigner.equals(signer);
         const signer1 = secondSigner.equals(signer);
-        const signer2 = token1.equals(signer);
-        const signer3 = token0.equals(signer);
-        if (isTokenPool) {
-            signer0.or(signer1).or(signer2).or(signer3).assertTrue("Invalid signer");
-        } else {
-            signer0.or(signer1).or(signer2).assertTrue("Invalid signer");
-        }
+        const signer2 = token0.equals(signer);
+        const signer3 = token1.equals(signer);
+        signer0.or(signer1).or(signer2).or(signer3).assertTrue("Invalid signer");
 
         signature.verify(signer, newAccount.toFields()).assertTrue("Invalid signature");
 
@@ -228,5 +246,14 @@ export class PoolFactory extends TokenContractV2 {
         poolHolderAccount.body.update.appState = appState;
         await fungibleToken.approveAccountUpdate(poolHolderAccount);
         return poolHolderAccount;
+    }
+
+    private async getOwnerSignature() {
+        const poolDataAddress = this.poolData.getAndRequireEquals();
+        const poolData = new PoolData(poolDataAddress);
+        const owner = poolData.owner.getAndRequireEquals();
+
+        // only owner can update a pool
+        AccountUpdate.createSigned(owner);
     }
 }

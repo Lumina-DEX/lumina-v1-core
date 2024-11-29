@@ -117,7 +117,7 @@ describe('Pool data', () => {
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress });
+      await zkApp.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress, approvedSigner: bobAccount, approvedSigner2: aliceAccount });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,
       });
