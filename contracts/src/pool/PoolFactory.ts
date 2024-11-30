@@ -1,5 +1,6 @@
-import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString, Signature } from 'o1js';
+import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString, Signature, ZkProgram, MerkleMap, MerkleTree, MerkleWitness } from 'o1js';
 import { FungibleToken, PoolData, Pool, PoolTokenHolder } from '../indexpool.js';
+import { newAccount } from 'o1js/dist/node/lib/mina/account.js';
 
 
 export const contractData = "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";
@@ -11,8 +12,7 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     symbol: string;
     src: string;
     poolData: PublicKey;
-    approvedSigner: PublicKey;
-    approvedSigner2: PublicKey;
+    approvedSigner: Field;
 }
 
 export class PoolCreationEvent extends Struct({
@@ -31,20 +31,21 @@ export class PoolCreationEvent extends Struct({
     }
 }
 
+// 32 approved signer possible
+export class SignerMerkleWitness extends MerkleWitness(32) { }
+
 /**
  * Factory who create pools
  */
 export class PoolFactory extends TokenContractV2 {
 
     @state(PublicKey) poolData = State<PublicKey>();
-    @state(PublicKey) approvedSigner = State<PublicKey>();
-    @state(PublicKey) approvedSigner2 = State<PublicKey>();
+    @state(Field) approvedSigner = State<Field>();
 
     events = {
         poolAdded: PoolCreationEvent,
         upgrade: Field,
-        updateSigner: PublicKey,
-        updateSigner2: PublicKey
+        updateSigner: Field,
     };
 
     async deploy(args: PoolDeployProps) {
@@ -55,7 +56,6 @@ export class PoolFactory extends TokenContractV2 {
         this.account.tokenSymbol.set(args.symbol);
         this.poolData.set(args.poolData);
         this.approvedSigner.set(args.approvedSigner);
-        this.approvedSigner2.set(args.approvedSigner2);
 
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
@@ -74,16 +74,10 @@ export class PoolFactory extends TokenContractV2 {
         this.emitEvent("upgrade", vk.hash);
     }
 
-    @method async updateApprovedSigner(newSigner: PublicKey) {
+    @method async updateApprovedSigner(newSigner: Field) {
         await this.getOwnerSignature();
         this.approvedSigner.set(newSigner);
         this.emitEvent("updateSigner", newSigner);
-    }
-
-    @method async updateApprovedSigner2(newSigner: PublicKey) {
-        await this.getOwnerSignature();
-        this.approvedSigner2.set(newSigner);
-        this.emitEvent("updateSigner2", newSigner);
     }
 
     @method
@@ -92,16 +86,17 @@ export class PoolFactory extends TokenContractV2 {
     }
 
     /**
-     * Create a new pool
-     * @param newAccount address of the new pool
-     * @param token for which the pool is created
-     * @param signer who sign the argument
-     * @param signature who proves you can deploy this pool (only approved signer or token owner can deploy a pool)
-     */
+    * Create a new pool
+    * @param newAccount address of the new pool
+    * @param token for which the pool is created
+    * @param signer who sign the argument
+    * @param signature who proves you can deploy this pool (only approved signer or token owner can deploy a pool)
+    * @param path merkle witness to check if signer is in the approved list
+    */
     @method
-    async createPool(newAccount: PublicKey, token: PublicKey, signer: PublicKey, signature: Signature) {
+    async createPool(newAccount: PublicKey, token: PublicKey, signer: PublicKey, signature: Signature, path: SignerMerkleWitness) {
         token.isEmpty().assertFalse("Token is empty");
-        await this.createAccounts(newAccount, token, PublicKey.empty(), token, signer, signature, false);
+        await this.createAccounts(newAccount, token, PublicKey.empty(), token, signer, signature, path, false);
     }
 
     /**
@@ -111,32 +106,31 @@ export class PoolFactory extends TokenContractV2 {
      * @param token 1 of the pool
      * @param signer who sign the argument
      * @param signature who proves you can deploy this pool (only approved signer or token owner can deploy a pool)
+     * @param path merkle witness to check if signer is in the approved list
      */
     @method
-    async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature) {
+    async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, path: SignerMerkleWitness) {
         token0.x.assertLessThan(token1.x, "Token 0 need to be lesser than token 1");
         // create an address with the 2 public key as pool id
         const fields = token0.toFields().concat(token1.toFields());
         const publicKey = PublicKey.fromFields(fields);
         publicKey.isEmpty().assertFalse("publicKey is empty");
-        await this.createAccounts(newAccount, publicKey, token0, token1, signer, signature, true);
+        await this.createAccounts(newAccount, publicKey, token0, token1, signer, signature, path, true);
     }
 
-    private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, isTokenPool: boolean) {
+    private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, path: SignerMerkleWitness, isTokenPool: boolean) {
         let tokenAccount = AccountUpdate.create(token, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
 
         // verify the signer has right to create the pool
         signer.equals(PublicKey.empty()).assertFalse("Empty signer");
-        const firstSigner = this.approvedSigner.getAndRequireEquals();
-        const secondSigner = this.approvedSigner2.getAndRequireEquals();
-        const signer0 = firstSigner.equals(signer);
-        const signer1 = secondSigner.equals(signer);
-        const signer2 = token0.equals(signer);
-        const signer3 = token1.equals(signer);
-        signer0.or(signer1).or(signer2).or(signer3).assertTrue("Invalid signer");
-
+        const signerHash = Poseidon.hash(signer.toFields());
+        const approvedSignerRoot = this.approvedSigner.getAndRequireEquals();
+        const approvedSigner = path.calculateRoot(signerHash).equals(approvedSignerRoot);
+        const signerToken0 = signer.equals(token0);
+        const signerToken1 = signer.equals(token1);
+        approvedSigner.or(signerToken0).or(signerToken1).assertTrue("Invalid signer");
         signature.verify(signer, newAccount.toFields()).assertTrue("Invalid signature");
 
         // create a pool as this new address
