@@ -1,7 +1,7 @@
-import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, PoolData, contractHash, contractHolderHash, Pool, PoolTokenHolder } from '../index';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, PoolData, contractHash, contractHolderHash, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 
 let proofsEnabled = false;
 
@@ -12,6 +12,7 @@ describe('Pool Factory Token', () => {
     senderKey: PrivateKey,
     bobAccount: Mina.TestPublicKey,
     bobKey: PrivateKey,
+    merkle: MerkleTree,
     aliceAccount: Mina.TestPublicKey,
     aliceKey: PrivateKey,
     dylanAccount: Mina.TestPublicKey,
@@ -103,6 +104,10 @@ describe('Pool Factory Token', () => {
 
     tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken0.deriveTokenId());
 
+    merkle = new MerkleTree(32);
+    merkle.setLeaf(0n, Poseidon.hash(bobAccount.toFields()));
+    merkle.setLeaf(1n, Poseidon.hash(aliceAccount.toFields()));
+    const root = merkle.getRoot();
 
     const txn0 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
@@ -119,7 +124,7 @@ describe('Pool Factory Token', () => {
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress, approvedSigner: bobAccount, approvedSigner2: aliceAccount });
+      await zkApp.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress, approvedSigner: root });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,
       });
@@ -155,9 +160,11 @@ describe('Pool Factory Token', () => {
     await txn2.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey1]).send();
 
     const signature = Signature.create(zkTokenPrivateKey0, zkPoolAddress.toFields());
+    const witness = merkle.getWitness(0n);
+    const circuitWitness = new SignerMerkleWitness(witness);
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 5);
-      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, zkTokenAddress0, signature);
+      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, zkTokenAddress0, signature, circuitWitness);
     });
 
     //console.log("Pool creation", txn3.toPretty());

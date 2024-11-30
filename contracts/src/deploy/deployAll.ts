@@ -13,8 +13,8 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolTokenHolder, FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool } from '../index.js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleTree, Mina, NetworkId, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
+import { PoolTokenHolder, FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness } from '../index.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
@@ -108,6 +108,10 @@ console.log("factory", zkFactoryKey.toBase58());
 console.log("zkTokenAdmin", zkTokenAdminAddress.toBase58());
 console.log("zkFaucet", zkFaucetAddress.toBase58());
 console.log("zkEth", zkEthAddress.toBase58());
+
+const merkle = new MerkleTree(32);
+merkle.setLeaf(0n, Poseidon.hash(feepayerAddress.toFields()));
+const root = merkle.getRoot();
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
@@ -223,11 +227,13 @@ async function deployPool() {
     try {
         console.log("deploy pool");
         const signature = Signature.create(zkTokenPrivateKey, zkAppAddress.toFields());
+        const witness = merkle.getWitness(0n);
+        const circuitWitness = new SignerMerkleWitness(witness);
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkAppAddress, zkTokenAddress, zkTokenAddress, signature);
+                await zkFactory.createPool(zkAppAddress, zkTokenAddress, zkTokenAddress, signature, circuitWitness);
             }
         );
         await tx.prove();
@@ -250,7 +256,7 @@ async function deployFactory() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: feepayerAddress, approvedSigner: feepayerAddress, approvedSigner2: feepayerAddress });
+                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: feepayerAddress, approvedSigner: root });
             }
         );
         await tx.prove();
@@ -270,11 +276,13 @@ async function deployPoolEth() {
         const wethAddress = PublicKey.fromBase58("B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H");
         console.log("deploy pool eth");
         const signature = Signature.create(zkAppKey, zkEthAddress.toFields());
+        const witness = merkle.getWitness(0n);
+        const circuitWitness = new SignerMerkleWitness(witness);
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkEthAddress, wethAddress, zkEthAddress, signature);
+                await zkFactory.createPool(zkEthAddress, wethAddress, zkEthAddress, signature, circuitWitness);
             }
         );
         await tx.prove();
