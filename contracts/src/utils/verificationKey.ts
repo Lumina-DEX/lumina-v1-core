@@ -4,7 +4,7 @@ import { FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolDat
 import readline from "readline/promises";
 import path from 'path';
 
-// node build/src/verificationKey.js
+// node build/src/utils/verificationKey.js
 
 
 // get contract vk
