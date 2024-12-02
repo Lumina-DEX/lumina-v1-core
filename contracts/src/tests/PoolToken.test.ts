@@ -64,7 +64,8 @@ describe('Pool Factory Token', () => {
 
 
   beforeEach(async () => {
-    const Local = await Mina.LocalBlockchain({ proofsEnabled });
+    // no transaction limits on zeko
+    const Local = await Mina.LocalBlockchain({ proofsEnabled, enforceTransactionLimits: false });
     Mina.setActiveInstance(Local);
     [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
     deployerKey = deployerAccount.key;
