@@ -249,7 +249,7 @@ describe('Pool data', () => {
 
   it('failed without owner key', async () => {
     let txn = await Mina.transaction(senderAccount, async () => {
-      await zkApp.updateVerificationKey(vk.verificationKey);
+      await zkApp.updateVerificationKey(compileKey);
     });
     await txn.prove();
     await expect(txn.sign([senderKey]).send()).rejects.toThrow();
