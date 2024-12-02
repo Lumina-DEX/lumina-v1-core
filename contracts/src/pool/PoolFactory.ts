@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, Permissions, State, method, Struct, UInt64, PublicKey, Bool, Circuit, Provable, TokenContract, AccountUpdate, AccountUpdateForest, Poseidon, VerificationKey, Reducer, Account, assert, fetchAccount, MerkleList, TransactionVersion, TokenContractV2, DeployArgs, TokenId, CircuitString, Signature, ZkProgram, MerkleMap, MerkleTree, MerkleWitness } from 'o1js';
-import { FungibleToken, PoolData, Pool, PoolTokenHolder } from '../indexpool.js';
+import { FungibleToken, Pool, PoolTokenHolder } from '../indexpool.js';
 import { newAccount } from 'o1js/dist/node/lib/mina/account.js';
 
 
@@ -11,7 +11,9 @@ export const contractHolderHash = Field(2270546821206530639474661853638082987164
 export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     symbol: string;
     src: string;
-    poolData: PublicKey;
+    protocol: PublicKey;
+    owner: PublicKey;
+    delegator: PublicKey;
     approvedSigner: Field;
 }
 
@@ -39,23 +41,31 @@ export class SignerMerkleWitness extends MerkleWitness(32) { }
  */
 export class PoolFactory extends TokenContractV2 {
 
-    @state(PublicKey) poolData = State<PublicKey>();
     @state(Field) approvedSigner = State<Field>();
+    @state(PublicKey) owner = State<PublicKey>();
+    @state(PublicKey) protocol = State<PublicKey>();
+    @state(PublicKey) delegator = State<PublicKey>();
+
 
     events = {
         poolAdded: PoolCreationEvent,
         upgrade: Field,
         updateSigner: Field,
+        updateProtocol: PublicKey,
+        updateDelegator: PublicKey,
+        updateOwner: PublicKey
     };
 
     async deploy(args: PoolDeployProps) {
         await super.deploy(args);
-        args.poolData.isEmpty().assertFalse("Pool data empty");
+        args.owner.isEmpty().assertFalse("Owner is empty");
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
-        this.poolData.set(args.poolData);
         this.approvedSigner.set(args.approvedSigner);
+        this.owner.set(args.owner);
+        this.protocol.set(args.protocol);
+        this.delegator.set(args.delegator);
 
         let permissions = Permissions.default();
         permissions.access = Permissions.proofOrSignature();
@@ -78,6 +88,39 @@ export class PoolFactory extends TokenContractV2 {
         await this.getOwnerSignature();
         this.approvedSigner.set(newSigner);
         this.emitEvent("updateSigner", newSigner);
+    }
+
+    @method async setNewOwner(newOwner: PublicKey) {
+        await this.getOwnerSignature();
+        this.owner.set(newOwner);
+        this.emitEvent("updateOwner", newOwner);
+    }
+
+    @method async setNewProtocol(newProtocol: PublicKey) {
+        await this.getOwnerSignature();
+        this.protocol.set(newProtocol);
+        this.emitEvent("updateProtocol", newProtocol);
+    }
+
+    @method async setNewDelegator(newDelegator: PublicKey) {
+        await this.getOwnerSignature();
+        this.delegator.set(newDelegator);
+        this.emitEvent("updateDelegator", newDelegator);
+    }
+
+    @method.returns(PublicKey) async getProtocol() {
+        const protocol = this.protocol.getAndRequireEquals();
+        return protocol;
+    }
+
+    @method.returns(PublicKey) async getOwner() {
+        const owner = this.owner.getAndRequireEquals();
+        return owner;
+    }
+
+    @method.returns(PublicKey) async getDelegator() {
+        const delegator = this.delegator.getAndRequireEquals();
+        return delegator;
     }
 
     @method
@@ -196,18 +239,19 @@ export class PoolFactory extends TokenContractV2 {
     private createState(token0: PublicKey, token1: PublicKey) {
         let token0Fields = token0.toFields();
         let token1Fields = token1.toFields();
-        let poolDataAddress = this.poolData.getAndRequireEquals();
-        let poolDataFields = poolDataAddress.toFields();
+        let poolFactory = this.address.toFields();
+        let protocol = this.protocol.getAndRequireEquals();
+        let protocolFields = protocol.toFields();
 
         return [
             { isSome: Bool(true), value: token0Fields[0] },
             { isSome: Bool(true), value: token0Fields[1] },
             { isSome: Bool(true), value: token1Fields[0] },
             { isSome: Bool(true), value: token1Fields[1] },
-            { isSome: Bool(true), value: poolDataFields[0] },
-            { isSome: Bool(true), value: poolDataFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
+            { isSome: Bool(true), value: poolFactory[0] },
+            { isSome: Bool(true), value: poolFactory[1] },
+            { isSome: Bool(true), value: protocolFields[0] },
+            { isSome: Bool(true), value: protocolFields[1] },
         ];
     }
 
@@ -234,10 +278,7 @@ export class PoolFactory extends TokenContractV2 {
     }
 
     private async getOwnerSignature() {
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const owner = poolData.owner.getAndRequireEquals();
-
+        const owner = this.owner.getAndRequireEquals();
         // only owner can update a pool
         AccountUpdate.createSigned(owner);
     }

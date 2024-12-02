@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey, TokenId, Int64 } from 'o1js';
-import { Pool, mulDiv, SwapEvent, PoolData, FungibleToken } from '../indexpool.js';
+import { Pool, mulDiv, SwapEvent, FungibleToken, PoolFactory } from '../indexpool.js';
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
@@ -8,7 +8,7 @@ export class PoolTokenHolder extends SmartContract {
 
     @state(PublicKey) token0 = State<PublicKey>();
     @state(PublicKey) token1 = State<PublicKey>();
-    @state(PublicKey) poolData = State<PublicKey>();
+    @state(PublicKey) poolFactory = State<PublicKey>();
 
     events = {
         swap: SwapEvent
@@ -22,8 +22,10 @@ export class PoolTokenHolder extends SmartContract {
     // swap from mina to this token through the pool
     @method async swapFromMinaToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
-        const protocol = await this.swap(frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
-        let pool = new Pool(this.address);
+        const pool = new Pool(this.address);
+        // we check the protocol in the pool
+        const protocol = pool.protocol.get();
+        await this.swap(protocol, frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
         await pool.swapFromMinaToToken(protocol, amountMinaIn, balanceInMax);
     }
 
@@ -31,7 +33,10 @@ export class PoolTokenHolder extends SmartContract {
     // swap from token to an other token
     @method async swapFromTokenToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
-        await this.swap(frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
+        const poolDataAddress = this.poolFactory.getAndRequireEquals();
+        const poolData = new PoolFactory(poolDataAddress);
+        const protocol = await poolData.getProtocol();
+        await this.swap(protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }
 
     // check if they are no exploit possible  
@@ -90,7 +95,7 @@ export class PoolTokenHolder extends SmartContract {
         return amountToken;
     }
 
-    private async swap(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
+    private async swap(protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
@@ -123,10 +128,7 @@ export class PoolTokenHolder extends SmartContract {
         let frontendUpdate = await this.send({ to: frontendReceiver, amount: feeFrontend });
         frontendUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
-        // send fee to protocol
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = await poolData.getProtocol();
+        // send fee to protocol  
         const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
         let protocolUpdate = await this.send({ to: protocolReceiver, amount: feeProtocol });
         protocolUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
@@ -141,8 +143,6 @@ export class PoolTokenHolder extends SmartContract {
         }
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
-
-        return protocolReceiver;
     }
 
     private checkToken(isMinaPool: boolean) {

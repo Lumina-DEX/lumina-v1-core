@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleTree, Mina, NetworkId, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
-import { FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolTokenHolder, Pool, PoolData, SignerMerkleWitness } from '../index.js';
+import { FungibleToken, PoolDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness } from '../index.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
@@ -98,7 +98,6 @@ let zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
 let zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
 let zkFaucetAddress = zkFaucetKey.toPublicKey();
 let zkFaucet = new Faucet(zkFaucetAddress, zkToken.deriveTokenId());
-let zkPoolData = new PoolData(zkPoolDataAddress);
 
 let zkTokaAddress = PublicKey.fromBase58("B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w");
 let zkToka = new FungibleToken(zkTokaAddress);
@@ -121,7 +120,6 @@ const key = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 await PoolTokenHolder.compile({ cache });
-await PoolData.compile({ cache });
 await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
 //const keyV2 = await PoolMinaV2.compile({ cache });
@@ -253,22 +251,22 @@ async function deployPool() {
 async function deployPoolData() {
     try {
         console.log("deploy pool data");
-        let tx = await Mina.transaction(
-            { sender: feepayerAddress, fee },
-            async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await zkPoolData.deploy({
-                    protocol: feepayerAddress,
-                    owner: feepayerAddress,
-                    delegator: feepayerAddress,
-                });
-            }
-        );
-        await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, zkPoolDataKey]).send();
-        if (sentTx.status === 'pending') {
-            console.log("hash", sentTx.hash);
-        }
+        // let tx = await Mina.transaction(
+        //     { sender: feepayerAddress, fee },
+        //     async () => {
+        //         AccountUpdate.fundNewAccount(feepayerAddress, 1);
+        //         await zkPoolData.deploy({
+        //             protocol: feepayerAddress,
+        //             owner: feepayerAddress,
+        //             delegator: feepayerAddress,
+        //         });
+        //     }
+        // );
+        // await tx.prove();
+        // let sentTx = await tx.sign([feepayerKey, zkPoolDataKey]).send();
+        // if (sentTx.status === 'pending') {
+        //     console.log("hash", sentTx.hash);
+        // }
 
 
     } catch (err) {
@@ -287,7 +285,9 @@ async function deployFactory() {
                 await zkFactory.deploy({
                     symbol: "FAC",
                     src: "https://luminadex.com/",
-                    poolData: zkPoolDataAddress,
+                    delegator: feepayerAddress,
+                    owner: feepayerAddress,
+                    protocol: feepayerAddress,
                     approvedSigner: root
                 });
             }

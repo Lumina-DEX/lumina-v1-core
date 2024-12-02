@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolData, Pool, PoolTokenHolder } from '../index.js';
+import { FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, PoolTokenHolder } from '../index.js';
 import readline from "readline/promises";
 import path from 'path';
 
@@ -8,7 +8,6 @@ import path from 'path';
 
 
 // get contract vk
-await PoolData.compile();
 await PoolFactory.compile();
 const poolKey = await Pool.compile();
 await FungibleToken.compile();

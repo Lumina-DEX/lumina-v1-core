@@ -1,5 +1,5 @@
 import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, PoolData, PoolTokenHolder } from '../indexpool.js';
+import { BalanceChangeEvent, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder } from '../indexpool.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -55,7 +55,11 @@ export class Pool extends TokenContractV2 {
     // we need the token address to instantiate it
     @state(PublicKey) token0 = State<PublicKey>();
     @state(PublicKey) token1 = State<PublicKey>();
-    @state(PublicKey) poolData = State<PublicKey>();
+    @state(PublicKey) poolFactory = State<PublicKey>();
+    /**
+     * we store protocol in the pool to not exceed account update limit on swap
+     */
+    @state(PublicKey) protocol = State<PublicKey>();
 
     // max fee for frontend 0.15 %
     static maxFee: UInt64 = UInt64.from(15);
@@ -66,7 +70,8 @@ export class Pool extends TokenContractV2 {
         addLiquidity: AddLiquidityEvent,
         withdrawLiquidity: WithdrawLiquidityEvent,
         BalanceChange: BalanceChangeEvent,
-        updateDelegator: PublicKey
+        updateDelegator: PublicKey,
+        updateProtocol: PublicKey
     };
 
     async deploy() {
@@ -76,17 +81,23 @@ export class Pool extends TokenContractV2 {
     }
 
     @method async setDelegator() {
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const delegator = await poolData.getDelegator();
-
+        const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
+        const poolFactory = new PoolFactory(poolFactoryAddress);
+        const delegator = await poolFactory.getDelegator();
         const currentDelegator = this.account.delegate.getAndRequireEquals();
         currentDelegator.equals(delegator).assertFalse("Delegator already defined");
-
         this.account.delegate.set(delegator);
-
         this.emitEvent("updateDelegator", delegator);
     }
+
+    @method async setProtocol() {
+        const protocol = await this.getProtocolAddress();
+        const currentProtocol = this.protocol.getAndRequireEquals();
+        currentProtocol.equals(protocol).assertFalse("Protocol already defined");
+        this.protocol.set(protocol);
+        this.emitEvent("updateProtocol", protocol);
+    }
+
 
     /** Approve `AccountUpdate`s that have been created outside of the token contract.
       *
@@ -192,9 +203,7 @@ export class Pool extends TokenContractV2 {
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
         await this.send({ to: frontendReceiver, amount: feeFrontend });
         // send mina to protocol
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        const protocol = await poolData.getProtocol();
+        const protocol = await this.getProtocolAddress();
         const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
         await this.send({ to: protocolReceiver, amount: feeProtocol });
 
@@ -213,9 +222,7 @@ export class Pool extends TokenContractV2 {
         const [token0, token1] = this.checkToken(true);
 
         // check if the protocol address is correct
-        const poolDataAddress = this.poolData.getAndRequireEquals();
-        const poolData = new PoolData(poolDataAddress);
-        poolData.protocol.requireEquals(protocol);
+        this.protocol.requireEquals(protocol);
 
         this.account.balance.requireBetween(UInt64.one, balanceInMax);
         let sender = this.sender.getUnconstrainedV2();
@@ -367,6 +374,12 @@ export class Pool extends TokenContractV2 {
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amount });
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+    }
+
+    private async getProtocolAddress(): Promise<PublicKey> {
+        const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
+        const poolFactory = new PoolFactory(poolFactoryAddress);
+        return await poolFactory.getProtocol();
     }
 
     public static getAmountOut(taxFeeFrontend: UInt64, amountTokenIn: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64) {

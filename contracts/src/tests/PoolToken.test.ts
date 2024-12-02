@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, PoolData, contractHash, contractHolderHash, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, contractHash, contractHolderHash, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 
 let proofsEnabled = false;
 
@@ -22,9 +22,6 @@ describe('Pool Factory Token', () => {
     zkPoolAddress: PublicKey,
     zkPoolPrivateKey: PrivateKey,
     zkPool: Pool,
-    zkPoolDataAddress: PublicKey,
-    zkPoolDataPrivateKey: PrivateKey,
-    zkPoolData: PoolData,
     zkTokenAdminAddress: PublicKey,
     zkTokenAdminPrivateKey: PrivateKey,
     zkTokenAdmin: FungibleTokenAdmin,
@@ -44,7 +41,6 @@ describe('Pool Factory Token', () => {
       console.time('compile pool');
       await FungibleTokenAdmin.compile();
       await FungibleToken.compile();
-      await PoolData.compile();
       await PoolFactory.compile();
       await Pool.compile();
       await PoolTokenHolder.compile();
@@ -81,10 +77,6 @@ describe('Pool Factory Token', () => {
     zkPoolAddress = zkPoolPrivateKey.toPublicKey();
     zkPool = new Pool(zkPoolAddress);
 
-    zkPoolDataPrivateKey = PrivateKey.random();
-    zkPoolDataAddress = zkPoolDataPrivateKey.toPublicKey();
-    zkPoolData = new PoolData(zkPoolDataAddress);
-
     zkTokenAdminPrivateKey = PrivateKey.random();
     zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
     zkTokenAdmin = new FungibleTokenAdmin(zkTokenAdminAddress);
@@ -110,22 +102,14 @@ describe('Pool Factory Token', () => {
     merkle.setLeaf(1n, Poseidon.hash(aliceAccount.toFields()));
     const root = merkle.getRoot();
 
-    const txn0 = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkPoolData.deploy({
-        owner: bobAccount,
-        protocol: aliceAccount,
-        delegator: dylanAccount
-      });
-
-    });
-    await txn0.prove();
-    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn0.sign([deployerKey, zkPoolDataPrivateKey]).send();
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.deploy({ symbol: "FAC", src: "https://luminadex.com/", poolData: zkPoolDataAddress, approvedSigner: root });
+      await zkApp.deploy({
+        symbol: "FAC", src: "https://luminadex.com/",
+        owner: bobAccount, protocol: aliceAccount, delegator: dylanAccount,
+        approvedSigner: root
+      });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,
       });
