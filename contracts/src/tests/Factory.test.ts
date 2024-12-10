@@ -261,6 +261,8 @@ describe('Pool Factory Mina', () => {
     await txn.prove();
     await txn.sign([deployerKey]).send();
     liquidityUser = Mina.getBalance(deployerAccount, zkPool.deriveTokenId());
+    const liquidityOut = mulDiv(amtMina, totalLiquidity, amt);
+    expect(liquidityUser.value).toEqual(liquidityOut.value);
     console.log("liquidity deployer", liquidityUser.toString());
   });
 

@@ -297,7 +297,9 @@ describe('Pool Factory Token', () => {
     console.log("add liquidity from mina au", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([deployerKey]).send();
+    const liquidityOut = mulDiv(amtMina, totalLiquidity, amt);
     liquidityUser = Mina.getBalance(deployerAccount, zkPool.deriveTokenId());
+    expect(liquidityUser.value).toEqual(liquidityOut.value);
     console.log("liquidity deployer", liquidityUser.toString());
   });
 

@@ -333,8 +333,9 @@ export class Pool extends TokenContractV2 {
             liquidityMin.assertLessThanOrEqual(liquidityToken1, "Too much token 0 supplied");
             liquidityMax.assertGreaterThanOrEqual(liquidityToken1, "Too much token 1 supplied");
 
-            const liquidityAmount = Provable.if(liquidityToken0.lessThan(liquidityToken1), liquidityToken0, liquidityToken1);
+            liquidityAmount = Provable.if(liquidityToken0.lessThan(liquidityToken1), liquidityToken0, liquidityToken1);
             liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity out can't be zero");
+            liquidityUser = liquidityAmount;
         }
 
         if (isMinaPool) {
