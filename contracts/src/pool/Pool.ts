@@ -51,7 +51,7 @@ export class Pool extends TokenContractV2 {
     events = {
         swap: SwapEvent,
         addLiquidity: AddLiquidityEvent,
-        BalanceChange: BalanceChangeEvent,
+        balanceChange: BalanceChangeEvent,
         updateDelegator: PublicKey,
         updateProtocol: PublicKey
     };
@@ -93,7 +93,7 @@ export class Pool extends TokenContractV2 {
             this.checkPermissionsUpdate(update)
             this.emitEventIf(
                 usesToken,
-                "BalanceChange",
+                "balanceChange",
                 new BalanceChangeEvent({ address: update.publicKey, amount: update.balanceChange }),
             )
 

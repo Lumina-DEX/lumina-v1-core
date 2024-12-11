@@ -238,7 +238,7 @@ export class PoolFactory extends TokenContractV2 {
         this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
     }
 
-    private createState(token0: PublicKey, token1: PublicKey) {
+    private createState(token0: PublicKey, token1: PublicKey): { isSome: Bool; value: Field; }[] {
         let token0Fields = token0.toFields();
         let token1Fields = token1.toFields();
         let poolFactory = this.address.toFields();
