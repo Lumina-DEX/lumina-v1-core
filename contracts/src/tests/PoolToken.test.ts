@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, contractHash, contractHolderHash, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
@@ -164,7 +164,6 @@ describe('Pool Factory Token', () => {
   });
 
   it('add first liquidity', async () => {
-
     let amt = UInt64.from(10 * 10 ** 9);
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn = await Mina.transaction(senderAccount, async () => {
@@ -188,6 +187,26 @@ describe('Pool Factory Token', () => {
     const balanceMina = Mina.getBalance(zkPoolAddress, zkToken1.deriveTokenId());
     expect(balanceMina.value).toEqual(amtToken.value);
 
+  });
+
+  it('generate different key', async () => {
+    const newKey = PrivateKey.randomKeypair();
+
+    const fields = zkTokenAddress0.toFields().concat(zkTokenAddress1.toFields())
+    const hash = Poseidon.hashToGroup(fields);
+    const publicKey = PublicKey.fromGroup(hash);
+    console.log('publickey', publicKey.toBase58());
+    const fields2 = zkTokenAddress0.toFields().concat(newKey.publicKey.toFields())
+    const hash2 = Poseidon.hashToGroup(fields2);
+    const publicKey2 = PublicKey.fromGroup(hash2);
+    console.log('publicKey2', publicKey2.toBase58());
+    const fields3 = newKey.publicKey.toFields().concat(zkTokenAddress1.toFields())
+    const hash3 = Poseidon.hashToGroup(fields3);
+    const publicKey3 = PublicKey.fromGroup(hash3);
+    console.log('publicKey3', publicKey3.toBase58());
+
+    expect(publicKey.toBase58()).not.toEqual(publicKey2);
+    expect(publicKey2.toBase58()).not.toEqual(publicKey3);
   });
 
   it('Transfer liquidity', async () => {

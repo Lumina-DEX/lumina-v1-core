@@ -155,7 +155,8 @@ export class PoolFactory extends TokenContractV2 {
         token0.x.assertLessThan(token1.x, "Token 0 need to be lesser than token 1");
         // create an address with the 2 public key as pool id
         const fields = token0.toFields().concat(token1.toFields());
-        const publicKey = PublicKey.fromFields(fields);
+        const hash = Poseidon.hashToGroup(fields);
+        const publicKey = PublicKey.fromGroup(hash);
         publicKey.isEmpty().assertFalse("publicKey is empty");
         await this.createAccounts(newAccount, publicKey, token0, token1, signer, signature, path, true);
     }
