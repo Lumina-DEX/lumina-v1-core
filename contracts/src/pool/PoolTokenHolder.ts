@@ -1,5 +1,22 @@
-import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey, TokenId, Int64 } from 'o1js';
+import { Field, SmartContract, state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, Provable, AccountUpdate, Account, Bool, Reducer, VerificationKey, TokenId, Int64, Struct } from 'o1js';
 import { Pool, mulDiv, SwapEvent, FungibleToken, PoolFactory } from '../indexpool.js';
+
+
+export class WithdrawLiquidityEvent extends Struct({
+    sender: PublicKey,
+    amountLiquidityIn: UInt64,
+    amountToken0Out: UInt64,
+    amountToken1Out: UInt64,
+}) {
+    constructor(value: {
+        sender: PublicKey,
+        amountLiquidityIn: UInt64,
+        amountToken0Out: UInt64,
+        amountToken1Out: UInt64,
+    }) {
+        super(value);
+    }
+}
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
@@ -11,6 +28,7 @@ export class PoolTokenHolder extends SmartContract {
     @state(PublicKey) poolFactory = State<PublicKey>();
 
     events = {
+        withdrawLiquidity: WithdrawLiquidityEvent,
         swap: SwapEvent
     };
 
@@ -44,6 +62,8 @@ export class PoolTokenHolder extends SmartContract {
         const amountToken = this.withdraw(liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
         const pool = new Pool(this.address);
         await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
+        const sender = this.sender.getUnconstrainedV2();
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMinaMin, amountToken1Out: amountTokenMin, amountLiquidityIn: liquidityAmount }));
     }
 
     // check if they are no exploit possible  
@@ -62,6 +82,8 @@ export class PoolTokenHolder extends SmartContract {
         await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
         await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
+        const sender = this.sender.getUnconstrainedV2();
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken0Min, amountToken1Out: amountToken1Min, amountLiquidityIn: liquidityAmount }));
     }
 
     /**

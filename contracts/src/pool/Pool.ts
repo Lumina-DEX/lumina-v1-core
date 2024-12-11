@@ -31,23 +31,6 @@ export class AddLiquidityEvent extends Struct({
     }
 }
 
-export class WithdrawLiquidityEvent extends Struct({
-    sender: PublicKey,
-    amountLiquidityIn: UInt64,
-    amountToken0Out: UInt64,
-    amountToken1Out: UInt64,
-}) {
-    constructor(value: {
-        sender: PublicKey,
-        amountLiquidityIn: UInt64,
-        amountToken0Out: UInt64,
-        amountToken1Out: UInt64,
-    }) {
-        super(value);
-    }
-}
-
-
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
@@ -68,7 +51,6 @@ export class Pool extends TokenContractV2 {
     events = {
         swap: SwapEvent,
         addLiquidity: AddLiquidityEvent,
-        withdrawLiquidity: WithdrawLiquidityEvent,
         BalanceChange: BalanceChangeEvent,
         updateDelegator: PublicKey,
         updateProtocol: PublicKey
@@ -258,8 +240,6 @@ export class Pool extends TokenContractV2 {
 
         // send mina to user
         await this.send({ to: sender, amount: amountMina });
-
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMina, amountToken1Out: amountTokenOut, amountLiquidityIn: liquidityAmount }));
     }
 
     /**
@@ -282,8 +262,6 @@ export class Pool extends TokenContractV2 {
         // burn liquidity from user and current supply
         liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2();
         await this.internal.burn({ address: sender, amount: liquidityAmount });
-
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken0, amountToken1Out: amountToken1, amountLiquidityIn: liquidityAmount }));
     }
 
     private async supply(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
