@@ -1,5 +1,5 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContractV2, TokenId, Types, UInt64 } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, PoolFactory } from '../indexpool.js';
+import { BalanceChangeEvent, FungibleToken, mulDiv, PoolFactory, UpdateUserEvent } from '../indexpool.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -52,8 +52,8 @@ export class Pool extends TokenContractV2 {
         swap: SwapEvent,
         addLiquidity: AddLiquidityEvent,
         balanceChange: BalanceChangeEvent,
-        updateDelegator: PublicKey,
-        updateProtocol: PublicKey
+        updateDelegator: UpdateUserEvent,
+        updateProtocol: UpdateUserEvent
     };
 
     async deploy() {
@@ -69,7 +69,7 @@ export class Pool extends TokenContractV2 {
         const currentDelegator = this.account.delegate.getAndRequireEquals();
         currentDelegator.equals(delegator).assertFalse("Delegator already defined");
         this.account.delegate.set(delegator);
-        this.emitEvent("updateDelegator", delegator);
+        this.emitEvent("updateDelegator", new UpdateUserEvent(delegator));
     }
 
     @method async setProtocol() {
@@ -77,7 +77,7 @@ export class Pool extends TokenContractV2 {
         const currentProtocol = this.protocol.getAndRequireEquals();
         currentProtocol.equals(protocol).assertFalse("Protocol already defined");
         this.protocol.set(protocol);
-        this.emitEvent("updateProtocol", protocol);
+        this.emitEvent("updateProtocol", new UpdateUserEvent(protocol));
     }
 
 

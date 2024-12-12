@@ -18,17 +18,49 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
 
 export class PoolCreationEvent extends Struct({
     sender: PublicKey,
+    signer: PublicKey,
     poolAddress: PublicKey,
     token0Address: PublicKey,
     token1Address: PublicKey
 }) {
     constructor(value: {
         sender: PublicKey,
+        signer: PublicKey,
         poolAddress: PublicKey,
         token0Address: PublicKey,
         token1Address: PublicKey
     }) {
         super(value);
+    }
+}
+
+export class UpdateUserEvent extends Struct({
+    newUser: PublicKey,
+}) {
+    constructor(
+        newUser: PublicKey,
+    ) {
+        super({ newUser });
+    }
+}
+
+export class UpdateVerificationKeyEvent extends Struct({
+    hash: Field,
+}) {
+    constructor(
+        hash: Field,
+    ) {
+        super({ hash });
+    }
+}
+
+export class UpdateSignerEvent extends Struct({
+    root: Field,
+}) {
+    constructor(
+        root: Field,
+    ) {
+        super({ root });
     }
 }
 
@@ -48,11 +80,11 @@ export class PoolFactory extends TokenContractV2 {
 
     events = {
         poolAdded: PoolCreationEvent,
-        upgrade: Field,
-        updateSigner: Field,
-        updateProtocol: PublicKey,
-        updateDelegator: PublicKey,
-        updateOwner: PublicKey
+        upgrade: UpdateVerificationKeyEvent,
+        updateSigner: UpdateSignerEvent,
+        updateProtocol: UpdateUserEvent,
+        updateDelegator: UpdateUserEvent,
+        updateOwner: UpdateUserEvent
     };
 
     async deploy(args: PoolDeployProps) {
@@ -80,31 +112,31 @@ export class PoolFactory extends TokenContractV2 {
     @method async updateVerificationKey(vk: VerificationKey) {
         await this.getOwnerSignature();
         this.account.verificationKey.set(vk);
-        this.emitEvent("upgrade", vk.hash);
+        this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
 
     @method async updateApprovedSigner(newSigner: Field) {
         await this.getOwnerSignature();
         this.approvedSigner.set(newSigner);
-        this.emitEvent("updateSigner", newSigner);
+        this.emitEvent("updateSigner", new UpdateSignerEvent(newSigner));
     }
 
     @method async setNewOwner(newOwner: PublicKey) {
         await this.getOwnerSignature();
         this.owner.set(newOwner);
-        this.emitEvent("updateOwner", newOwner);
+        this.emitEvent("updateOwner", new UpdateUserEvent(newOwner));
     }
 
     @method async setNewProtocol(newProtocol: PublicKey) {
         await this.getOwnerSignature();
         this.protocol.set(newProtocol);
-        this.emitEvent("updateProtocol", newProtocol);
+        this.emitEvent("updateProtocol", new UpdateUserEvent(newProtocol));
     }
 
     @method async setNewDelegator(newDelegator: PublicKey) {
         await this.getOwnerSignature();
         this.delegator.set(newDelegator);
-        this.emitEvent("updateDelegator", newDelegator);
+        this.emitEvent("updateDelegator", new UpdateUserEvent(newDelegator));
     }
 
     @method.returns(PublicKey) async getProtocol() {
@@ -234,8 +266,8 @@ export class PoolFactory extends TokenContractV2 {
 
         await poolAccount.approve(liquidityAccount);
 
-        const sender = this.sender.getUnconstrainedV2();
-        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
+        const sender = this.sender.getAndRequireSignatureV2();
+        this.emitEvent("poolAdded", new PoolCreationEvent({ sender, signer, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
     }
 
     private createState(token0: PublicKey, token1: PublicKey): { isSome: Bool; value: Field; }[] {
