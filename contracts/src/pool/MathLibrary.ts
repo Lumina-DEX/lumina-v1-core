@@ -1,4 +1,4 @@
-import { Field, Provable, UInt64, Gadgets as RangeCheck, AccountUpdate } from "o1js";
+import { Field, Provable, Gadgets as RangeCheck, UInt64 } from "o1js";
 
 /**
  * Function to multiply one Uint64 by another and divide the result,
@@ -8,8 +8,7 @@ import { Field, Provable, UInt64, Gadgets as RangeCheck, AccountUpdate } from "o
  * @param denominator The divisor
  * @returns  the quotient and the remainder
  */
-export function mulDivMod(a: UInt64, b: UInt64, denominator: UInt64) {
-
+export function mulDivMod(a: UInt64, b: UInt64, denominator: UInt64): { quotient: UInt64, rest: UInt64 } {
     let x = a.value.mul(b.value);
     let y_ = denominator.value;
     if (x.isConstant() && y_.isConstant()) {
@@ -23,15 +22,12 @@ export function mulDivMod(a: UInt64, b: UInt64, denominator: UInt64) {
         };
     }
     y_ = y_.seal();
-    let q = Provable.witness(Field, () => new Field(x.toBigInt() / y_.toBigInt()));
-    RangeCheck.rangeCheckN(UInt64.NUM_BITS, q);
-    // TODO: Could be a bit more efficient
-    let r = x.sub(q.mul(y_)).seal();
+    let q = Provable.witness(UInt64, () => new UInt64(x.toBigInt() / y_.toBigInt()));
+    let r = x.sub(q.value.mul(y_)).seal();
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, r);
     let r_ = new UInt64(r.value);
-    let q_ = new UInt64(q.value);
     r_.assertLessThan(new UInt64(y_.value));
-    return { quotient: q_, rest: r_ };
+    return { quotient: q, rest: r_ };
 }
 
 /**

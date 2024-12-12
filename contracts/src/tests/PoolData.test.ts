@@ -1,6 +1,6 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8, VerificationKey } from 'o1js';
-import { contractHash, contractHolderHash, Faucet, PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness } from '../index';
+import { contractHash, contractHolderHash, Faucet, PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
 import { PoolHolderUpgradeTest } from './PoolHolderUpgradeTest';
 
@@ -157,6 +157,25 @@ describe('Pool data', () => {
     await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
+
+  });
+
+  it('math test', async () => {
+    const result = 150n * 12000n / 300n;
+    const resultMul = mulDiv(UInt64.from(150n), UInt64.from(12000n), UInt64.from(300n));
+    expect(result).toEqual(resultMul.toBigInt());
+
+    const resultFix = 10000n * 1200000000n / 300n;
+    const resultMulFix = mulDiv(UInt64.from(10000n), UInt64.from(1200000000n), UInt64.from(300n));
+    expect(resultFix).toEqual(resultMulFix.toBigInt());
+
+    const resultBigMul = 300_000_000_000_000n * 12_000_000_000_000n / 300_000_000n;
+    const resultMulBigMul = mulDiv(UInt64.from(300_000_000_000_000n), UInt64.from(12_000_000_000_000n), UInt64.from(300_000_000n));
+    expect(resultBigMul).toEqual(resultMulBigMul.toBigInt());
+
+    const resultFloat = 300n * 12000n / 17n;
+    const resultMulFloat = mulDiv(UInt64.from(300n), UInt64.from(12000n), UInt64.from(17n));
+    expect(resultFloat).toEqual(resultMulFloat.toBigInt());
 
   });
 
