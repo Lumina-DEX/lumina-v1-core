@@ -192,7 +192,6 @@ describe('Pool data', () => {
     let newowner = await zkApp.owner.fetch();
     expect(newowner?.toBase58()).toEqual(senderAccount.toBase58());
 
-
   });
 
   it('update protocol', async () => {
@@ -299,14 +298,15 @@ describe('Pool data', () => {
   it('failed change owner', async () => {
     let owner = await zkApp.owner.fetch();
     expect(owner?.toBase58()).toEqual(bobAccount.toBase58());
+    // failed without alice key
     let txn = await Mina.transaction(senderAccount, async () => {
       await zkApp.setNewOwner(aliceAccount);
     });
     await txn.prove();
-    await txn.sign([senderKey, bobKey]).send();
+    await expect(txn.sign([senderKey, bobKey]).send()).rejects.toThrow();
 
     let newowner = await zkApp.owner.fetch();
-    expect(newowner?.toBase58()).toEqual(aliceAccount.toBase58());
+    expect(newowner?.toBase58()).toEqual(bobAccount.toBase58());
 
   });
 
