@@ -123,6 +123,8 @@ export class PoolFactory extends TokenContractV2 {
 
     @method async setNewOwner(newOwner: PublicKey) {
         await this.getOwnerSignature();
+        // require signature for the new owner to prevent incorrect transfer
+        AccountUpdate.createSigned(newOwner);
         this.owner.set(newOwner);
         this.emitEvent("updateOwner", new UpdateUserEvent(newOwner));
     }
