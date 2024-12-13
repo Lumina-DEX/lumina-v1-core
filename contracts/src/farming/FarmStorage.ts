@@ -1,5 +1,5 @@
-import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types, SmartContract } from 'o1js';
-import { BalanceChangeEvent, Pool, mulDiv, PoolTokenHolder } from '../indexpool.js';
+import { Field, state, State, method, PublicKey, DeployArgs, UInt64, SmartContract } from 'o1js';
+import { Pool, mulDiv } from '../indexpool.js';
 
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
     pool: PublicKey;

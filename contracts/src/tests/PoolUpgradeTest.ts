@@ -1,5 +1,5 @@
-import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, TokenId, Account, Bool, Int64, Reducer, Struct, CircuitString, assert, Types } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, Pool, PoolTokenHolder } from '../indexpool.js';
+import { method, UInt64 } from 'o1js';
+import { Pool } from '../indexpool.js';
 
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)

@@ -1,8 +1,7 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
-import { AccountUpdate, Bool, Cache, CircuitString, fetchAccount, Field, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8, VerificationKey } from 'o1js';
-import { contractHash, contractHolderHash, Faucet, PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness, mulDiv } from '../index';
+import { AccountUpdate, Bool, Cache, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8, VerificationKey } from 'o1js';
+import { PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { PoolHolderUpgradeTest } from './PoolHolderUpgradeTest';
 
 let proofsEnabled = false;
 
