@@ -1,7 +1,7 @@
-import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, Faucet, PoolFactory, contractHash, contractHolderHash, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 
 let proofsEnabled = false;
 

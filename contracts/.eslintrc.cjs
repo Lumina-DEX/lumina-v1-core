@@ -15,9 +15,19 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest',
   },
-  plugins: ['@typescript-eslint', 'o1js'],
+  plugins: ['@typescript-eslint', 'o1js', 'unused-imports'],
   rules: {
     'no-constant-condition': 'off',
     'prefer-const': 'off',
+    "no-unused-vars": "off",
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": [
+      "warn",
+      {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }]
   },
 };

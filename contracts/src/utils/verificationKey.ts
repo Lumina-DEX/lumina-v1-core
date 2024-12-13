@@ -1,8 +1,4 @@
-import fs from 'fs/promises';
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, PoolTokenHolder } from '../index.js';
-import readline from "readline/promises";
-import path from 'path';
+import { FungibleToken, FungibleTokenAdmin, PoolFactory, Pool, PoolTokenHolder } from '../index.js';
 
 // node build/src/utils/verificationKey.js
 

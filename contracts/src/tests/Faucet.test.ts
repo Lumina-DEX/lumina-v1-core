@@ -1,5 +1,5 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
-import { AccountUpdate, Bool, fetchAccount, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Mina, PrivateKey, PublicKey, UInt64, UInt8 } from 'o1js';
 import { Faucet } from '../index';
 
 let proofsEnabled = false;

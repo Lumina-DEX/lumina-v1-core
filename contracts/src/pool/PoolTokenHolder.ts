@@ -136,7 +136,7 @@ export class PoolTokenHolder extends SmartContract {
         const tokenIdIn = Provable.if(this.tokenId.equals(tokenId0), tokenId1, tokenId0);
         const tokenAddressIn = Provable.if(this.tokenId.equals(tokenId0), token1, token0);
 
-        const { feeLP, feeFrontend, feeProtocol, amountOut } = Pool.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
+        const { feeFrontend, feeProtocol, amountOut } = Pool.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
 
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 

@@ -160,7 +160,7 @@ export class Pool extends TokenContractV2 {
         taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
 
         // token 0 need to be empty on mina pool
-        const [token0, token1] = this.checkToken(true);
+        const [, token1] = this.checkToken(true);
 
         let tokenContract = new FungibleToken(token1);
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -201,7 +201,7 @@ export class Pool extends TokenContractV2 {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
-        const [token0, token1] = this.checkToken(true);
+        this.checkToken(true);
 
         // check if the protocol address is correct
         this.protocol.requireEquals(protocol);
@@ -222,7 +222,7 @@ export class Pool extends TokenContractV2 {
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // token 0 need to be empty on mina pool
-        const [token0, token1] = this.checkToken(true);
+        this.checkToken(true);
 
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
@@ -252,7 +252,7 @@ export class Pool extends TokenContractV2 {
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // token 0 need to be empty on mina pool
-        const [token0, token1] = this.checkToken(false);
+        this.checkToken(false);
 
         const sender = this.sender.getUnconstrainedV2();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");

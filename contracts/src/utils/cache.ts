@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory } from '../index.js';
-import readline from "readline/promises";
+import { Cache } from 'o1js';
+import { Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet, PoolFactory } from '../index.js';
 import path from 'path';
 
 // node build/src/cache.js
