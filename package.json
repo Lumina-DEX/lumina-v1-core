@@ -5,7 +5,9 @@
   "scripts": {
     "postinstall": "(cd ./contracts && npm install) && (cd ./ui && npm install)",
     "dev": "cd ui && npm run dev",
-    "build": "(cd ./contracts && npm run build) && (cd ./ui && npm run build)"
+    "build": "(cd ./contracts && npm run build) && (cd ./ui && npm run build)",
+    "test": "cd ./contracts && npm run test",
+    "lint": "cd ./contracts && npm run lint"
   },
   "author": "eddy",
   "license": "BSL"
