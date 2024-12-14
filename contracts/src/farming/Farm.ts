@@ -27,17 +27,12 @@ import {
 import { BalanceChangeEvent, mulDiv, Pool, PoolTokenHolder } from "../indexpool.js"
 
 export class FarmingInfo extends Struct({
-  tokenAddress: PublicKey,
   startTimestamp: UInt64,
-  endTimestamp: UInt64,
-  root: Field
+  endTimestamp: UInt64
 }) {
   constructor(value: {
-    tokenAddress: PublicKey
-    totalReward: UInt64
     startTimestamp: UInt64
     endTimestamp: UInt64
-    root: Field
   }) {
     super(value)
   }
@@ -58,8 +53,8 @@ export class FarmingEvent extends Struct({
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
   pool: PublicKey
   owner: PublicKey
-  rewardAddress: PublicKey
-  farmingInfo: FarmingInfo
+  startTimestamp: UInt64
+  endTimestamp: UInt64
 }
 
 /**
@@ -71,8 +66,10 @@ export class Farm extends TokenContractV2 {
   pool = State<PublicKey>()
   @state(PublicKey)
   owner = State<PublicKey>()
-  @state(FarmingInfo)
-  farmingInfo = State<FarmingInfo>()
+  @state(UInt64)
+  startTimestamp = State<UInt64>()
+  @state(UInt64)
+  endTimestamp = State<UInt64>()
 
   events = {
     upgrade: Field,
@@ -81,39 +78,39 @@ export class Farm extends TokenContractV2 {
   }
 
   async deploy(args: FarmingDeployProps) {
-    await super.deploy()
+    await super.deploy(args)
 
     args.pool.isEmpty().assertFalse("Pool empty")
     args.owner.isEmpty().assertFalse("Owner empty")
 
     const currentTimestamp = this.network.timestamp.getAndRequireEquals()
-    args.farmingInfo.startTimestamp.assertGreaterThanOrEqual(
-      currentTimestamp,
-      "Start timestamp need to be greater or equal to the current timestamp"
-    )
-    args.farmingInfo.endTimestamp.assertGreaterThan(
+    // args.startTimestamp.assertGreaterThanOrEqual(
+    //   currentTimestamp,
+    //   "Start timestamp need to be greater or equal to the current timestamp"
+    // )
+    args.endTimestamp.assertGreaterThan(
       currentTimestamp,
       "End timestamp need to be greater than current timestamp"
     )
 
     this.pool.set(args.pool)
     this.owner.set(args.owner)
-    this.farmingInfo.set(args.farmingInfo)
+    this.startTimestamp.set(args.startTimestamp)
+    this.endTimestamp.set(args.endTimestamp)
 
     let permissions = Permissions.default()
     permissions.access = Permissions.proof()
     permissions.setPermissions = Permissions.impossible()
-    permissions.setVerificationKey = Permissions.VerificationKey.impossibleDuringCurrentVersion()
+    permissions.setVerificationKey = Permissions.VerificationKey.proofDuringCurrentVersion()
     this.account.permissions.set(permissions)
   }
 
-  /** Approve `AccountUpdate`s that have been created outside of the token contract.
-   *
-   * @argument {AccountUpdateForest} updates - The `AccountUpdate`s to approve. Note that the forest size is limited by the base token contract, @see TokenContractV2.MAX_ACCOUNT_UPDATES The current limit is 9.
+  /** 
+   *  Transfer is locked only depositor can withdraw his token
    */
   @method
   async approveBase(updates: AccountUpdateForest): Promise<void> {
-    Bool(false).assertTrue("You can't manage the token")
+    updates.isEmpty().assertTrue("You can't manage the token")
   }
 
   /**
@@ -133,9 +130,14 @@ export class Farm extends TokenContractV2 {
 
   @method
   async deposit(amount: UInt64) {
-    const farmingInfo = this.farmingInfo.getAndRequireEquals()
+    const startTimestamp = this.startTimestamp.getAndRequireEquals()
+    const endTimestamp = this.endTimestamp.getAndRequireEquals()
+    Provable.log("startTimestamp", startTimestamp);
+    Provable.log("endTimestamp", endTimestamp);
+    const currentTimestamp = this.network.timestamp.getAndRequireEquals();
+    Provable.log("timestamp", currentTimestamp);
     // user can deposit only during this period
-    this.network.timestamp.requireBetween(farmingInfo.startTimestamp, farmingInfo.endTimestamp)
+    this.network.timestamp.requireBetween(startTimestamp, endTimestamp)
 
     const poolAddress = this.pool.getAndRequireEquals()
     const pool = new Pool(poolAddress)
