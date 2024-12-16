@@ -224,8 +224,7 @@ describe('Farming', () => {
         endTimestamp: new UInt64(end),
       });
       await zkFarmTokenHolder.deploy({
-        owner: deployerAccount,
-        pool: zkPoolAddress
+        owner: deployerAccount
       });
       await zkPool.approveAccountUpdate(zkFarmTokenHolder.self);
     });
@@ -271,7 +270,7 @@ describe('Farming', () => {
   });
 
 
-  it('farm pool', async () => {
+  it('deposit withdraw', async () => {
 
     await fetchAccount({ publicKey: zkFarmTokenAddress })
 
@@ -284,8 +283,10 @@ describe('Farming', () => {
     await txn.sign([senderKey]).send();
 
     const balance = Mina.getBalance(zkFarmTokenAddress, zkPool.deriveTokenId());
-    console.log("balance", balance.toBigInt());
     expect(balance.toBigInt()).toEqual(1000n);
+
+    const balanceLiquidity = Mina.getBalance(senderAccount, zkFarmToken.deriveTokenId());
+    expect(balanceLiquidity.toBigInt()).toEqual(1000n);
 
     txn = await Mina.transaction(senderAccount, async () => {
       await zkFarmTokenHolder.withdraw(UInt64.from(1000));
@@ -294,6 +295,12 @@ describe('Farming', () => {
     await txn.prove();
     console.log("zkFarmToken withdraw", txn.toPretty());
     await txn.sign([senderKey]).send();
+
+    const balanceAfter = Mina.getBalance(zkFarmTokenAddress, zkPool.deriveTokenId());
+    expect(balanceAfter.toBigInt()).toEqual(0n);
+
+    const balanceLiquidityAfter = Mina.getBalance(senderAccount, zkFarmToken.deriveTokenId());
+    expect(balanceLiquidityAfter.toBigInt()).toEqual(0n);
   });
 
 

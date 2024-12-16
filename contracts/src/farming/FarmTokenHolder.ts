@@ -13,20 +13,16 @@ import {
   VerificationKey
 } from "o1js"
 import { Farm, FarmingEvent } from "./Farm.js"
-import { Pool } from "../indexpool.js"
-
 
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
-  owner: PublicKey,
-  pool: PublicKey
+  owner: PublicKey
 }
 
 /**
  * Farm contract
  */
 export class FarmTokenHolder extends SmartContract {
-  @state(PublicKey)
-  pool = State<PublicKey>()
+
   @state(PublicKey)
   owner = State<PublicKey>()
 
@@ -38,9 +34,7 @@ export class FarmTokenHolder extends SmartContract {
   async deploy(args: FarmingDeployProps) {
     await super.deploy(args)
 
-    args.pool.isEmpty().assertFalse("Pool empty")
     args.owner.isEmpty().assertFalse("Owner empty")
-    this.pool.set(args.pool)
     this.owner.set(args.owner)
 
     let permissions = Permissions.default()
@@ -76,12 +70,8 @@ export class FarmTokenHolder extends SmartContract {
     const sender = this.sender.getAndRequireSignatureV2()
     const accountUpdate = this.send({ to: sender, amount });
     accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
-
-    // const farm = new Farm(this.address);
-    // const farmLiquidity = AccountUpdate.create(sender, farm.deriveTokenId());
-    // farmLiquidity.balanceChange.sub(amount);
-    //this.internal.burn({ address: sender, amount })
+    const farm = new Farm(this.address);
+    await farm.burnLiquidity(sender, amount);
     this.emitEvent("withdraw", new FarmingEvent({ sender, amount }))
   }
 }

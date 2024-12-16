@@ -41,6 +41,18 @@ export class FarmingEvent extends Struct({
   }
 }
 
+export class BurnEvent extends Struct({
+  sender: PublicKey,
+  amount: UInt64
+}) {
+  constructor(value: {
+    sender: PublicKey
+    amount: UInt64
+  }) {
+    super(value)
+  }
+}
+
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
   pool: PublicKey
   owner: PublicKey
@@ -65,7 +77,7 @@ export class Farm extends TokenContractV2 {
   events = {
     upgrade: Field,
     deposit: FarmingEvent,
-    withdraw: FarmingEvent
+    burn: BurnEvent,
   }
 
   async deploy(args: FarmingDeployProps) {
@@ -138,5 +150,13 @@ export class Farm extends TokenContractV2 {
     await pool.transfer(sender, this.address, amount)
     this.internal.mint({ address: sender, amount })
     this.emitEvent("deposit", new FarmingEvent({ sender, amount }))
+  }
+
+  @method
+  async burnLiquidity(sender: PublicKey, amount: UInt64) {
+    const caller = this.sender.getAndRequireSignatureV2();
+    caller.assertEquals(sender);
+    this.internal.burn({ address: sender, amount })
+    this.emitEvent("burn", new BurnEvent({ sender, amount }))
   }
 }
