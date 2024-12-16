@@ -222,7 +222,7 @@ describe('Farming pool mina', () => {
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn5 = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPoolMina.supplyFirstLiquiditiesToken(amt, amtToken);
+      await zkPoolMina.supplyFirstLiquidities(amt, amtToken);
     });
     await txn5.prove();
     await txn5.sign([senderKey]).send();
@@ -231,11 +231,11 @@ describe('Farming pool mina', () => {
     let amtMina = UInt64.from(1 * 10 ** 9);
     let amtToken2 = UInt64.from(5 * 10 ** 9);
     const totalLiquidity = Mina.getBalance(zkPoolMinaAddress, zkPoolMina.deriveTokenId());
-    const amtToken0 = Mina.getBalance(zkPoolMinaAddress, zkToken0.deriveTokenId());
+    const amtToken0 = Mina.getBalance(zkPoolMinaAddress);
     const amtToken1 = Mina.getBalance(zkPoolMinaAddress, zkToken1.deriveTokenId());
     let txn8 = await Mina.transaction(bobAccount, async () => {
       AccountUpdate.fundNewAccount(bobAccount, 1);
-      await zkPoolMina.supplyLiquidityToken(amtMina, amtToken2, amtToken0, amtToken1, totalLiquidity);
+      await zkPoolMina.supplyLiquidity(amtMina, amtToken2, amtToken0, amtToken1, totalLiquidity);
     });
     await txn8.prove();
     await txn8.sign([bobKey]).send();
