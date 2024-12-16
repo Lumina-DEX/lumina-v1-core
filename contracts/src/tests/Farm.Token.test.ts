@@ -7,7 +7,7 @@ import { FarmTokenHolder } from '../farming/FarmTokenHolder';
 
 let proofsEnabled = false;
 
-describe('Farming pool mina', () => {
+describe('Farming pool token', () => {
   let deployerAccount: Mina.TestPublicKey,
     deployerKey: PrivateKey,
     senderAccount: Mina.TestPublicKey,
@@ -21,9 +21,9 @@ describe('Farming pool mina', () => {
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: PoolFactory,
-    zkPoolMinaAddress: PublicKey,
-    zkPoolMinaPrivateKey: PrivateKey,
-    zkPoolMina: Pool,
+    zkPoolAddress: PublicKey,
+    zkPoolPrivateKey: PrivateKey,
+    zkPool: Pool,
     zkTokenAdminAddress: PublicKey,
     zkTokenAdminPrivateKey: PrivateKey,
     zkTokenAdmin: FungibleTokenAdmin,
@@ -71,7 +71,7 @@ describe('Farming pool mina', () => {
 
   beforeEach(async () => {
     // no transaction limits on zeko
-    const Local = await Mina.LocalBlockchain({ proofsEnabled });
+    const Local = await Mina.LocalBlockchain({ proofsEnabled, enforceTransactionLimits: false });
     Mina.setActiveInstance(Local);
     [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
     deployerKey = deployerAccount.key;
@@ -83,14 +83,14 @@ describe('Farming pool mina', () => {
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new PoolFactory(zkAppAddress);
 
-    zkPoolMinaPrivateKey = PrivateKey.random();
-    zkPoolMinaAddress = zkPoolMinaPrivateKey.toPublicKey();
-    zkPoolMina = new Pool(zkPoolMinaAddress);
+    zkPoolPrivateKey = PrivateKey.random();
+    zkPoolAddress = zkPoolPrivateKey.toPublicKey();
+    zkPool = new Pool(zkPoolAddress);
 
     zkFarmTokenPrivateKey = PrivateKey.random();
     zkFarmTokenAddress = zkFarmTokenPrivateKey.toPublicKey();
     zkFarmToken = new Farm(zkFarmTokenAddress);
-    zkFarmTokenHolder = new FarmTokenHolder(zkFarmTokenAddress, zkPoolMina.deriveTokenId());
+    zkFarmTokenHolder = new FarmTokenHolder(zkFarmTokenAddress, zkPool.deriveTokenId());
 
     zkTokenAdminPrivateKey = PrivateKey.random();
     zkTokenAdminAddress = zkTokenAdminPrivateKey.toPublicKey();
@@ -114,7 +114,7 @@ describe('Farming pool mina', () => {
     zkTokenAddress2 = zkTokenPrivateKey2.toPublicKey();
     zkToken2 = new FungibleToken(zkTokenAddress2);
 
-    tokenHolder = new PoolTokenHolder(zkPoolMinaAddress, zkToken0.deriveTokenId());
+    tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken0.deriveTokenId());
 
     merkle = new MerkleTree(32);
     merkle.setLeaf(0n, Poseidon.hash(bobAccount.toFields()));
@@ -180,18 +180,19 @@ describe('Farming pool mina', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn4.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey2]).send();
 
-
+    const signature = Signature.create(zkTokenPrivateKey0, zkPoolAddress.toFields());
     const witness = merkle.getWitness(0n);
     const circuitWitness = new SignerMerkleWitness(witness);
-    const signature2 = Signature.create(zkTokenPrivateKey1, zkPoolMinaAddress.toFields());
-    const txn6 = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(zkPoolMinaAddress, zkTokenAddress1, zkTokenAddress1, signature2, circuitWitness);
+    const txn3 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 5);
+      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, zkTokenAddress0, signature, circuitWitness);
     });
-    console.log("Pool Mina creation au", txn6.transaction.accountUpdates.length);
-    await txn6.prove();
+
+    //console.log("Pool creation", txn3.toPretty());
+    console.log("Pool creation au", txn3.transaction.accountUpdates.length);
+    await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn6.sign([deployerKey, zkPoolMinaPrivateKey]).send();
+    await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
 
     let start = Date.now() - 100_000;
     let end = start + 100_000;
@@ -199,14 +200,14 @@ describe('Farming pool mina', () => {
       AccountUpdate.fundNewAccount(deployerAccount, 2);
       await zkFarmToken.deploy({
         owner: deployerAccount,
-        pool: zkPoolMinaAddress,
+        pool: zkPoolAddress,
         startTimestamp: new UInt64(start),
         endTimestamp: new UInt64(end),
       });
       await zkFarmTokenHolder.deploy({
         owner: deployerAccount
       });
-      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+      await zkPool.approveAccountUpdate(zkFarmTokenHolder.self);
     });
     console.log("zkFarmToken deploy", txn10.toPretty());
     await txn10.prove();
@@ -222,25 +223,22 @@ describe('Farming pool mina', () => {
     let amtToken = UInt64.from(50 * 10 ** 9);
     let txn5 = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPoolMina.supplyFirstLiquiditiesToken(amt, amtToken);
+      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
     });
     await txn5.prove();
     await txn5.sign([senderKey]).send();
 
-
     let amtMina = UInt64.from(1 * 10 ** 9);
     let amtToken2 = UInt64.from(5 * 10 ** 9);
-    const totalLiquidity = Mina.getBalance(zkPoolMinaAddress, zkPoolMina.deriveTokenId());
-    const amtToken0 = Mina.getBalance(zkPoolMinaAddress, zkToken0.deriveTokenId());
-    const amtToken1 = Mina.getBalance(zkPoolMinaAddress, zkToken1.deriveTokenId());
+    const totalLiquidity = Mina.getBalance(zkPoolAddress, zkPool.deriveTokenId());
+    const amtToken0 = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
+    const amtToken1 = Mina.getBalance(zkPoolAddress, zkToken1.deriveTokenId());
     let txn8 = await Mina.transaction(bobAccount, async () => {
       AccountUpdate.fundNewAccount(bobAccount, 1);
-      await zkPoolMina.supplyLiquidityToken(amtMina, amtToken2, amtToken0, amtToken1, totalLiquidity);
+      await zkPool.supplyLiquidityToken(amtMina, amtToken2, amtToken0, amtToken1, totalLiquidity);
     });
     await txn8.prove();
     await txn8.sign([bobKey]).send();
-
-
   });
 
 
@@ -256,7 +254,7 @@ describe('Farming pool mina', () => {
     console.log("zkFarmToken deposit", txn.toPretty());
     await txn.sign([senderKey]).send();
 
-    const balance = Mina.getBalance(zkFarmTokenAddress, zkPoolMina.deriveTokenId());
+    const balance = Mina.getBalance(zkFarmTokenAddress, zkPool.deriveTokenId());
     expect(balance.toBigInt()).toEqual(1000n);
 
     const balanceLiquidity = Mina.getBalance(senderAccount, zkFarmToken.deriveTokenId());
@@ -264,13 +262,13 @@ describe('Farming pool mina', () => {
 
     txn = await Mina.transaction(senderAccount, async () => {
       await zkFarmTokenHolder.withdraw(UInt64.from(1000));
-      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+      await zkPool.approveAccountUpdate(zkFarmTokenHolder.self);
     });
     await txn.prove();
     console.log("zkFarmToken withdraw", txn.toPretty());
     await txn.sign([senderKey]).send();
 
-    const balanceAfter = Mina.getBalance(zkFarmTokenAddress, zkPoolMina.deriveTokenId());
+    const balanceAfter = Mina.getBalance(zkFarmTokenAddress, zkPool.deriveTokenId());
     expect(balanceAfter.toBigInt()).toEqual(0n);
 
     const balanceLiquidityAfter = Mina.getBalance(senderAccount, zkFarmToken.deriveTokenId());
