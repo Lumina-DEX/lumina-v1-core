@@ -136,6 +136,10 @@ export class Farm extends TokenContractV2 {
     this.emitEvent("deposit", new FarmingEvent({ sender, amount }))
   }
 
+
+  /**
+   * Don't call this method directly
+   */
   @method
   async burnLiquidity(sender: PublicKey, amount: UInt64) {
     const caller = this.sender.getAndRequireSignatureV2();

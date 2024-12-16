@@ -1,9 +1,11 @@
-import { AccountUpdate, Bool, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
-import { Farm } from '../farming/Farm';
+import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
+import { FarmMerkleWitness, FarmReward } from '../farming/FarmReward';
+import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 
 let proofsEnabled = false;
 
@@ -40,6 +42,7 @@ describe('Farming pool token', () => {
     zkFarmTokenPrivateKey: PrivateKey,
     zkFarmToken: Farm,
     zkFarmTokenHolder: FarmTokenHolder,
+    local: any,
     tokenHolder: PoolTokenHolder;
 
   beforeAll(async () => {
@@ -71,9 +74,9 @@ describe('Farming pool token', () => {
 
   beforeEach(async () => {
     // no transaction limits on zeko
-    const Local = await Mina.LocalBlockchain({ proofsEnabled, enforceTransactionLimits: false });
-    Mina.setActiveInstance(Local);
-    [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
+    local = await Mina.LocalBlockchain({ proofsEnabled, enforceTransactionLimits: false });
+    Mina.setActiveInstance(local);
+    [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = local.testAccounts;
     deployerKey = deployerAccount.key;
     senderKey = senderAccount.key;
     bobKey = bobAccount.key;
@@ -277,24 +280,152 @@ describe('Farming pool token', () => {
 
   it('get reward', async () => {
 
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
+    let txn = await Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(bobAccount, 1);
       await zkFarmToken.deposit(UInt64.from(1000));
     });
     await txn.prove();
-    await txn.sign([senderKey]).send();
+    await txn.sign([bobKey]).send();
 
-    txn = await Mina.transaction(senderAccount, async () => {
+    local.setGlobalSlot(1);
+    txn = await Mina.transaction(bobAccount, async () => {
       await zkFarmTokenHolder.withdraw(UInt64.from(1000));
       await zkPool.approveAccountUpdate(zkFarmTokenHolder.self);
     });
     await txn.prove();
-    await txn.sign([senderKey]).send();
+    await txn.sign([bobKey]).send();
 
-    cons
+    const dataReward = await generateRewardMerkle(zkFarmTokenAddress, zkPool.deriveTokenId());
 
+    const key = PrivateKey.random();
+    const farmReward = new FarmReward(key.toPublicKey());
+    const farmRewardTokenHolder = new FarmRewardTokenHolder(key.toPublicKey(), zkToken2.deriveTokenId());
+    txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 2);
+      await farmReward.deploy({
+        owner: deployerAccount,
+        merkleRoot: dataReward.merkle.getRoot(),
+        token: zkTokenAddress2
+      });
+      await farmRewardTokenHolder.deploy({
+        owner: deployerAccount,
+        merkleRoot: dataReward.merkle.getRoot(),
+        token: zkTokenAddress2
+      });
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+      // we deploy and fund reward in one transaction
+      await zkToken2.transfer(deployerAccount, key.toPublicKey(), UInt64.from(dataReward.totalReward));
+    });
+    console.log("farmReward deploy", txn.toPretty());
+    await txn.prove();
+    await txn.sign([key, deployerKey]).send();
+
+    // bob withdraw reward
+    const dataBob = dataReward.rewardList[0];
+    const witness = dataReward.merkle.getWitness(0n);
+    const farmWitness = new FarmMerkleWitness(witness);
+    txn = await Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(bobAccount, 1);
+      await farmRewardTokenHolder.claimReward(UInt64.from(dataBob.reward), farmWitness);
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    console.log("farmReward claim", txn.toPretty());
+    await txn.prove();
+    await txn.sign([bobKey]).send();
 
   });
+
+  type farmInfo = {
+    time: bigint,
+    amount: bigint,
+    deposit: boolean,
+    total: bigint,
+    reward: bigint
+  };
+
+  /**
+   * Test method don't use it on production
+   * based on current reward by block
+   * @param farmAddress 
+   */
+  async function generateRewardMerkle(farmAddress: PublicKey, tokenId: Field) {
+    const farm = new Farm(farmAddress)
+    const events = await farm.fetchEvents(UInt32.zero, UInt32.from(1000))
+    const userList = new Map<string, farmInfo[]>()
+    generateMapReward(events, userList, "deposit");
+    const farmholder = new FarmTokenHolder(farmAddress, tokenId);
+    const eventsWithdraw = await farmholder.fetchEvents(UInt32.zero, UInt32.from(1000))
+    generateMapReward(eventsWithdraw, userList, "withdraw");
+    let totalReward = 0n;
+    const rewardList = [];
+    for (const key of userList.keys()) {
+      console.log(key);
+      const data = userList.get(key) as farmInfo[];
+      const orderData = data.sort((a: any, b: any) => Number(a.time - b.time));
+      for (let index = 0; index < orderData.length; index++) {
+        const element = orderData[index];
+        let timeElapsed = 0n;
+        if (index > 0) {
+          const oldData = orderData[index - 1];
+          // time elapsed in seconds
+          timeElapsed = (element.time - oldData.time) / 1000n;
+          element.total = oldData.total + element.amount;
+          // we give 0,000 001 token by secon by amount stacked
+          element.reward += timeElapsed * 1_000n * oldData.total;
+        } else {
+          element.total = element.amount;
+        }
+
+        if (index === orderData.length - 1) {
+          rewardList.push({ user: key, reward: element.reward });
+          totalReward += element.reward;
+        }
+      }
+    }
+
+    const merkle = new MerkleTree(8192);
+    for (let index = 0; index < rewardList.length; index++) {
+      const element = rewardList[index];
+      const userKey = PublicKey.fromBase58(element.user).toFields();
+      const amount = new Field(element.reward);
+      const hash = Poseidon.hash([userKey[0], userKey[1], amount]);
+      merkle.setLeaf(BigInt(index), hash);
+    }
+
+    return { totalReward, rewardList, merkle };
+  }
+
+  function generateMapReward(events: any, userList: Map<string, farmInfo[]>, eventType: string) {
+    for (let index = 0; index < events.length; index++) {
+      const element = events[index];
+      if (element.type === eventType) {
+        const data = element.event.data as unknown as FarmingEvent;
+        const sender = data.sender.toBase58();
+        const amount = data.amount;
+        const time = globalSlotToTimestamp(element.globalSlot);
+        console.log("time", time.toBigInt());
+        const farmInfo = {
+          time: time.toBigInt(),
+          amount: eventType === "deposit" ? amount.toBigInt() : -amount.toBigInt(),
+          deposit: eventType === "deposit",
+          total: 0n,
+          reward: 0n
+        };
+        if (userList.has(sender)) {
+          const user = userList.get(sender);
+          user!.push(farmInfo);
+        } else {
+          userList.set(sender, [farmInfo]);
+        }
+      }
+    }
+  }
+
+  function globalSlotToTimestamp(slot: UInt32) {
+    let { genesisTimestamp, slotTime } =
+      Mina.getNetworkConstants();
+    return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
+  }
 
 
   async function mintToken(user: PublicKey) {
