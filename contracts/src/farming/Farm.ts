@@ -1,30 +1,21 @@
 import {
-  Account,
   AccountUpdate,
   AccountUpdateForest,
-  assert,
   Bool,
-  CircuitString,
   DeployArgs,
   Field,
-  Int64,
   method,
   Permissions,
   Provable,
   PublicKey,
-  Reducer,
-  SmartContract,
   State,
   state,
   Struct,
   TokenContractV2,
-  TokenId,
-  Types,
-  UInt32,
   UInt64,
   VerificationKey
 } from "o1js"
-import { BalanceChangeEvent, mulDiv, Pool, PoolTokenHolder } from "../indexpool.js"
+import { Pool } from "../indexpool.js"
 
 export class FarmingInfo extends Struct({
   startTimestamp: UInt64,
@@ -100,6 +91,7 @@ export class Farm extends TokenContractV2 {
 
     let permissions = Permissions.default()
     permissions.access = Permissions.proof()
+    permissions.send = Permissions.proof()
     permissions.setPermissions = Permissions.impossible()
     permissions.setVerificationKey = Permissions.VerificationKey.proofDuringCurrentVersion()
     this.account.permissions.set(permissions)
@@ -146,13 +138,5 @@ export class Farm extends TokenContractV2 {
     await pool.transfer(sender, this.address, amount)
     this.internal.mint({ address: sender, amount })
     this.emitEvent("deposit", new FarmingEvent({ sender, amount }))
-  }
-
-  @method
-  async withdraw(amount: UInt64) {
-    const sender = this.sender.getUnconstrainedV2()
-    this.send({ to: sender, amount })
-    this.internal.burn({ address: sender, amount })
-    this.emitEvent("withdraw", new FarmingEvent({ sender, amount }))
   }
 }

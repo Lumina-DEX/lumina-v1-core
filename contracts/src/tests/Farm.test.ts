@@ -3,6 +3,7 @@ import { AccountUpdate, Bool, fetchAccount, MerkleTree, Mina, Poseidon, PrivateK
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 import { Farm } from '../farming/Farm';
+import { FarmTokenHolder } from '../farming/FarmTokenHolder';
 
 let proofsEnabled = false;
 
@@ -41,6 +42,7 @@ describe('Farming', () => {
     zkFarmTokenAddress: PublicKey,
     zkFarmTokenPrivateKey: PrivateKey,
     zkFarmToken: Farm,
+    zkFarmTokenHolder: FarmTokenHolder,
     tokenHolder: PoolTokenHolder;
 
   beforeAll(async () => {
@@ -91,6 +93,7 @@ describe('Farming', () => {
     zkFarmTokenPrivateKey = PrivateKey.random();
     zkFarmTokenAddress = zkFarmTokenPrivateKey.toPublicKey();
     zkFarmToken = new Farm(zkFarmTokenAddress);
+    zkFarmTokenHolder = new FarmTokenHolder(zkFarmTokenAddress, zkPool.deriveTokenId());
 
     zkPoolMinaPrivateKey = PrivateKey.random();
     zkPoolMinaAddress = zkPoolMinaPrivateKey.toPublicKey();
@@ -213,14 +216,20 @@ describe('Farming', () => {
     let start = Date.now() - 100_000;
     let end = start + 100_000;
     let txn10 = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      AccountUpdate.fundNewAccount(deployerAccount, 2);
       await zkFarmToken.deploy({
         owner: deployerAccount,
         pool: zkPoolAddress,
         startTimestamp: new UInt64(start),
         endTimestamp: new UInt64(end),
       });
+      await zkFarmTokenHolder.deploy({
+        owner: deployerAccount,
+        pool: zkPoolAddress
+      });
+      await zkPool.approveAccountUpdate(zkFarmTokenHolder.self);
     });
+    console.log("zkFarmToken deploy", txn10.toPretty());
     await txn10.prove();
     await txn10.sign([zkFarmTokenPrivateKey, deployerKey]).send();
 
@@ -267,38 +276,24 @@ describe('Farming', () => {
     await fetchAccount({ publicKey: zkFarmTokenAddress })
 
     let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 2);
+      AccountUpdate.fundNewAccount(senderAccount, 1);
       await zkFarmToken.deposit(UInt64.from(1000));
-      //await zkPool.approve(zkFarmToken.self);
     });
     await txn.prove();
     console.log("zkFarmToken deposit", txn.toPretty());
     await txn.sign([senderKey]).send();
 
+    const balance = Mina.getBalance(zkFarmTokenAddress, zkPool.deriveTokenId());
+    console.log("balance", balance.toBigInt());
+    expect(balance.toBigInt()).toEqual(1000n);
 
-    /*   let amt = UInt64.from(10 * 10 ** 9);
-       let amtToken = UInt64.from(50 * 10 ** 9);
-       let liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-       const expected = amt.value.add(amtToken.value).sub(Pool.minimunLiquidity.value);
-       const totalLiquidity = Mina.getBalance(zkPoolAddress, zkPool.deriveTokenId());
-       console.log("liquidity user", liquidityUser.toString());
-       expect(liquidityUser.value).toEqual(expected);
-   
-   
-       let amtMina = UInt64.from(1 * 10 ** 9);
-       let amtToken2 = UInt64.from(5 * 10 ** 9);
-       let txn = await Mina.transaction(deployerAccount, async () => {
-         AccountUpdate.fundNewAccount(deployerAccount, 1);
-         await zkPool.supplyLiquidityToken(amtMina, amtToken2, amt, amtToken, totalLiquidity);
-       });
-       console.log("add liquidity from mina", txn.toPretty());
-       console.log("add liquidity from mina au", txn.transaction.accountUpdates.length);
-       await txn.prove();
-       await txn.sign([deployerKey]).send();
-       const liquidityOut = mulDiv(amtMina, totalLiquidity, amt);
-       liquidityUser = Mina.getBalance(deployerAccount, zkPool.deriveTokenId());
-       expect(liquidityUser.value).toEqual(liquidityOut.value);
-       console.log("liquidity deployer", liquidityUser.toString());*/
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkFarmTokenHolder.withdraw(UInt64.from(1000));
+      await zkPool.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    console.log("zkFarmToken withdraw", txn.toPretty());
+    await txn.sign([senderKey]).send();
   });
 
 
