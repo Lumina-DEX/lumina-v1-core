@@ -1,17 +1,4 @@
-import {
-  AccountUpdate,
-  AccountUpdateForest,
-  DeployArgs,
-  Field,
-  method,
-  Permissions,
-  PublicKey,
-  SmartContract,
-  State,
-  state,
-  UInt64,
-  VerificationKey
-} from "o1js"
+import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, method, Permissions, PublicKey, SmartContract, State, state, UInt64, VerificationKey } from "o1js"
 import { Farm, FarmingEvent } from "./Farm.js"
 
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {

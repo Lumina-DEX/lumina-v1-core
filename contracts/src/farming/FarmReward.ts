@@ -1,20 +1,4 @@
-import {
-  AccountUpdate,
-  AccountUpdateForest,
-  Bool,
-  DeployArgs,
-  Field,
-  MerkleWitness,
-  method,
-  Permissions,
-  Poseidon,
-  PublicKey,
-  State,
-  state,
-  Struct,
-  TokenContractV2,
-  UInt64
-} from "o1js"
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, State, state, Struct, TokenContractV2, UInt64 } from "o1js"
 
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
   pool: PublicKey
