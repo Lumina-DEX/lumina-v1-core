@@ -1,7 +1,6 @@
 import {
   AccountUpdate,
   AccountUpdateForest,
-  Bool,
   DeployArgs,
   Field,
   method,

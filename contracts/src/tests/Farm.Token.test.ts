@@ -275,6 +275,27 @@ describe('Farming pool token', () => {
     expect(balanceLiquidityAfter.toBigInt()).toEqual(0n);
   });
 
+  it('get reward', async () => {
+
+    let txn = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkFarmToken.deposit(UInt64.from(1000));
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkFarmTokenHolder.withdraw(UInt64.from(1000));
+      await zkPool.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    cons
+
+
+  });
+
 
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test
