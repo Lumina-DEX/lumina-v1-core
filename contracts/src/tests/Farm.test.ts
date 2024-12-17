@@ -391,6 +391,132 @@ describe('Farming pool mina', () => {
     expect(balanceContract.value).toEqual(Field(0));
   });
 
+
+
+  it('get mina reward', async () => {
+    // method who test mina as reward, reward can be mina or fungible token
+    let txn = await Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(bobAccount, 1);
+      await zkFarmToken.deposit(UInt64.from(1000));
+    });
+    await txn.prove();
+    await txn.sign([bobKey]).send();
+
+    local.setGlobalSlot(1);
+    txn = await Mina.transaction(bobAccount, async () => {
+      await zkFarmTokenHolder.withdraw(UInt64.from(1000));
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([bobKey]).send();
+    local.setGlobalSlot(2);
+    txn = await Mina.transaction(aliceAccount, async () => {
+      AccountUpdate.fundNewAccount(aliceAccount, 1);
+      await zkFarmToken.deposit(UInt64.from(5000));
+    });
+    await txn.prove();
+    await txn.sign([aliceKey]).send();
+    local.setGlobalSlot(3);
+    txn = await Mina.transaction(aliceAccount, async () => {
+      await zkFarmToken.deposit(UInt64.from(333));
+    });
+    await txn.prove();
+    await txn.sign([aliceKey]).send();
+    local.setGlobalSlot(5);
+    txn = await Mina.transaction(aliceAccount, async () => {
+      await zkFarmTokenHolder.withdraw(UInt64.from(1333));
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([aliceKey]).send();
+    local.setGlobalSlot(10);
+    txn = await Mina.transaction(aliceAccount, async () => {
+      await zkFarmTokenHolder.withdraw(UInt64.from(4000));
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([aliceKey]).send();
+
+    const dataReward = await generateRewardMerkle(zkFarmTokenAddress, zkPoolMina.deriveTokenId(), claimerNumber);
+    console.log("rewardList", dataReward.rewardList)
+
+    const key = PrivateKey.random();
+    const farmReward = new FarmReward(key.toPublicKey());
+    // add more token for test
+    const amountReward = dataReward.totalReward * 10n;
+    txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await farmReward.deploy({
+        owner: deployerAccount,
+        merkleRoot: dataReward.merkle.getRoot(),
+        token: PublicKey.empty()
+      });
+      // we deploy and fund reward with mina in one transaction
+      const accountUpdate = AccountUpdate.createSigned(deployerAccount);
+      accountUpdate.send({ to: farmReward, amount: UInt64.from(amountReward) })
+    });
+    console.log("farmReward deploy", txn.toPretty());
+    await txn.prove();
+    await txn.sign([key, deployerKey]).send();
+
+    // bob withdraw reward
+    const balanceBeforeBob = Mina.getBalance(bobAccount);
+    const indexBob = dataReward.rewardList.findIndex(x => x.user === bobAccount.toBase58());
+    const dataBob = dataReward.rewardList[indexBob];
+    const witness = dataReward.merkle.getWitness(BigInt(indexBob));
+    const farmWitness = new FarmMerkleWitness(witness);
+    txn = await Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await farmReward.claimReward(UInt64.from(dataBob.reward), farmWitness);
+    });
+    console.log("farmReward claim", txn.toPretty());
+    await txn.prove();
+    await txn.sign([bobKey, deployerKey]).send();
+
+    const balanceAfterBob = Mina.getBalance(bobAccount);
+    // bob received the correct amount
+    expect(balanceAfterBob.sub(balanceBeforeBob).value).toEqual(Field.from(dataBob.reward))
+
+    txn = await Mina.transaction(bobAccount, async () => {
+      await farmReward.claimReward(UInt64.from(dataBob.reward), farmWitness);
+    });
+    await txn.prove();
+    // can't claim twice
+    await expect(txn.sign([bobKey]).send()).rejects.toThrow();
+
+    const indexAlice = dataReward.rewardList.findIndex(x => x.user === aliceAccount.toBase58());
+    const dataAlice = dataReward.rewardList[indexAlice];
+    const witnessAlice = dataReward.merkle.getWitness(BigInt(indexAlice));
+    const farmWitnessAlice = new FarmMerkleWitness(witnessAlice);
+
+    // bob can'claim for alice
+    await expect(Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(bobAccount, 1);
+      await farmReward.claimReward(UInt64.from(dataAlice.reward), farmWitnessAlice);
+    })).rejects.toThrow();
+
+    // alice claim
+    txn = await Mina.transaction(aliceAccount, async () => {
+      AccountUpdate.fundNewAccount(aliceAccount, 1);
+      await farmReward.claimReward(UInt64.from(dataAlice.reward), farmWitnessAlice);
+    });
+    await txn.prove();
+    await txn.sign([aliceKey]).send();
+
+    // withdraw the dust
+    const balanceBeforeDeployer = Mina.getBalance(deployerAccount);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmReward.withdrawDust();
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+    const balanceAfterDeployer = Mina.getBalance(deployerAccount);
+    const amountDust = Field.from(amountReward).sub(Field.from(dataBob.reward)).sub(Field.from(dataAlice.reward));
+    expect(balanceAfterDeployer.sub(balanceBeforeDeployer).value).toEqual(amountDust);
+    const balanceContract = Mina.getBalance(key.toPublicKey());
+    expect(balanceContract.value).toEqual(Field(0));
+  });
+
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test
     let txn = await Mina.transaction(deployerAccount, async () => {
