@@ -70,15 +70,7 @@ export class Farm extends TokenContractV2 {
     args.pool.isEmpty().assertFalse("Pool empty")
     args.owner.isEmpty().assertFalse("Owner empty")
 
-    const currentTimestamp = this.network.timestamp.getAndRequireEquals()
-    // args.startTimestamp.assertGreaterThanOrEqual(
-    //   currentTimestamp,
-    //   "Start timestamp need to be greater or equal to the current timestamp"
-    // )
-    args.endTimestamp.assertGreaterThan(
-      currentTimestamp,
-      "End timestamp need to be greater than current timestamp"
-    )
+    this.network.timestamp.requireBetween(UInt64.zero, args.endTimestamp);
 
     this.pool.set(args.pool)
     this.owner.set(args.owner)
@@ -120,10 +112,6 @@ export class Farm extends TokenContractV2 {
   async deposit(amount: UInt64) {
     const startTimestamp = this.startTimestamp.getAndRequireEquals()
     const endTimestamp = this.endTimestamp.getAndRequireEquals()
-    Provable.log("startTimestamp", startTimestamp);
-    Provable.log("endTimestamp", endTimestamp);
-    const currentTimestamp = this.network.timestamp.getAndRequireEquals();
-    Provable.log("timestamp", currentTimestamp);
     // user can deposit only during this period
     this.network.timestamp.requireBetween(startTimestamp, endTimestamp)
 
