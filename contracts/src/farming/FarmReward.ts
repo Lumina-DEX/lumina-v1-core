@@ -134,7 +134,7 @@ export class FarmReward extends TokenContractV2 {
     const senderBalance = AccountUpdate.create(sender, this.deriveTokenId())
     senderBalance.account.balance.requireEquals(UInt64.zero)
 
-    this.internal.mint({ address: sender, amount: UInt64.one })
+    this.internal.mint({ address: senderBalance, amount: UInt64.one })
     this.emitEvent("mint", new MintEvent({ sender }))
   }
 }

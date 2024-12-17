@@ -424,97 +424,6 @@ describe('Farming pool token', () => {
     expect(balanceContract.value).toEqual(Field(0));
   });
 
-  type farmInfo = {
-    time: bigint,
-    amount: bigint,
-    deposit: boolean,
-    total: bigint,
-    reward: bigint
-  };
-
-  /**
-   * Test method don't use it on production
-   * based on current reward by block
-   * @param farmAddress 
-   */
-  async function generateRewardMerkle(farmAddress: PublicKey, tokenId: Field, merkleSize: number) {
-    const farm = new Farm(farmAddress)
-    const events = await farm.fetchEvents(UInt32.zero, UInt32.from(1000))
-    const userList = new Map<string, farmInfo[]>()
-    generateMapReward(events, userList, "deposit");
-    const farmholder = new FarmTokenHolder(farmAddress, tokenId);
-    const eventsWithdraw = await farmholder.fetchEvents(UInt32.zero, UInt32.from(1000))
-    generateMapReward(eventsWithdraw, userList, "withdraw");
-    let totalReward = 0n;
-    const rewardList = [];
-    for (const key of userList.keys()) {
-      console.log(key);
-      const data = userList.get(key) as farmInfo[];
-      const orderData = data.sort((a: any, b: any) => Number(a.time - b.time));
-      for (let index = 0; index < orderData.length; index++) {
-        const element = orderData[index];
-        let timeElapsed = 0n;
-        if (index > 0) {
-          const oldData = orderData[index - 1];
-          // time elapsed in seconds
-          timeElapsed = (element.time - oldData.time) / 1000n;
-          element.total = oldData.total + element.amount;
-          // we give 0,000 001 token by secon by amount stacked
-          element.reward += timeElapsed * 1_000n * oldData.total;
-        } else {
-          element.total = element.amount;
-        }
-
-        if (index === orderData.length - 1) {
-          rewardList.push({ user: key, reward: element.reward });
-          totalReward += element.reward;
-        }
-      }
-    }
-
-    const merkle = new MerkleTree(merkleSize);
-    for (let index = 0; index < rewardList.length; index++) {
-      const element = rewardList[index];
-      const userKey = PublicKey.fromBase58(element.user).toFields();
-      const amount = new Field(element.reward);
-      const hash = Poseidon.hash([userKey[0], userKey[1], amount]);
-      merkle.setLeaf(BigInt(index), hash);
-    }
-
-    return { totalReward, rewardList, merkle };
-  }
-
-  function generateMapReward(events: any, userList: Map<string, farmInfo[]>, eventType: string) {
-    for (let index = 0; index < events.length; index++) {
-      const element = events[index];
-      if (element.type === eventType) {
-        const data = element.event.data as unknown as FarmingEvent;
-        const sender = data.sender.toBase58();
-        const amount = data.amount;
-        const time = globalSlotToTimestamp(element.globalSlot);
-        console.log("time", time.toBigInt());
-        const farmInfo = {
-          time: time.toBigInt(),
-          amount: eventType === "deposit" ? amount.toBigInt() : -amount.toBigInt(),
-          deposit: eventType === "deposit",
-          total: 0n,
-          reward: 0n
-        };
-        if (userList.has(sender)) {
-          const user = userList.get(sender);
-          user!.push(farmInfo);
-        } else {
-          userList.set(sender, [farmInfo]);
-        }
-      }
-    }
-  }
-
-  function globalSlotToTimestamp(slot: UInt32) {
-    let { genesisTimestamp, slotTime } =
-      Mina.getNetworkConstants();
-    return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
-  }
 
 
   async function mintToken(user: PublicKey) {
@@ -543,3 +452,95 @@ describe('Farming pool token', () => {
   }
 
 });
+
+type farmInfo = {
+  time: bigint,
+  amount: bigint,
+  deposit: boolean,
+  total: bigint,
+  reward: bigint
+};
+
+/**
+ * Test method don't use it on production
+ * based on current reward by block
+ * @param farmAddress 
+ */
+export async function generateRewardMerkle(farmAddress: PublicKey, tokenId: Field, merkleSize: number) {
+  const farm = new Farm(farmAddress)
+  const events = await farm.fetchEvents(UInt32.zero, UInt32.from(1000))
+  const userList = new Map<string, farmInfo[]>()
+  generateMapReward(events, userList, "deposit");
+  const farmholder = new FarmTokenHolder(farmAddress, tokenId);
+  const eventsWithdraw = await farmholder.fetchEvents(UInt32.zero, UInt32.from(1000))
+  generateMapReward(eventsWithdraw, userList, "withdraw");
+  let totalReward = 0n;
+  const rewardList = [];
+  for (const key of userList.keys()) {
+    console.log(key);
+    const data = userList.get(key) as farmInfo[];
+    const orderData = data.sort((a: any, b: any) => Number(a.time - b.time));
+    for (let index = 0; index < orderData.length; index++) {
+      const element = orderData[index];
+      let timeElapsed = 0n;
+      if (index > 0) {
+        const oldData = orderData[index - 1];
+        // time elapsed in seconds
+        timeElapsed = (element.time - oldData.time) / 1000n;
+        element.total = oldData.total + element.amount;
+        // we give 0,000 001 token by secon by amount stacked
+        element.reward += timeElapsed * 1_000n * oldData.total;
+      } else {
+        element.total = element.amount;
+      }
+
+      if (index === orderData.length - 1) {
+        rewardList.push({ user: key, reward: element.reward });
+        totalReward += element.reward;
+      }
+    }
+  }
+
+  const merkle = new MerkleTree(merkleSize);
+  for (let index = 0; index < rewardList.length; index++) {
+    const element = rewardList[index];
+    const userKey = PublicKey.fromBase58(element.user).toFields();
+    const amount = new Field(element.reward);
+    const hash = Poseidon.hash([userKey[0], userKey[1], amount]);
+    merkle.setLeaf(BigInt(index), hash);
+  }
+
+  return { totalReward, rewardList, merkle };
+}
+
+function generateMapReward(events: any, userList: Map<string, farmInfo[]>, eventType: string) {
+  for (let index = 0; index < events.length; index++) {
+    const element = events[index];
+    if (element.type === eventType) {
+      const data = element.event.data as unknown as FarmingEvent;
+      const sender = data.sender.toBase58();
+      const amount = data.amount;
+      const time = globalSlotToTimestamp(element.globalSlot);
+      console.log("time", time.toBigInt());
+      const farmInfo = {
+        time: time.toBigInt(),
+        amount: eventType === "deposit" ? amount.toBigInt() : -amount.toBigInt(),
+        deposit: eventType === "deposit",
+        total: 0n,
+        reward: 0n
+      };
+      if (userList.has(sender)) {
+        const user = userList.get(sender);
+        user!.push(farmInfo);
+      } else {
+        userList.set(sender, [farmInfo]);
+      }
+    }
+  }
+}
+
+function globalSlotToTimestamp(slot: UInt32) {
+  let { genesisTimestamp, slotTime } =
+    Mina.getNetworkConstants();
+  return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
+}
