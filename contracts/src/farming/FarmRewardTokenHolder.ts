@@ -1,6 +1,5 @@
 import { AccountUpdate, method, Permissions, Poseidon, UInt64 } from "o1js"
 import { FarmRewardDeployProps, FarmReward, ClaimEvent, FarmMerkleWitness } from "./FarmReward"
-import { FungibleToken } from "mina-fungible-token"
 
 /**
  * Farm reward contract in case of the reward in fungible token
@@ -33,14 +32,11 @@ export class FarmRewardTokenHolder extends FarmReward {
     path.calculateRoot(hash).assertEquals(root, "Invalid request")
     const accountUpdate = this.send({ to: sender, amount: amount });
     accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-    // const tokenAddress = this.token.getAndRequireEquals();
-    // const token = new FungibleToken(tokenAddress);
-    // await token.approveAccountUpdate(accountUpdate);
-
     // to prevent double withdraw we mint one token once a user withdraw
     await farmReward.mint(sender);
     this.emitEvent("claim", new ClaimEvent({ user: sender, amount }))
   }
+
 
 
 }

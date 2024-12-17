@@ -4,7 +4,7 @@ import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, P
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
-import { FarmMerkleWitness, FarmReward } from '../farming/FarmReward';
+import { claimerNumber, FarmMerkleWitness, FarmReward } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 
 let proofsEnabled = false;
@@ -295,11 +295,13 @@ describe('Farming pool token', () => {
     await txn.prove();
     await txn.sign([bobKey]).send();
 
-    const dataReward = await generateRewardMerkle(zkFarmTokenAddress, zkPool.deriveTokenId());
+    const dataReward = await generateRewardMerkle(zkFarmTokenAddress, zkPool.deriveTokenId(), claimerNumber);
 
     const key = PrivateKey.random();
     const farmReward = new FarmReward(key.toPublicKey());
     const farmRewardTokenHolder = new FarmRewardTokenHolder(key.toPublicKey(), zkToken2.deriveTokenId());
+    // add more token for test
+    const amountReward = dataReward.totalReward * 10n;
     txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 2);
       await farmReward.deploy({
@@ -314,13 +316,14 @@ describe('Farming pool token', () => {
       });
       await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
       // we deploy and fund reward in one transaction
-      await zkToken2.transfer(deployerAccount, key.toPublicKey(), UInt64.from(dataReward.totalReward));
+      await zkToken2.transfer(deployerAccount, key.toPublicKey(), UInt64.from(amountReward));
     });
     console.log("farmReward deploy", txn.toPretty());
     await txn.prove();
     await txn.sign([key, deployerKey]).send();
 
     // bob withdraw reward
+    const balanceBeforeBob = Mina.getBalance(bobAccount, zkToken2.deriveTokenId());
     const dataBob = dataReward.rewardList[0];
     const witness = dataReward.merkle.getWitness(0n);
     const farmWitness = new FarmMerkleWitness(witness);
@@ -333,6 +336,31 @@ describe('Farming pool token', () => {
     await txn.prove();
     await txn.sign([bobKey]).send();
 
+    const balanceAfterBob = Mina.getBalance(bobAccount, zkToken2.deriveTokenId());
+    // bob received the correct amount
+    expect(balanceAfterBob.sub(balanceBeforeBob).value).toEqual(Field.from(dataBob.reward))
+
+    txn = await Mina.transaction(bobAccount, async () => {
+      await farmRewardTokenHolder.claimReward(UInt64.from(dataBob.reward), farmWitness);
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    await txn.prove();
+    // can't claim twice
+    await expect(txn.sign([bobKey]).send()).rejects.toThrow();
+
+    // withdraw the dust
+    const balanceBeforeDeployer = Mina.getBalance(deployerAccount, zkToken2.deriveTokenId());
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmRewardTokenHolder.withdrawDust();
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+    const balanceAfterDeployer = Mina.getBalance(deployerAccount, zkToken2.deriveTokenId());
+    const amountDust = Field.from(amountReward).sub(Field.from(dataBob.reward));
+    expect(balanceAfterDeployer.sub(balanceBeforeDeployer).value).toEqual(amountDust);
+    const balanceContract = Mina.getBalance(key.toPublicKey(), zkToken2.deriveTokenId());
+    expect(balanceContract.value).toEqual(Field(0));
   });
 
   type farmInfo = {
@@ -348,7 +376,7 @@ describe('Farming pool token', () => {
    * based on current reward by block
    * @param farmAddress 
    */
-  async function generateRewardMerkle(farmAddress: PublicKey, tokenId: Field) {
+  async function generateRewardMerkle(farmAddress: PublicKey, tokenId: Field, merkleSize: number) {
     const farm = new Farm(farmAddress)
     const events = await farm.fetchEvents(UInt32.zero, UInt32.from(1000))
     const userList = new Map<string, farmInfo[]>()
@@ -383,7 +411,7 @@ describe('Farming pool token', () => {
       }
     }
 
-    const merkle = new MerkleTree(8192);
+    const merkle = new MerkleTree(merkleSize);
     for (let index = 0; index < rewardList.length; index++) {
       const element = rewardList[index];
       const userKey = PublicKey.fromBase58(element.user).toFields();

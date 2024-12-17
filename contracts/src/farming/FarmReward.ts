@@ -28,9 +28,11 @@ export class ClaimEvent extends Struct({
   }
 }
 
-
-// support 8192 different claimer
-export class FarmMerkleWitness extends MerkleWitness(8192) { }
+/**
+ * support 256 different claimer (easily adjustable), low number for test
+ */
+export const claimerNumber = 256;
+export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 
 /**
  * Farm reward contract
@@ -116,7 +118,8 @@ export class FarmReward extends TokenContractV2 {
     this.owner.requireEquals(sender)
     // only owner can withdraw dust
     const accountBalance = this.account.balance.getAndRequireEquals()
-    this.send({ to: sender, amount: accountBalance })
+    const accountUpdate = this.send({ to: sender, amount: accountBalance })
+    accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
     this.emitEvent("claim", new ClaimEvent({ user: sender, amount: accountBalance }))
   }
 
