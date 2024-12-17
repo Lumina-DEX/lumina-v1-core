@@ -1,155 +1,138 @@
-import { Field, Permissions, state, State, method, TokenContractV2, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, Provable, VerificationKey, Bool, Int64, assert, Types } from 'o1js';
-import { BalanceChangeEvent } from '../indexpool.js';
-import { FarmStorage } from './FarmStorage';
+import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, method, Permissions, Provable, PublicKey, State, state, Struct, TokenContractV2, UInt64, VerificationKey } from "o1js"
+import { Pool } from "../indexpool.js"
 
-export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
-    pool: PublicKey;
-    owner: PublicKey;
+export class FarmingInfo extends Struct({
+  startTimestamp: UInt64,
+  endTimestamp: UInt64
+}) {
+  constructor(value: {
+    startTimestamp: UInt64
+    endTimestamp: UInt64
+  }) {
+    super(value)
+  }
 }
 
+export class FarmingEvent extends Struct({
+  sender: PublicKey,
+  amount: UInt64
+}) {
+  constructor(value: {
+    sender: PublicKey
+    amount: UInt64
+  }) {
+    super(value)
+  }
+}
+
+export class BurnEvent extends Struct({
+  sender: PublicKey,
+  amount: UInt64
+}) {
+  constructor(value: {
+    sender: PublicKey
+    amount: UInt64
+  }) {
+    super(value)
+  }
+}
+
+export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
+  pool: PublicKey
+  owner: PublicKey
+  startTimestamp: UInt64
+  endTimestamp: UInt64
+}
 
 /**
  * Farm contract
  */
 export class Farm extends TokenContractV2 {
-    // Farming for one pool
-    @state(PublicKey) pool = State<PublicKey>();
-    @state(PublicKey) owner = State<PublicKey>();
+  // Farming for one pool
+  @state(PublicKey)
+  pool = State<PublicKey>()
+  @state(PublicKey)
+  owner = State<PublicKey>()
+  @state(UInt64)
+  startTimestamp = State<UInt64>()
+  @state(UInt64)
+  endTimestamp = State<UInt64>()
+
+  events = {
+    upgrade: Field,
+    deposit: FarmingEvent,
+    burn: BurnEvent,
+  }
+
+  async deploy(args: FarmingDeployProps) {
+    await super.deploy(args)
+
+    args.pool.isEmpty().assertFalse("Pool empty")
+    args.owner.isEmpty().assertFalse("Owner empty")
+
+    this.network.timestamp.requireBetween(UInt64.zero, args.endTimestamp);
+
+    this.pool.set(args.pool)
+    this.owner.set(args.owner)
+    this.startTimestamp.set(args.startTimestamp)
+    this.endTimestamp.set(args.endTimestamp)
+
+    let permissions = Permissions.default()
+    permissions.access = Permissions.proof()
+    permissions.send = Permissions.proof()
+    permissions.setPermissions = Permissions.impossible()
+    permissions.setVerificationKey = Permissions.VerificationKey.proofDuringCurrentVersion()
+    this.account.permissions.set(permissions)
+  }
+
+  /** 
+   *  Transfer is locked only depositor can withdraw his token
+   */
+  @method
+  async approveBase(updates: AccountUpdateForest): Promise<void> {
+    updates.isEmpty().assertTrue("You can't manage the token")
+  }
+
+  /**
+   * Upgrade to a new version
+   * @param vk new verification key
+   */
+  @method
+  async updateVerificationKey(vk: VerificationKey) {
+    const owner = await this.owner.getAndRequireEquals()
+
+    // only owner can update a pool
+    AccountUpdate.createSigned(owner)
+
+    this.account.verificationKey.set(vk)
+    this.emitEvent("upgrade", vk.hash)
+  }
+
+  @method
+  async deposit(amount: UInt64) {
+    const startTimestamp = this.startTimestamp.getAndRequireEquals()
+    const endTimestamp = this.endTimestamp.getAndRequireEquals()
+    // user can deposit only during this period
+    this.network.timestamp.requireBetween(startTimestamp, endTimestamp)
+
+    const poolAddress = this.pool.getAndRequireEquals()
+    const pool = new Pool(poolAddress)
+    const sender = this.sender.getUnconstrainedV2()
+    // transfer amount to this account
+    await pool.transfer(sender, this.address, amount)
+    this.internal.mint({ address: sender, amount })
+    this.emitEvent("deposit", new FarmingEvent({ sender, amount }))
+  }
 
 
-    events = {
-        upgrade: Field,
-        BalanceChange: BalanceChangeEvent,
-    };
-
-    async deploy(args: FarmingDeployProps) {
-        await super.deploy();
-
-        args.pool.isEmpty().assertFalse("Pool empty");
-        args.owner.isEmpty().assertFalse("Owner empty");
-
-        this.pool.set(args.pool);
-        this.owner.set(args.owner);
-
-        let permissions = Permissions.default();
-        permissions.access = Permissions.proofOrSignature();
-        permissions.setPermissions = Permissions.impossible();
-        permissions.setVerificationKey = Permissions.VerificationKey.proofDuringCurrentVersion();
-        this.account.permissions.set(permissions);
-    }
-
-    /**
-    * Upgrade to a new version
-    * @param vk new verification key
-    */
-    @method async updateVerificationKey(vk: VerificationKey) {
-        const owner = await this.owner.getAndRequireEquals();
-
-        // only owner can update a pool
-        AccountUpdate.createSigned(owner);
-
-        this.account.verificationKey.set(vk);
-        this.emitEvent("upgrade", vk.hash);
-    }
-
-    /** Approve `AccountUpdate`s that have been created outside of the token contract.
-      *
-      * @argument {AccountUpdateForest} updates - The `AccountUpdate`s to approve. Note that the forest size is limited by the base token contract, @see TokenContractV2.MAX_ACCOUNT_UPDATES The current limit is 9.
-      */
-    @method
-    async approveBase(updates: AccountUpdateForest): Promise<void> {
-        let totalBalance = Int64.from(0)
-        this.forEachUpdate(updates, (update, usesToken) => {
-            // Make sure that the account permissions are not changed
-            this.checkPermissionsUpdate(update)
-            this.emitEventIf(
-                usesToken,
-                "BalanceChange",
-                new BalanceChangeEvent({ address: update.publicKey, amount: update.balanceChange }),
-            )
-
-            // Don't allow transfers to/from the account that's tracking circulation
-            update.publicKey.equals(this.address).and(usesToken).assertFalse(
-                "Can't transfer to/from the circulation account"
-            )
-            totalBalance = Provable.if(usesToken, totalBalance.add(update.balanceChange), totalBalance)
-            totalBalance.isPositiveV2().assertFalse(
-                "Flash-minting or unbalanced transaction detected"
-            )
-        })
-        totalBalance.assertEquals(Int64.zero, "Unbalanced transaction")
-    }
-
-    private checkPermissionsUpdate(update: AccountUpdate) {
-        let permissions = update.update.permissions
-
-        let { access, receive } = permissions.value
-        let accessIsNone = Provable.equal(Types.AuthRequired, access, Permissions.none())
-        let receiveIsNone = Provable.equal(Types.AuthRequired, receive, Permissions.none())
-        let updateAllowed = accessIsNone.and(receiveIsNone)
-
-        assert(
-            updateAllowed.or(permissions.isSome.not()),
-            "Can't change permissions for access or receive on token accounts"
-        )
-    }
-
-    @method
-    async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
-        from.equals(this.address).assertFalse("Can't transfer to/from the circulation account");
-        to.equals(this.address).assertFalse("Can't transfer to/from the circulation account");
-        this.internal.send({ from, to, amount })
-    }
-
-    @method
-    async deployStorage() {
-        const sender = this.sender.getUnconstrainedV2();
-
-        const newStorage = AccountUpdate.create(sender, this.deriveTokenId());
-        // Require this account didn't already exist
-        newStorage.account.isNew.requireEquals(Bool(true));
-
-        // set pool account vk and permission
-        newStorage.body.update.verificationKey = { isSome: Bool(true), value: { data: "", hash: Field(123n) } };
-        newStorage.body.update.permissions = {
-            isSome: Bool(true),
-            value: {
-                ...Permissions.default(),
-                // only proof to prevent signature owner to steal liquidity
-                access: Permissions.proof(),
-                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
-                send: Permissions.proof(),
-                setPermissions: Permissions.impossible()
-            },
-        };
-
-        const poolAddress = this.pool.getAndRequireEquals();
-        const poolFields = poolAddress.toFields();
-
-        // init value
-        newStorage.body.update.appState = [
-            { isSome: Bool(true), value: poolFields[0] },
-            { isSome: Bool(true), value: poolFields[1] },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-            { isSome: Bool(true), value: Field(0) },
-        ];
-
-    }
-
-    @method
-    async checkPool(poolAddress: PublicKey) {
-        this.pool.requireEquals(poolAddress);
-    }
-
-    @method
-    async deposit(amount: UInt64) {
-        const sender = this.sender.getAndRequireSignatureV2();
-        const newStorage = new FarmStorage(sender, this.deriveTokenId());
-        await newStorage.deposit(amount);
-    }
-
+  /**
+   * Don't call this method directly
+   */
+  @method
+  async burnLiquidity(sender: PublicKey, amount: UInt64) {
+    const caller = this.sender.getAndRequireSignatureV2();
+    caller.assertEquals(sender);
+    this.internal.burn({ address: sender, amount })
+    this.emitEvent("burn", new BurnEvent({ sender, amount }))
+  }
 }
