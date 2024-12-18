@@ -1,5 +1,5 @@
-import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64 } from 'o1js';
-import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent } from '../indexpool.js';
+import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey } from 'o1js';
+import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 
 
 export class WithdrawLiquidityEvent extends Struct({
@@ -29,12 +29,27 @@ export class PoolTokenHolder extends SmartContract {
 
     events = {
         withdrawLiquidity: WithdrawLiquidityEvent,
-        swap: SwapEvent
+        swap: SwapEvent,
+        upgrade: UpdateVerificationKeyEvent
     };
 
     async deploy() {
         await super.deploy();
         Bool(false).assertTrue("You can't directly deploy a token holder");
+    }
+
+    /**
+     * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
+     * @param vk new verification key
+     */
+    @method async updateVerificationKey(vk: VerificationKey) {
+        const factoryAddress = this.poolFactory.getAndRequireEquals();
+        const factory = new PoolFactory(factoryAddress);
+        const owner = await factory.getOwner();
+        // only protocol owner can update a pool
+        AccountUpdate.createSigned(owner);
+        this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
 
     // swap from mina to this token through the pool

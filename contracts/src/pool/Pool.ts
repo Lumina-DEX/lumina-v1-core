@@ -1,5 +1,5 @@
-import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContractV2, TokenId, Types, UInt64 } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, PoolFactory, UpdateUserEvent } from '../indexpool.js';
+import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContractV2, TokenId, Types, UInt64, VerificationKey } from 'o1js';
+import { BalanceChangeEvent, FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -53,13 +53,28 @@ export class Pool extends TokenContractV2 {
         addLiquidity: AddLiquidityEvent,
         balanceChange: BalanceChangeEvent,
         updateDelegator: UpdateUserEvent,
-        updateProtocol: UpdateUserEvent
+        updateProtocol: UpdateUserEvent,
+        upgrade: UpdateVerificationKeyEvent
     };
 
     async deploy() {
         await super.deploy();
 
         Bool(false).assertTrue("You can't directly deploy a pool");
+    }
+
+    /**
+     * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
+     * @param vk new verification key
+     */
+    @method async updateVerificationKey(vk: VerificationKey) {
+        const factoryAddress = this.poolFactory.getAndRequireEquals();
+        const factory = new PoolFactory(factoryAddress);
+        const owner = await factory.getOwner();
+        // only protocol owner can update a pool
+        AccountUpdate.createSigned(owner);
+        this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
 
     @method async setDelegator() {
