@@ -134,7 +134,6 @@ export class PoolTokenHolder extends SmartContract {
 
     private async swap(protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
         amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
