@@ -77,9 +77,9 @@ export class PoolTokenHolder extends SmartContract implements IPool {
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenMin: UInt64, reserveMinaMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
         const amountToken = this.withdraw(liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
         const pool = new Pool(this.address);
-        await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
+        const amountMina = await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, reserveMinaMin, supplyMax);
         const sender = this.sender.getUnconstrained();
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMinaMin, amountToken1Out: amountTokenMin, amountLiquidityIn: liquidityAmount }));
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMina, amountToken1Out: amountToken, amountLiquidityIn: liquidityAmount }));
     }
 
     // check if they are no exploit possible  
@@ -95,22 +95,23 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const amountToken = this.withdraw(liquidityAmount, amountToken0Min, reserveToken0Min, supplyMax);
 
         let poolTokenZ = new PoolTokenHolder(this.address, fungibleToken1.deriveTokenId());
-        await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
+        const amountToken1 = await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
         await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
         const sender = this.sender.getUnconstrained();
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken0Min, amountToken1Out: amountToken1Min, amountLiquidityIn: liquidityAmount }));
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken, amountToken1Out: amountToken1, amountLiquidityIn: liquidityAmount }));
     }
 
     /**
     * Don't call this method directly, use withdrawLiquidityToken for token 0
     */
-    @method async subWithdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
+    @method.returns(UInt64) async subWithdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
         // withdraw token 1
         const amountToken = this.withdraw(liquidityAmount, amountToken1Min, reserveToken1Min, supplyMax);
 
         let pool = new Pool(this.address);
-        await pool.checkLiquidityToken(liquidityAmount, amountToken0Min, amountToken, supplyMax);
+        await pool.burnLiquidityToken(liquidityAmount, supplyMax);
+        return amountToken;
     }
 
     private withdraw(liquidityAmount: UInt64, amountTokenMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {

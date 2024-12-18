@@ -244,44 +244,36 @@ export class Pool extends TokenContract implements IPool {
     /**
      * Don't call this method directly, use withdrawLiquidity from PoolTokenHolder
      */
-    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
-        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
+    @method.returns(UInt64) async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
-        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
-        supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
-
-        // token 0 need to be empty on mina pool
-        checkToken(this, true);
+        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount mina out can't be zero");
 
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
-        const sender = this.sender.getUnconstrained();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
-        liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
+        await this.burnLiquidity(liquidityAmount, supplyMax, true);
 
         const amountMina = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
         amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
 
-        // burn liquidity from user and current supply
-        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg()
-        await this.internal.burn({ address: sender, amount: liquidityAmount });
-
         // send mina to user
+        const sender = this.sender.getUnconstrained();
         await this.send({ to: sender, amount: amountMina });
+        return amountMina;
     }
 
     /**
      * Don't call this method directly, use withdrawLiquidityToken from PoolTokenHolder
      */
-    @method async checkLiquidityToken(liquidityAmount: UInt64, amountToken0: UInt64, amountToken1: UInt64, supplyMax: UInt64) {
+    @method async burnLiquidityToken(liquidityAmount: UInt64, supplyMax: UInt64) {
+        await this.burnLiquidity(liquidityAmount, supplyMax, false);
+    }
+
+    private async burnLiquidity(liquidityAmount: UInt64, supplyMax: UInt64, isMinaPool: boolean) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
-        amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
-        amountToken0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // token 0 need to be empty on mina pool
-        checkToken(this, false);
+        checkToken(this, isMinaPool);
 
         const sender = this.sender.getUnconstrained();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
@@ -289,8 +281,9 @@ export class Pool extends TokenContract implements IPool {
         liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
 
         // burn liquidity from user and current supply
-        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg();
+        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg()
         await this.internal.burn({ address: sender, amount: liquidityAmount });
+
     }
 
     private async supply(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
