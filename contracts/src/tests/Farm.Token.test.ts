@@ -138,6 +138,7 @@ describe('Farming pool token', () => {
       await zkToken0.deploy({
         symbol: "LTA",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken0.initialize(
         zkTokenAdminAddress,
@@ -155,6 +156,7 @@ describe('Farming pool token', () => {
       await zkToken1.deploy({
         symbol: "LTB",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken1.initialize(
         zkTokenAdminAddress,
@@ -172,6 +174,7 @@ describe('Farming pool token', () => {
       await zkToken2.deploy({
         symbol: "REW",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken2.initialize(
         zkTokenAdminAddress,

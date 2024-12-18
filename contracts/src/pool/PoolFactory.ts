@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContractV2, TokenId, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
 
 
@@ -70,7 +70,7 @@ export class SignerMerkleWitness extends MerkleWitness(32) { }
 /**
  * Factory who create pools
  */
-export class PoolFactory extends TokenContractV2 {
+export class PoolFactory extends TokenContract {
 
     @state(Field) approvedSigner = State<Field>();
     @state(PublicKey) owner = State<PublicKey>();
@@ -225,7 +225,7 @@ export class PoolFactory extends TokenContractV2 {
                 ...Permissions.default(),
                 // only proof to prevent signature owner to steal liquidity
                 access: Permissions.proof(),
-                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setDelegate: Permissions.proof(),
                 setPermissions: Permissions.impossible()
@@ -268,7 +268,7 @@ export class PoolFactory extends TokenContractV2 {
 
         await poolAccount.approve(liquidityAccount);
 
-        const sender = this.sender.getAndRequireSignatureV2();
+        const sender = this.sender.getAndRequireSignature();
         this.emitEvent("poolAdded", new PoolCreationEvent({ sender, signer, poolAddress: newAccount, token0Address: token0, token1Address: token1 }));
     }
 
@@ -303,7 +303,7 @@ export class PoolFactory extends TokenContractV2 {
             isSome: Bool(true),
             value: {
                 ...Permissions.default(),
-                setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+                setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
                 send: Permissions.proof(),
                 setPermissions: Permissions.impossible()
             },

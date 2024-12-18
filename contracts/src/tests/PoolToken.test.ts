@@ -116,6 +116,7 @@ describe('Pool Factory Token', () => {
       await zkToken0.deploy({
         symbol: "LTA",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken0.initialize(
         zkTokenAdminAddress,
@@ -133,6 +134,7 @@ describe('Pool Factory Token', () => {
       await zkToken1.deploy({
         symbol: "LTB",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken1.initialize(
         zkTokenAdminAddress,

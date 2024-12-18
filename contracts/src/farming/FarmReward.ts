@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, State, state, Struct, TokenContractV2, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 
 export interface FarmRewardDeployProps extends Exclude<DeployArgs, undefined> {
   merkleRoot: Field,
@@ -37,7 +37,7 @@ export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 /**
  * Farm reward contract
  */
-export class FarmReward extends TokenContractV2 {
+export class FarmReward extends TokenContract {
   @state(PublicKey)
   owner = State<PublicKey>()
   @state(PublicKey)
@@ -71,7 +71,7 @@ export class FarmReward extends TokenContractV2 {
 
   /** Approve `AccountUpdate`s that have been created outside of the token contract.
    *
-   * @argument {AccountUpdateForest} updates - The `AccountUpdate`s to approve. Note that the forest size is limited by the base token contract, @see TokenContractV2.MAX_ACCOUNT_UPDATES The current limit is 9.
+   * @argument {AccountUpdateForest} updates - The `AccountUpdate`s to approve. Note that the forest size is limited by the base token contract, @see TokenContract.MAX_ACCOUNT_UPDATES The current limit is 9.
    */
   @method
   async approveBase(updates: AccountUpdateForest): Promise<void> {
@@ -96,7 +96,7 @@ export class FarmReward extends TokenContractV2 {
   @method
   async claimReward(amount: UInt64, path: FarmMerkleWitness) {
     const farmReward = new FarmReward(this.address);
-    const sender = this.sender.getAndRequireSignatureV2()
+    const sender = this.sender.getAndRequireSignature()
     const senderBalance = AccountUpdate.create(sender, farmReward.deriveTokenId())
     senderBalance.account.balance.requireEquals(UInt64.zero)
     const fieldSender = sender.toFields()
@@ -114,7 +114,7 @@ export class FarmReward extends TokenContractV2 {
 
   @method
   async withdrawDust() {
-    const sender = this.sender.getAndRequireSignatureV2()
+    const sender = this.sender.getAndRequireSignature()
     this.owner.requireEquals(sender)
     // only owner can withdraw dust
     const accountBalance = this.account.balance.getAndRequireEquals()
@@ -128,7 +128,7 @@ export class FarmReward extends TokenContractV2 {
    */
   @method
   async mint(sender: PublicKey) {
-    const caller = this.sender.getAndRequireSignatureV2();
+    const caller = this.sender.getAndRequireSignature();
     caller.assertEquals(sender);
     // check user never withdraw
     const senderBalance = AccountUpdate.create(sender, this.deriveTokenId())

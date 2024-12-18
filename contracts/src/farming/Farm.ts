@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, method, Permissions, Provable, PublicKey, State, state, Struct, TokenContractV2, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, method, Permissions, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 import { Pool } from "../indexpool.js"
 
 export class FarmingInfo extends Struct({
@@ -47,7 +47,7 @@ export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
 /**
  * Farm contract
  */
-export class Farm extends TokenContractV2 {
+export class Farm extends TokenContract {
   // Farming for one pool
   @state(PublicKey)
   pool = State<PublicKey>()
@@ -117,7 +117,7 @@ export class Farm extends TokenContractV2 {
 
     const poolAddress = this.pool.getAndRequireEquals()
     const pool = new Pool(poolAddress)
-    const sender = this.sender.getUnconstrainedV2()
+    const sender = this.sender.getUnconstrained()
     // transfer amount to this account
     await pool.transfer(sender, this.address, amount)
     this.internal.mint({ address: sender, amount })
@@ -130,7 +130,7 @@ export class Farm extends TokenContractV2 {
    */
   @method
   async burnLiquidity(sender: PublicKey, amount: UInt64) {
-    const caller = this.sender.getAndRequireSignatureV2();
+    const caller = this.sender.getAndRequireSignature();
     caller.assertEquals(sender);
     this.internal.burn({ address: sender, amount })
     this.emitEvent("burn", new BurnEvent({ sender, amount }))

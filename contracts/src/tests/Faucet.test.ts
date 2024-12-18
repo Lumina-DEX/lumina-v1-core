@@ -78,6 +78,7 @@ describe('Faucet', () => {
       await zkToken.deploy({
         symbol: "FAU",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken.initialize(
         zkTokenAdminAddress,

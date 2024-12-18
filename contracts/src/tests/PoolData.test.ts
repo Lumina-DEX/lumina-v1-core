@@ -117,6 +117,7 @@ describe('Pool data', () => {
       await zkToken.deploy({
         symbol: "LTA",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken.initialize(
         zkTokenAdminAddress,
@@ -133,6 +134,7 @@ describe('Pool data', () => {
       await zkToken2.deploy({
         symbol: "LTA",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken2.initialize(
         zkTokenAdminAddress,
@@ -156,6 +158,46 @@ describe('Pool data', () => {
     await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
+
+  });
+
+  it('update pool', async () => {
+    const txn1 = await Mina.transaction(deployerAccount, async () => {
+      await zkPool.updateVerificationKey(compileKey);
+    });
+    await txn1.prove();
+    await txn1.sign([deployerKey, bobKey]).send();
+
+    let poolDatav2 = new PoolUpgradeTest(zkPoolAddress);
+    let version = await poolDatav2.version();
+    expect(version?.toBigInt()).toEqual(33n);
+
+  });
+
+  it('update pool holder', async () => {
+    const txn1 = await Mina.transaction(deployerAccount, async () => {
+      await tokenHolder.updateVerificationKey(compileKey);
+      await zkPool.approve(tokenHolder.self);
+    });
+    await txn1.prove();
+    await txn1.sign([deployerKey, bobKey]).send();
+
+    let poolDatav2 = new PoolUpgradeTest(zkPoolAddress, zkToken.deriveTokenId());
+    let version = await poolDatav2.version();
+    expect(version?.toBigInt()).toEqual(33n);
+
+  });
+
+  it('update pool factory', async () => {
+    const txn1 = await Mina.transaction(deployerAccount, async () => {
+      await zkApp.updateVerificationKey(compileKey);
+    });
+    await txn1.prove();
+    await txn1.sign([deployerKey, bobKey]).send();
+
+    let poolDatav2 = new PoolUpgradeTest(zkAppAddress);
+    let version = await poolDatav2.version();
+    expect(version?.toBigInt()).toEqual(33n);
 
   });
 
@@ -292,6 +334,17 @@ describe('Pool data', () => {
     await txn.prove();
     await expect(txn.sign([senderKey]).send()).rejects.toThrow();
 
+    txn = await Mina.transaction(senderAccount, async () => {
+      await zkPool.updateVerificationKey(compileKey);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+
+    txn = await Mina.transaction(senderAccount, async () => {
+      await tokenHolder.updateVerificationKey(compileKey);
+    });
+    await txn.prove();
+    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
   });
 
   it('failed change owner', async () => {

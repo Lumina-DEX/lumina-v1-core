@@ -1,5 +1,5 @@
-import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64 } from 'o1js';
-import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent } from '../indexpool.js';
+import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey } from 'o1js';
+import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 
 
 export class WithdrawLiquidityEvent extends Struct({
@@ -29,12 +29,27 @@ export class PoolTokenHolder extends SmartContract {
 
     events = {
         withdrawLiquidity: WithdrawLiquidityEvent,
-        swap: SwapEvent
+        swap: SwapEvent,
+        upgrade: UpdateVerificationKeyEvent
     };
 
     async deploy() {
         await super.deploy();
         Bool(false).assertTrue("You can't directly deploy a token holder");
+    }
+
+    /**
+     * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
+     * @param vk new verification key
+     */
+    @method async updateVerificationKey(vk: VerificationKey) {
+        const factoryAddress = this.poolFactory.getAndRequireEquals();
+        const factory = new PoolFactory(factoryAddress);
+        const owner = await factory.getOwner();
+        // only protocol owner can update a pool
+        AccountUpdate.createSigned(owner);
+        this.account.verificationKey.set(vk);
+        this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
 
     // swap from mina to this token through the pool
@@ -62,7 +77,7 @@ export class PoolTokenHolder extends SmartContract {
         const amountToken = this.withdraw(liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
         const pool = new Pool(this.address);
         await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMinaMin, amountToken1Out: amountTokenMin, amountLiquidityIn: liquidityAmount }));
     }
 
@@ -82,7 +97,7 @@ export class PoolTokenHolder extends SmartContract {
         await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
         await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken0Min, amountToken1Out: amountToken1Min, amountLiquidityIn: liquidityAmount }));
     }
 
@@ -109,7 +124,7 @@ export class PoolTokenHolder extends SmartContract {
         const amountToken = mulDiv(liquidityAmount, reserveTokenMin, supplyMax);
         amountToken.assertGreaterThanOrEqual(amountTokenMin, "Insufficient amount token out");
 
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
@@ -119,7 +134,6 @@ export class PoolTokenHolder extends SmartContract {
 
     private async swap(protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
-        balanceOutMin.assertGreaterThan(UInt64.zero, "Balance min can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
         amountTokenOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
@@ -140,7 +154,7 @@ export class PoolTokenHolder extends SmartContract {
 
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
-        let sender = this.sender.getUnconstrainedV2();
+        let sender = this.sender.getUnconstrained();
 
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })
