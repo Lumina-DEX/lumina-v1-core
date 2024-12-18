@@ -67,7 +67,9 @@ export class Pool extends TokenContractV2 {
         const poolFactory = new PoolFactory(poolFactoryAddress);
         const delegator = await poolFactory.getDelegator();
         const currentDelegator = this.account.delegate.getAndRequireEquals();
-        currentDelegator.equals(delegator).assertFalse("Delegator already defined");
+        Provable.asProver(() => {
+            currentDelegator.equals(delegator).assertFalse("Delegator already defined");
+        });
         this.account.delegate.set(delegator);
         this.emitEvent("updateDelegator", new UpdateUserEvent(delegator));
     }
@@ -75,7 +77,9 @@ export class Pool extends TokenContractV2 {
     @method async setProtocol() {
         const protocol = await this.getProtocolAddress();
         const currentProtocol = this.protocol.getAndRequireEquals();
-        currentProtocol.equals(protocol).assertFalse("Protocol already defined");
+        Provable.asProver(() => {
+            currentProtocol.equals(protocol).assertFalse("Protocol already defined");
+        });
         this.protocol.set(protocol);
         this.emitEvent("updateProtocol", new UpdateUserEvent(protocol));
     }
