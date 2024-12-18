@@ -44,13 +44,16 @@
     "prettier": "^2.3.2",
     "ts-jest": "^28.0.8",
     "typedoc": "^0.26.11",
-    "typescript": "^5.1"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
   },
   "engines": {
     "node": ">=18.14.0"
   },
+  "peerDependencies": {
+    "o1js": "^2.*"
+  },
   "dependencies": {
-    "mina-fungible-token": "^1.0.0",
-    "o1js": "^1.7.0"
+    "mina-fungible-token": "^1.1.0"
   }
 }

@@ -23,7 +23,7 @@ export class FarmRewardTokenHolder extends FarmReward {
   @method
   async claimReward(amount: UInt64, path: FarmMerkleWitness) {
     const farmReward = new FarmReward(this.address);
-    const sender = this.sender.getAndRequireSignatureV2();
+    const sender = this.sender.getAndRequireSignature();
     const fieldSender = sender.toFields()
     const hash = Poseidon.hash([fieldSender[0], fieldSender[1], amount.value])
     const root = this.merkleRoot.getAndRequireEquals()

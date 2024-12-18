@@ -54,7 +54,7 @@ export class FarmTokenHolder extends SmartContract {
 
   @method
   async withdraw(amount: UInt64) {
-    const sender = this.sender.getAndRequireSignatureV2()
+    const sender = this.sender.getAndRequireSignature()
     const accountUpdate = this.send({ to: sender, amount });
     accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
     const farm = new Farm(this.address);

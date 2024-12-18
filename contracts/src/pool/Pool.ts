@@ -1,5 +1,5 @@
-import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContractV2, TokenId, Types, UInt64, VerificationKey } from 'o1js';
-import { BalanceChangeEvent, FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt64, VerificationKey } from 'o1js';
+import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -31,10 +31,23 @@ export class AddLiquidityEvent extends Struct({
     }
 }
 
+export class BalanceEvent extends Struct({
+    address: PublicKey,
+    amount: Int64,
+}) {
+    constructor(value: {
+        address: PublicKey,
+        amount: Int64,
+    }) {
+        super(value);
+    }
+}
+
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class Pool extends TokenContractV2 {
+export class Pool extends TokenContract {
+
     // we need the token address to instantiate it
     @state(PublicKey) token0 = State<PublicKey>();
     @state(PublicKey) token1 = State<PublicKey>();
@@ -51,7 +64,7 @@ export class Pool extends TokenContractV2 {
     events = {
         swap: SwapEvent,
         addLiquidity: AddLiquidityEvent,
-        balanceChange: BalanceChangeEvent,
+        balanceChange: BalanceEvent,
         updateDelegator: UpdateUserEvent,
         updateProtocol: UpdateUserEvent,
         upgrade: UpdateVerificationKeyEvent
@@ -102,7 +115,7 @@ export class Pool extends TokenContractV2 {
 
     /** Approve `AccountUpdate`s that have been created outside of the token contract.
       *
-      * @argument {AccountUpdateForest} updates - The `AccountUpdate`s to approve. Note that the forest size is limited by the base token contract, @see TokenContractV2.MAX_ACCOUNT_UPDATES The current limit is 9.
+      * @argument {AccountUpdateForest} updates - The `AccountUpdate`s to approve. Note that the forest size is limited by the base token contract, @see TokenContract.MAX_ACCOUNT_UPDATES The current limit is 9.
       */
     @method
     async approveBase(updates: AccountUpdateForest): Promise<void> {
@@ -113,7 +126,7 @@ export class Pool extends TokenContractV2 {
             this.emitEventIf(
                 usesToken,
                 "balanceChange",
-                new BalanceChangeEvent({ address: update.publicKey, amount: update.balanceChange }),
+                new BalanceEvent({ address: update.publicKey, amount: update.balanceChange }),
             )
 
             // Don't allow transfers to/from the account that's tracking circulation
@@ -121,7 +134,7 @@ export class Pool extends TokenContractV2 {
                 "Can't transfer to/from the circulation account"
             )
             totalBalance = Provable.if(usesToken, totalBalance.add(update.balanceChange), totalBalance)
-            totalBalance.isPositiveV2().assertFalse(
+            totalBalance.isPositive().assertFalse(
                 "Flash-minting or unbalanced transaction detected"
             )
         })
@@ -191,7 +204,7 @@ export class Pool extends TokenContractV2 {
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
-        let sender = this.sender.getUnconstrainedV2();
+        let sender = this.sender.getUnconstrained();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amountTokenIn });
@@ -226,7 +239,7 @@ export class Pool extends TokenContractV2 {
         this.protocol.requireEquals(protocol);
 
         this.account.balance.requireBetween(UInt64.one, balanceInMax);
-        let sender = this.sender.getUnconstrainedV2();
+        let sender = this.sender.getUnconstrained();
         let senderSigned = AccountUpdate.createSigned(sender);
         await senderSigned.send({ to: this.self, amount: amountMinaIn });
     }
@@ -245,7 +258,7 @@ export class Pool extends TokenContractV2 {
 
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
         liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
@@ -254,7 +267,7 @@ export class Pool extends TokenContractV2 {
         amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
 
         // burn liquidity from user and current supply
-        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2()
+        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg()
         await this.internal.burn({ address: sender, amount: liquidityAmount });
 
         // send mina to user
@@ -273,13 +286,13 @@ export class Pool extends TokenContractV2 {
         // token 0 need to be empty on mina pool
         this.checkToken(false);
 
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
         const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
         liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
 
         // burn liquidity from user and current supply
-        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).negV2();
+        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg();
         await this.internal.burn({ address: sender, amount: liquidityAmount });
     }
 
@@ -301,7 +314,7 @@ export class Pool extends TokenContractV2 {
         let liquidityAmount = UInt64.zero;
         let liquidityUser = UInt64.zero;
 
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
 
         const tokenId0 = TokenId.derive(token0);
@@ -365,7 +378,7 @@ export class Pool extends TokenContractV2 {
 
     private async sendTokenAccount(tokenAccount: AccountUpdate, tokenAddress: PublicKey, amount: UInt64) {
         let tokenContract = new FungibleToken(tokenAddress);
-        let sender = this.sender.getUnconstrainedV2();
+        let sender = this.sender.getUnconstrained();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
 
         // send token to the pool

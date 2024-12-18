@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
@@ -139,6 +139,7 @@ describe('Farming pool mina', () => {
       await zkToken0.deploy({
         symbol: "LTA",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken0.initialize(
         zkTokenAdminAddress,
@@ -156,6 +157,7 @@ describe('Farming pool mina', () => {
       await zkToken1.deploy({
         symbol: "LTB",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken1.initialize(
         zkTokenAdminAddress,
@@ -173,6 +175,7 @@ describe('Farming pool mina', () => {
       await zkToken2.deploy({
         symbol: "REW",
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: false
       });
       await zkToken2.initialize(
         zkTokenAdminAddress,

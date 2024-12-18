@@ -77,7 +77,7 @@ export class PoolTokenHolder extends SmartContract {
         const amountToken = this.withdraw(liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
         const pool = new Pool(this.address);
         await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMinaMin, amountToken1Out: amountTokenMin, amountLiquidityIn: liquidityAmount }));
     }
 
@@ -97,7 +97,7 @@ export class PoolTokenHolder extends SmartContract {
         await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
         await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken0Min, amountToken1Out: amountToken1Min, amountLiquidityIn: liquidityAmount }));
     }
 
@@ -124,7 +124,7 @@ export class PoolTokenHolder extends SmartContract {
         const amountToken = mulDiv(liquidityAmount, reserveTokenMin, supplyMax);
         amountToken.assertGreaterThanOrEqual(amountTokenMin, "Insufficient amount token out");
 
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
@@ -155,7 +155,7 @@ export class PoolTokenHolder extends SmartContract {
 
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
-        let sender = this.sender.getUnconstrainedV2();
+        let sender = this.sender.getUnconstrained();
 
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })

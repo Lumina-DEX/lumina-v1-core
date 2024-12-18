@@ -1,4 +1,4 @@
-import { state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, TokenContractV2 } from 'o1js';
+import { state, State, method, Permissions, PublicKey, AccountUpdateForest, DeployArgs, UInt64, AccountUpdate, TokenContract } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
 
 
@@ -8,7 +8,7 @@ export interface FaucetDeployProps extends Exclude<DeployArgs, undefined> {
 }
 
 
-export class Faucet extends TokenContractV2 {
+export class Faucet extends TokenContract {
 
     @state(UInt64) amount = State<UInt64>();
     @state(PublicKey) token = State<PublicKey>();
@@ -44,7 +44,7 @@ export class Faucet extends TokenContractV2 {
 
         const token = new FungibleToken(tokenAddress);
 
-        const sender = this.sender.getUnconstrainedV2();
+        const sender = this.sender.getUnconstrained();
 
         let senderToken = AccountUpdate.create(sender, this.deriveTokenId());
         // if the balance is not zero, so the sender already claim
