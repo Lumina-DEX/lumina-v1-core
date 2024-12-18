@@ -64,7 +64,7 @@ export class UpdateSignerEvent extends Struct({
     }
 }
 
-// 32 approved signer possible
+// 2^32 signers approved signer possible
 export class SignerMerkleWitness extends MerkleWitness(32) { }
 
 /**

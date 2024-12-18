@@ -186,7 +186,7 @@ describe('Pool Factory Mina', () => {
 
 
     const liquidityUser = Mina.getBalance(senderAccount, newPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(Pool.minimunLiquidity.value);
+    const expected = amt.value.add(amtToken.value).sub(Pool.minimumLiquidity.value);
     console.log("liquidity user", liquidityUser.toString());
     expect(liquidityUser.value).toEqual(expected);
 

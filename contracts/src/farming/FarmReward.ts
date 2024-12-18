@@ -29,9 +29,9 @@ export class ClaimEvent extends Struct({
 }
 
 /**
- * support 256 different claimer (easily adjustable), low number for test
+ * support 2^32 different claimer (easily adjustable)
  */
-export const claimerNumber = 256;
+export const claimerNumber = 32;
 export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 
 /**
