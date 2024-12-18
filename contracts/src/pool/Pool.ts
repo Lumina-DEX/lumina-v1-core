@@ -204,14 +204,10 @@ export class Pool extends TokenContract {
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
-        let sender = this.sender.getUnconstrained();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amountTokenIn });
-
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+        await this.sendTokenAccount(tokenAccount, token1, amountTokenIn);
 
         // send mina to user
+        const sender = this.sender.getUnconstrained();
         await this.send({ to: sender, amount: amountOut });
         // send mina to frontend (if not empty)
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
@@ -299,9 +295,7 @@ export class Pool extends TokenContract {
     private async supply(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
         const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
-        if (isFirstSupply) {
-            balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
-        } else {
+        if (!isFirstSupply) {
             reserveToken1Max.assertGreaterThan(UInt64.zero, "Reserve token 1 max can't be zero");
             reserveToken0Max.assertGreaterThan(UInt64.zero, "Reserve token 0 max can't be zero");
             supplyMin.assertGreaterThan(UInt64.zero, "Supply min can't be zero");
