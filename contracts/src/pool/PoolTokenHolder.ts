@@ -1,5 +1,6 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { checkToken, IPool } from './IPoolState.js';
 
 
 export class WithdrawLiquidityEvent extends Struct({
@@ -21,11 +22,11 @@ export class WithdrawLiquidityEvent extends Struct({
 /**
  * Token holder contract, manage swap and liquidity remove functions
  */
-export class PoolTokenHolder extends SmartContract {
-
+export class PoolTokenHolder extends SmartContract implements IPool {
     @state(PublicKey) token0 = State<PublicKey>();
     @state(PublicKey) token1 = State<PublicKey>();
     @state(PublicKey) poolFactory = State<PublicKey>();
+    @state(PublicKey) protocol = State<PublicKey>();
 
     events = {
         withdrawLiquidity: WithdrawLiquidityEvent,
@@ -76,14 +77,14 @@ export class PoolTokenHolder extends SmartContract {
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenMin: UInt64, reserveMinaMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
         const amountToken = this.withdraw(liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
         const pool = new Pool(this.address);
-        await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, amountToken, reserveMinaMin, supplyMax);
+        const amountMina = await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, reserveMinaMin, supplyMax);
         const sender = this.sender.getUnconstrained();
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMinaMin, amountToken1Out: amountTokenMin, amountLiquidityIn: liquidityAmount }));
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMina, amountToken1Out: amountToken, amountLiquidityIn: liquidityAmount }));
     }
 
     // check if they are no exploit possible  
     @method async withdrawLiquidityToken(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
-        const [token0, token1] = this.checkToken(false);
+        const [token0, token1] = checkToken(this, false);
 
         // check if token match
         const tokenId0 = TokenId.derive(token0);
@@ -94,22 +95,23 @@ export class PoolTokenHolder extends SmartContract {
         const amountToken = this.withdraw(liquidityAmount, amountToken0Min, reserveToken0Min, supplyMax);
 
         let poolTokenZ = new PoolTokenHolder(this.address, fungibleToken1.deriveTokenId());
-        await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
+        const amountToken1 = await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
         await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
         const sender = this.sender.getUnconstrained();
-        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken0Min, amountToken1Out: amountToken1Min, amountLiquidityIn: liquidityAmount }));
+        this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken, amountToken1Out: amountToken1, amountLiquidityIn: liquidityAmount }));
     }
 
     /**
     * Don't call this method directly, use withdrawLiquidityToken for token 0
     */
-    @method async subWithdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
+    @method.returns(UInt64) async subWithdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
         // withdraw token 1
         const amountToken = this.withdraw(liquidityAmount, amountToken1Min, reserveToken1Min, supplyMax);
 
         let pool = new Pool(this.address);
-        await pool.checkLiquidityToken(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, supplyMax);
+        await pool.burnLiquidityToken(liquidityAmount, supplyMax);
+        return amountToken;
     }
 
     private withdraw(liquidityAmount: UInt64, amountTokenMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
@@ -142,7 +144,7 @@ export class PoolTokenHolder extends SmartContract {
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
         // check if token match
-        const [token0, token1] = this.checkToken(isMinaPool);
+        const [token0, token1] = checkToken(this, isMinaPool);
         const tokenId0 = TokenId.derive(token0);
         const tokenId1 = TokenId.derive(token1);
         this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Incorrect token id");
@@ -179,15 +181,6 @@ export class PoolTokenHolder extends SmartContract {
         }
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
-    }
-
-    private checkToken(isMinaPool: boolean) {
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        // token 0 need to be empty on mina pool
-        token0.equals(PublicKey.empty()).assertEquals(isMinaPool, isMinaPool ? "Not a mina pool" : "Invalid token 0 address");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
-        return [token0, token1];
     }
 
 }

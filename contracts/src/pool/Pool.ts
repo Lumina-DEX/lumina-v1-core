@@ -1,5 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { checkToken, IPool } from './IPoolState.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -46,7 +47,7 @@ export class BalanceEvent extends Struct({
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class Pool extends TokenContract {
+export class Pool extends TokenContract implements IPool {
 
     // we need the token address to instantiate it
     @state(PublicKey) token0 = State<PublicKey>();
@@ -192,7 +193,7 @@ export class Pool extends TokenContract {
         taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
 
         // token 0 need to be empty on mina pool
-        const [, token1] = this.checkToken(true);
+        const [, token1] = checkToken(this, true);
 
         let tokenContract = new FungibleToken(token1);
         let tokenAccount = AccountUpdate.create(this.address, tokenContract.deriveTokenId());
@@ -204,14 +205,10 @@ export class Pool extends TokenContract {
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
-        let sender = this.sender.getUnconstrained();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
-        senderToken.send({ to: tokenAccount, amount: amountTokenIn });
-
-        await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+        await this.sendTokenAccount(tokenAccount, token1, amountTokenIn);
 
         // send mina to user
+        const sender = this.sender.getUnconstrained();
         await this.send({ to: sender, amount: amountOut });
         // send mina to frontend (if not empty)
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
@@ -233,7 +230,7 @@ export class Pool extends TokenContract {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
-        this.checkToken(true);
+        checkToken(this, true);
 
         // check if the protocol address is correct
         this.protocol.requireEquals(protocol);
@@ -247,44 +244,36 @@ export class Pool extends TokenContract {
     /**
      * Don't call this method directly, use withdrawLiquidity from PoolTokenHolder
      */
-    @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenOut: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
-        liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
+    @method.returns(UInt64) async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
         reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
-        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
-        supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
-
-        // token 0 need to be empty on mina pool
-        this.checkToken(true);
+        amountMinaMin.assertGreaterThan(UInt64.zero, "Amount mina out can't be zero");
 
         this.account.balance.requireBetween(reserveMinaMin, UInt64.MAXINT());
 
-        const sender = this.sender.getUnconstrained();
-        sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
-        const liquidityAccount = AccountUpdate.create(this.address, this.deriveTokenId());
-        liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
+        await this.burnLiquidity(liquidityAmount, supplyMax, true);
 
         const amountMina = mulDiv(liquidityAmount, reserveMinaMin, supplyMax);
         amountMina.assertGreaterThanOrEqual(amountMinaMin, "Insufficient amount mina out");
 
-        // burn liquidity from user and current supply
-        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg()
-        await this.internal.burn({ address: sender, amount: liquidityAmount });
-
         // send mina to user
+        const sender = this.sender.getUnconstrained();
         await this.send({ to: sender, amount: amountMina });
+        return amountMina;
     }
 
     /**
      * Don't call this method directly, use withdrawLiquidityToken from PoolTokenHolder
      */
-    @method async checkLiquidityToken(liquidityAmount: UInt64, amountToken0: UInt64, amountToken1: UInt64, reserveMinaMin: UInt64, supplyMax: UInt64) {
+    @method async burnLiquidityToken(liquidityAmount: UInt64, supplyMax: UInt64) {
+        await this.burnLiquidity(liquidityAmount, supplyMax, false);
+    }
+
+    private async burnLiquidity(liquidityAmount: UInt64, supplyMax: UInt64, isMinaPool: boolean) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
-        reserveMinaMin.assertGreaterThan(UInt64.zero, "Reserve mina min can't be zero");
-        amountToken0.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
 
         // token 0 need to be empty on mina pool
-        this.checkToken(false);
+        checkToken(this, isMinaPool);
 
         const sender = this.sender.getUnconstrained();
         sender.equals(this.address).assertFalse("Can't transfer to/from the pool account");
@@ -292,16 +281,15 @@ export class Pool extends TokenContract {
         liquidityAccount.account.balance.requireBetween(UInt64.one, supplyMax);
 
         // burn liquidity from user and current supply
-        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg();
+        liquidityAccount.balanceChange = Int64.fromUnsigned(liquidityAmount).neg()
         await this.internal.burn({ address: sender, amount: liquidityAmount });
+
     }
 
     private async supply(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
         const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
-        if (isFirstSupply) {
-            balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
-        } else {
+        if (!isFirstSupply) {
             reserveToken1Max.assertGreaterThan(UInt64.zero, "Reserve token 1 max can't be zero");
             reserveToken0Max.assertGreaterThan(UInt64.zero, "Reserve token 0 max can't be zero");
             supplyMin.assertGreaterThan(UInt64.zero, "Supply min can't be zero");
@@ -309,7 +297,7 @@ export class Pool extends TokenContract {
         amountToken0.assertGreaterThan(UInt64.zero, "Amount token 0 can't be zero");
         amountToken1.assertGreaterThan(UInt64.zero, "Amount token 1 can't be zero");
 
-        const [token0, token1] = this.checkToken(isMinaPool);
+        const [token0, token1] = checkToken(this, isMinaPool);
 
         let liquidityAmount = UInt64.zero;
         let liquidityUser = UInt64.zero;
@@ -365,15 +353,6 @@ export class Pool extends TokenContract {
         this.emitEvent("addLiquidity", new AddLiquidityEvent({ sender, amountToken0In: amountToken0, amountToken1In: amountToken1, amountLiquidityOut: liquidityUser }));
 
         return liquidityUser;
-    }
-
-    private checkToken(isMinaPool: boolean) {
-        const token0 = this.token0.getAndRequireEquals();
-        const token1 = this.token1.getAndRequireEquals();
-        // token 0 need to be empty on mina pool
-        token0.equals(PublicKey.empty()).assertEquals(isMinaPool, isMinaPool ? "Not a mina pool" : "Invalid token 0 address");
-        token1.equals(PublicKey.empty()).assertFalse("Invalid token 1 address");
-        return [token0, token1];
     }
 
     private async sendTokenAccount(tokenAccount: AccountUpdate, tokenAddress: PublicKey, amount: UInt64) {
