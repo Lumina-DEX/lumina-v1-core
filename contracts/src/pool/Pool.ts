@@ -59,7 +59,7 @@ export class Pool extends TokenContract {
 
     // max fee for frontend 0.15 %
     static maxFee: UInt64 = UInt64.from(15);
-    static minimunLiquidity: UInt64 = UInt64.from(1000);
+    static minimumLiquidity: UInt64 = UInt64.from(1000);
 
     events = {
         swap: SwapEvent,
@@ -327,7 +327,7 @@ export class Pool extends TokenContract {
             balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
             liquidityAmount = amountToken0.add(amountToken1);
             // on first mint remove minimal liquidity amount to prevent from inflation attack
-            liquidityUser = liquidityAmount.sub(Pool.minimunLiquidity);
+            liquidityUser = liquidityAmount.sub(Pool.minimumLiquidity);
         } else {
             token0Account.account.balance.requireBetween(UInt64.one, reserveToken0Max);
             token1Account.account.balance.requireBetween(UInt64.one, reserveToken1Max);

@@ -145,7 +145,7 @@ export class PoolTokenHolder extends SmartContract {
         const [token0, token1] = this.checkToken(isMinaPool);
         const tokenId0 = TokenId.derive(token0);
         const tokenId1 = TokenId.derive(token1);
-        this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Inccorect token id");
+        this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Incorrect token id");
 
         const tokenIdIn = Provable.if(this.tokenId.equals(tokenId0), tokenId1, tokenId0);
         const tokenAddressIn = Provable.if(this.tokenId.equals(tokenId0), token1, token0);
