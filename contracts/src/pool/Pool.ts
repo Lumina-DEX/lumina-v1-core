@@ -16,6 +16,18 @@ export class SwapEvent extends Struct({
     }
 }
 
+export class ReceiveMinaEvent extends Struct({
+    sender: PublicKey,
+    amountMinaIn: UInt64,
+}) {
+    constructor(value: {
+        sender: PublicKey,
+        amountMinaIn: UInt64
+    }) {
+        super(value);
+    }
+}
+
 export class AddLiquidityEvent extends Struct({
     sender: PublicKey,
     amountToken0In: UInt64,
@@ -39,6 +51,21 @@ export class BalanceEvent extends Struct({
     constructor(value: {
         address: PublicKey,
         amount: Int64,
+    }) {
+        super(value);
+    }
+}
+
+
+export class BurnLiqudityEvent extends Struct({
+    sender: PublicKey,
+    amountMinaOut: UInt64,
+    amountLiquidity: UInt64,
+}) {
+    constructor(value: {
+        sender: PublicKey,
+        amountMinaOut: UInt64,
+        amountLiquidity: UInt64,
     }) {
         super(value);
     }
@@ -68,7 +95,9 @@ export class Pool extends TokenContract implements IPool {
         balanceChange: BalanceEvent,
         updateDelegator: UpdateUserEvent,
         updateProtocol: UpdateUserEvent,
-        upgrade: UpdateVerificationKeyEvent
+        upgrade: UpdateVerificationKeyEvent,
+        burnLiquidity: BurnLiqudityEvent,
+        receiveMina: ReceiveMinaEvent
     };
 
     async deploy() {
@@ -249,6 +278,7 @@ export class Pool extends TokenContract implements IPool {
         methodSender.assertEquals(sender);
         let senderSigned = AccountUpdate.createSigned(sender);
         await senderSigned.send({ to: this.self, amount: amountMinaIn });
+        this.emitEvent("receiveMina", new ReceiveMinaEvent({ sender, amountMinaIn }));
     }
 
     /**
@@ -271,6 +301,8 @@ export class Pool extends TokenContract implements IPool {
         // send mina to user      
         const receiverAccount = AccountUpdate.createSigned(sender);
         await this.send({ to: receiverAccount, amount: amountMina });
+        this.emitEvent("burnLiquidity", new BurnLiqudityEvent({ sender, amountMinaOut: amountMina, amountLiquidity: liquidityAmount }));
+
         return amountMina;
     }
 
@@ -281,6 +313,7 @@ export class Pool extends TokenContract implements IPool {
         const methodSender = this.sender.getUnconstrained();
         methodSender.assertEquals(sender);
         await this.burnLiquidity(sender, liquidityAmount, supplyMax, false);
+        this.emitEvent("burnLiquidity", new BurnLiqudityEvent({ sender, amountMinaOut: UInt64.zero, amountLiquidity: liquidityAmount }));
     }
 
     private async burnLiquidity(sender: PublicKey, liquidityAmount: UInt64, supplyMax: UInt64, isMinaPool: boolean) {
