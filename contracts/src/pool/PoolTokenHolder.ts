@@ -59,8 +59,9 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const pool = new Pool(this.address);
         // we check the protocol in the pool
         const protocol = pool.protocol.get();
-        await this.swap(protocol, frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
-        await pool.swapFromMinaToToken(protocol, amountMinaIn, balanceInMax);
+        const sender = this.sender.getUnconstrained();
+        await this.swap(sender, protocol, frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
+        await pool.swapFromMinaToToken(sender, protocol, amountMinaIn, balanceInMax);
     }
 
 
@@ -70,15 +71,16 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const poolDataAddress = this.poolFactory.getAndRequireEquals();
         const poolData = new PoolFactory(poolDataAddress);
         const protocol = await poolData.getProtocol();
-        await this.swap(protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
+        const sender = this.sender.getUnconstrained();
+        await this.swap(sender, protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }
 
     // check if they are no exploit possible  
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenMin: UInt64, reserveMinaMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
-        const amountToken = this.withdraw(liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
-        const pool = new Pool(this.address);
-        const amountMina = await pool.withdrawLiquidity(liquidityAmount, amountMinaMin, reserveMinaMin, supplyMax);
         const sender = this.sender.getUnconstrained();
+        const amountToken = this.withdraw(sender, liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
+        const pool = new Pool(this.address);
+        const amountMina = await pool.withdrawLiquidity(sender, liquidityAmount, amountMinaMin, reserveMinaMin, supplyMax);
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMina, amountToken1Out: amountToken, amountLiquidityIn: liquidityAmount }));
     }
 
@@ -91,30 +93,31 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         this.tokenId.assertEquals(tokenId0, "Call this method from PoolHolderAccount for token 0");
         const fungibleToken1 = new FungibleToken(token1);
 
+        const sender = this.sender.getUnconstrained();
         // withdraw token 0
-        const amountToken = this.withdraw(liquidityAmount, amountToken0Min, reserveToken0Min, supplyMax);
+        const amountToken = this.withdraw(sender, liquidityAmount, amountToken0Min, reserveToken0Min, supplyMax);
 
         let poolTokenZ = new PoolTokenHolder(this.address, fungibleToken1.deriveTokenId());
-        const amountToken1 = await poolTokenZ.subWithdrawLiquidity(liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
 
+        const amountToken1 = await poolTokenZ.subWithdrawLiquidity(sender, liquidityAmount, amountToken0Min, amountToken, reserveToken0Min, reserveToken1Min, supplyMax);
         await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
-        const sender = this.sender.getUnconstrained();
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken, amountToken1Out: amountToken1, amountLiquidityIn: liquidityAmount }));
     }
 
     /**
     * Don't call this method directly, use withdrawLiquidityToken for token 0
     */
-    @method.returns(UInt64) async subWithdrawLiquidity(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
+    @method.returns(UInt64) async subWithdrawLiquidity(sender: PublicKey, liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
+        const methodSender = this.sender.getUnconstrained();
+        methodSender.assertEquals(sender);
         // withdraw token 1
-        const amountToken = this.withdraw(liquidityAmount, amountToken1Min, reserveToken1Min, supplyMax);
-
+        const amountToken = this.withdraw(sender, liquidityAmount, amountToken1Min, reserveToken1Min, supplyMax);
         let pool = new Pool(this.address);
-        await pool.burnLiquidityToken(liquidityAmount, supplyMax);
+        await pool.burnLiquidityToken(sender, liquidityAmount, supplyMax);
         return amountToken;
     }
 
-    private withdraw(liquidityAmount: UInt64, amountTokenMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
+    private withdraw(sender: PublicKey, liquidityAmount: UInt64, amountTokenMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         reserveTokenMin.assertGreaterThan(UInt64.zero, "Reserve token min can't be zero");
         amountTokenMin.assertGreaterThan(UInt64.zero, "Amount token can't be zero");
@@ -126,15 +129,15 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const amountToken = mulDiv(liquidityAmount, reserveTokenMin, supplyMax);
         amountToken.assertGreaterThanOrEqual(amountTokenMin, "Insufficient amount token out");
 
-        const sender = this.sender.getUnconstrained();
         // send token to the user
-        let receiverUpdate = this.send({ to: sender, amount: amountToken });
+        const receiverAccount = AccountUpdate.createSigned(sender, this.tokenId);
+        let receiverUpdate = this.send({ to: receiverAccount, amount: amountToken });
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 
         return amountToken;
     }
 
-    private async swap(protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
+    private async swap(sender: PublicKey, protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
@@ -156,10 +159,9 @@ export class PoolTokenHolder extends SmartContract implements IPool {
 
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
 
-        let sender = this.sender.getUnconstrained();
-
         // send token to the user
-        let receiverUpdate = this.send({ to: sender, amount: amountOut })
+        const receiverAccount = AccountUpdate.createSigned(sender, this.tokenId);
+        let receiverUpdate = this.send({ to: receiverAccount, amount: amountOut })
         receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
         // send fee to frontend (if not empty)
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
