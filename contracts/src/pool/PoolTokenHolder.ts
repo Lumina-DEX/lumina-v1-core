@@ -39,6 +39,18 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         Bool(false).assertTrue("You can't directly deploy a token holder");
     }
 
+    @method async init() {
+        this.account.provedState.getAndRequireEquals().assertFalse();
+
+        super.init();
+        const token0 = this.token0.getAndRequireEquals();
+        const token1 = this.token1.getAndRequireEquals();
+        token1.isEmpty().assertFalse("Invalid token 1 address");
+        const tokenId0 = TokenId.derive(token0);
+        const tokenId1 = TokenId.derive(token1);
+        this.tokenId.equals(tokenId0).or(this.tokenId.equals(tokenId1)).assertTrue("Incorrect token id");
+    }
+
     /**
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
      * @param vk new verification key
