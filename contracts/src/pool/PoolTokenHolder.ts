@@ -59,8 +59,9 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const pool = new Pool(this.address);
         // we check the protocol in the pool
         const protocol = pool.protocol.get();
-        await this.swap(protocol, frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
-        await pool.swapFromMinaToToken(protocol, amountMinaIn, balanceInMax);
+        const sender = this.sender.getUnconstrained();
+        await this.swap(sender, protocol, frontend, taxFeeFrontend, amountMinaIn, amountTokenOutMin, balanceInMax, balanceOutMin, true);
+        await pool.swapFromMinaToToken(sender, protocol, amountMinaIn, balanceInMax);
     }
 
 
@@ -70,7 +71,8 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const poolDataAddress = this.poolFactory.getAndRequireEquals();
         const poolData = new PoolFactory(poolDataAddress);
         const protocol = await poolData.getProtocol();
-        await this.swap(protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
+        const sender = this.sender.getUnconstrained();
+        await this.swap(sender, protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }
 
     // check if they are no exploit possible  
@@ -134,7 +136,7 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         return amountToken;
     }
 
-    private async swap(protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
+    private async swap(sender: PublicKey, protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64, isMinaPool: boolean) {
         amountTokenIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountTokenOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
@@ -155,8 +157,6 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const { feeFrontend, feeProtocol, amountOut } = Pool.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
 
         amountOut.assertGreaterThanOrEqual(amountTokenOutMin, "Insufficient amount out");
-
-        let sender = this.sender.getUnconstrained();
 
         // send token to the user
         let receiverUpdate = this.send({ to: sender, amount: amountOut })

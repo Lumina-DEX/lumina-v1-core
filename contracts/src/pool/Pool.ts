@@ -223,10 +223,11 @@ export class Pool extends TokenContract implements IPool {
 
     /**
      * Don't call this method directly, use pool token holder or you will just lost mina
+     * @param sender use in the previous method
      * @param amountMinaIn mina amount in
      * @param balanceInMax actual reserve max in
      */
-    @method async swapFromMinaToToken(protocol: PublicKey, amountMinaIn: UInt64, balanceInMax: UInt64) {
+    @method async swapFromMinaToToken(sender: PublicKey, protocol: PublicKey, amountMinaIn: UInt64, balanceInMax: UInt64) {
         amountMinaIn.assertGreaterThan(UInt64.zero, "Amount in can't be zero");
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
 
@@ -236,7 +237,8 @@ export class Pool extends TokenContract implements IPool {
         this.protocol.requireEquals(protocol);
 
         this.account.balance.requireBetween(UInt64.one, balanceInMax);
-        let sender = this.sender.getUnconstrained();
+        const methodSender = this.sender.getUnconstrained();
+        methodSender.assertEquals(sender);
         let senderSigned = AccountUpdate.createSigned(sender);
         await senderSigned.send({ to: this.self, amount: amountMinaIn });
     }
