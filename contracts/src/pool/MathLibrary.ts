@@ -1,4 +1,4 @@
-import { Provable, Gadgets as RangeCheck, UInt64 } from "o1js";
+import { Field, Provable, Gadgets as RangeCheck, UInt64 } from "o1js";
 
 /**
  * Function to multiply one Uint64 by another and divide the result,
@@ -22,7 +22,10 @@ export function mulDivMod(a: UInt64, b: UInt64, denominator: UInt64): { quotient
         };
     }
     y_ = y_.seal();
-    let q = Provable.witness(UInt64, () => new UInt64(x.toBigInt() / y_.toBigInt()));
+    let q = Provable.witness(UInt64, () => {
+        const result = new Field(x.toBigInt() / y_.toBigInt());
+        return UInt64.Unsafe.fromField(result)
+    });
     let r = x.sub(q.value.mul(y_)).seal();
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, r);
     let r_ = new UInt64(r.value);
