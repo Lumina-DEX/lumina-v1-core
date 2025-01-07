@@ -4,7 +4,7 @@ import { AccountUpdate, Bool, Field, MerkleTree, Mina, Poseidon, PrivateKey, Pub
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 import { Farm } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
-import { claimerNumber, FarmReward, FarmMerkleWitness } from '../farming/FarmReward';
+import { claimerNumber, FarmReward, FarmMerkleWitness, minTime } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 import { generateRewardMerkle } from './Farm.Token.test';
 
@@ -311,17 +311,20 @@ describe('Farming pool mina', () => {
     const farmRewardTokenHolder = new FarmRewardTokenHolder(key.toPublicKey(), zkToken2.deriveTokenId());
     // add more token for test
     const amountReward = dataReward.totalReward * 10n;
+    const timeUnlock = UInt64.from(Date.now()).add(minTime.mul(2));
     txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 2);
       await farmReward.deploy({
         owner: deployerAccount,
         merkleRoot: dataReward.merkle.getRoot(),
-        token: zkTokenAddress2
+        token: zkTokenAddress2,
+        timeUnlock
       });
       await farmRewardTokenHolder.deploy({
         owner: deployerAccount,
         merkleRoot: dataReward.merkle.getRoot(),
-        token: zkTokenAddress2
+        token: zkTokenAddress2,
+        timeUnlock
       });
       await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
       // we deploy and fund reward in one transaction
@@ -447,12 +450,14 @@ describe('Farming pool mina', () => {
     const farmReward = new FarmReward(key.toPublicKey());
     // add more token for test
     const amountReward = dataReward.totalReward * 10n;
+    const timeUnlock = UInt64.from(Date.now()).add(minTime.mul(2));
     txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
       await farmReward.deploy({
         owner: deployerAccount,
         merkleRoot: dataReward.merkle.getRoot(),
-        token: PublicKey.empty()
+        token: PublicKey.empty(),
+        timeUnlock
       });
       // we deploy and fund reward with mina in one transaction
       const accountUpdate = AccountUpdate.createSigned(deployerAccount);

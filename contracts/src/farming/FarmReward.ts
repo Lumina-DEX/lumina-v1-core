@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 
 export interface FarmRewardDeployProps extends Exclude<DeployArgs, undefined> {
   merkleRoot: Field,
@@ -38,7 +38,7 @@ export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 /**
  * we can't withdraw dust or upgrade the contract before 2 weeks
  */
-export const minTime = UInt64.from(1209600);
+export const minTime = UInt64.from(1_209_600_000);
 
 /**
  * Farm reward contract
