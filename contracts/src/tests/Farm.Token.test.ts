@@ -422,6 +422,14 @@ describe('Farming pool token', () => {
       await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
     });
     await txn.prove();
+    // we need to wait more to withdraw due to time lock of 2 weeks min
+    await expect(txn.sign([deployerKey]).send()).rejects.toThrow();
+    local.setGlobalSlot(20000);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmRewardTokenHolder.withdrawDust();
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    await txn.prove();
     await txn.sign([deployerKey]).send();
     const balanceAfterDeployer = Mina.getBalance(deployerAccount, zkToken2.deriveTokenId());
     const amountDust = Field.from(amountReward).sub(Field.from(dataBob.reward)).sub(Field.from(dataAlice.reward));

@@ -69,6 +69,7 @@ export class FarmReward extends TokenContract {
 
     this.owner.set(args.owner)
     this.merkleRoot.set(args.merkleRoot)
+    this.timeUnlock.set(args.timeUnlock)
     this.token.set(args.token)
 
     let permissions = Permissions.default()
