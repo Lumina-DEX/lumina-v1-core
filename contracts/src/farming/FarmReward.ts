@@ -1,9 +1,10 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 
 export interface FarmRewardDeployProps extends Exclude<DeployArgs, undefined> {
   merkleRoot: Field,
   token: PublicKey,
-  owner: PublicKey
+  owner: PublicKey,
+  timeUnlock: UInt64
 }
 
 export class MintEvent extends Struct({
@@ -35,6 +36,11 @@ export const claimerNumber = 32;
 export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 
 /**
+ * we can't withdraw dust or upgrade the contract before 2 weeks
+ */
+export const minTime = UInt64.from(1_209_600_000);
+
+/**
  * Farm reward contract
  */
 export class FarmReward extends TokenContract {
@@ -44,6 +50,8 @@ export class FarmReward extends TokenContract {
   token = State<PublicKey>()
   @state(Field)
   merkleRoot = State<Field>()
+  @state(UInt64)
+  timeUnlock = State<UInt64>()
 
   events = {
     upgrade: Field,
@@ -56,9 +64,12 @@ export class FarmReward extends TokenContract {
 
     args.merkleRoot.equals(Field(0)).assertFalse("Merkle root is empty")
     args.owner.isEmpty().assertFalse("Owner is empty")
+    const timeSub = args.timeUnlock.sub(minTime);
+    this.network.timestamp.requireBetween(UInt64.zero, timeSub);
 
     this.owner.set(args.owner)
     this.merkleRoot.set(args.merkleRoot)
+    this.timeUnlock.set(args.timeUnlock)
     this.token.set(args.token)
 
     let permissions = Permissions.default()
@@ -84,6 +95,9 @@ export class FarmReward extends TokenContract {
    */
   @method
   async updateVerificationKey(vk: VerificationKey) {
+    const timeUnlock = this.timeUnlock.getAndRequireEquals();
+    this.network.timestamp.requireBetween(timeUnlock, UInt64.MAXINT());
+
     const owner = await this.owner.getAndRequireEquals()
 
     // only owner can update a pool
@@ -114,6 +128,9 @@ export class FarmReward extends TokenContract {
 
   @method
   async withdrawDust() {
+    const timeUnlock = this.timeUnlock.getAndRequireEquals();
+    this.network.timestamp.requireBetween(timeUnlock, UInt64.MAXINT());
+
     const sender = this.sender.getAndRequireSignature()
     this.owner.requireEquals(sender)
     // only owner can withdraw dust

@@ -4,7 +4,7 @@ import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, P
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
-import { claimerNumber, FarmMerkleWitness, FarmReward } from '../farming/FarmReward';
+import { claimerNumber, FarmMerkleWitness, FarmReward, minTime } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 
 let proofsEnabled = false;
@@ -344,17 +344,20 @@ describe('Farming pool token', () => {
     const farmRewardTokenHolder = new FarmRewardTokenHolder(key.toPublicKey(), zkToken2.deriveTokenId());
     // add more token for test
     const amountReward = dataReward.totalReward * 10n;
+    const timeUnlock = UInt64.from(Date.now()).add(minTime.mul(2));
     txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 2);
       await farmReward.deploy({
         owner: deployerAccount,
         merkleRoot: dataReward.merkle.getRoot(),
-        token: zkTokenAddress2
+        token: zkTokenAddress2,
+        timeUnlock
       });
       await farmRewardTokenHolder.deploy({
         owner: deployerAccount,
         merkleRoot: dataReward.merkle.getRoot(),
-        token: zkTokenAddress2
+        token: zkTokenAddress2,
+        timeUnlock
       });
       await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
       // we deploy and fund reward in one transaction
@@ -414,6 +417,14 @@ describe('Farming pool token', () => {
 
     // withdraw the dust
     const balanceBeforeDeployer = Mina.getBalance(deployerAccount, zkToken2.deriveTokenId());
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmRewardTokenHolder.withdrawDust();
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    await txn.prove();
+    // we need to wait more to withdraw due to time lock of 2 weeks min
+    await expect(txn.sign([deployerKey]).send()).rejects.toThrow();
+    local.setGlobalSlot(20000);
     txn = await Mina.transaction(deployerAccount, async () => {
       await farmRewardTokenHolder.withdrawDust();
       await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
