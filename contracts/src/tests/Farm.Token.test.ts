@@ -186,12 +186,12 @@ describe('Farming pool token', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn4.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey2]).send();
 
-    const signature = Signature.create(zkTokenPrivateKey0, zkPoolAddress.toFields());
+    const signature = Signature.create(bobKey, zkPoolAddress.toFields());
     const witness = merkle.getWitness(0n);
     const circuitWitness = new SignerMerkleWitness(witness);
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 5);
-      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, zkTokenAddress0, signature, circuitWitness);
+      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, bobAccount, signature, circuitWitness);
     });
 
     //console.log("Pool creation", txn3.toPretty());

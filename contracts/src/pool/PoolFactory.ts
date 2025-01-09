@@ -206,10 +206,7 @@ export class PoolFactory extends TokenContract {
         signer.equals(PublicKey.empty()).assertFalse("Empty signer");
         const signerHash = Poseidon.hash(signer.toFields());
         const approvedSignerRoot = this.approvedSigner.getAndRequireEquals();
-        const approvedSigner = path.calculateRoot(signerHash).equals(approvedSignerRoot);
-        const signerToken0 = signer.equals(token0);
-        const signerToken1 = signer.equals(token1);
-        approvedSigner.or(signerToken0).or(signerToken1).assertTrue("Invalid signer");
+        path.calculateRoot(signerHash).assertEquals(approvedSignerRoot, "Invalid signer");
         signature.verify(signer, newAccount.toFields()).assertTrue("Invalid signature");
 
         // create a pool as this new address
