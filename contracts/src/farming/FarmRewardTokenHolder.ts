@@ -1,4 +1,4 @@
-import { AccountUpdate, method, Permissions, Poseidon, UInt64 } from "o1js"
+import { AccountUpdate, Bool, method, Permissions, Poseidon, UInt64 } from "o1js"
 import { FarmRewardDeployProps, FarmReward, ClaimEvent, FarmMerkleWitness } from "./FarmReward"
 
 /**
@@ -8,6 +8,8 @@ export class FarmRewardTokenHolder extends FarmReward {
 
 
   async deploy(args: FarmRewardDeployProps) {
+    this.account.isNew.requireEquals(Bool(true))
+
     await super.deploy(args)
 
     args.token.isEmpty().assertFalse("Token is empty")

@@ -1,4 +1,5 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { UpdateVerificationKeyEvent } from "../indexpool"
 
 export interface FarmRewardDeployProps extends Exclude<DeployArgs, undefined> {
   merkleRoot: Field,
@@ -60,6 +61,8 @@ export class FarmReward extends TokenContract {
   }
 
   async deploy(args: FarmRewardDeployProps) {
+    this.account.isNew.requireEquals(Bool(true))
+
     await super.deploy()
 
     args.merkleRoot.equals(Field(0)).assertFalse("Merkle root is empty")
@@ -104,7 +107,7 @@ export class FarmReward extends TokenContract {
     AccountUpdate.createSigned(owner)
 
     this.account.verificationKey.set(vk)
-    this.emitEvent("upgrade", vk.hash)
+    this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash))
   }
 
   @method
