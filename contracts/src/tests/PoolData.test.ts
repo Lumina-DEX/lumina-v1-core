@@ -146,12 +146,12 @@ describe('Pool data', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn5.sign([deployerKey, zkToken2PrivateKey]).send();
 
-    const signature = Signature.create(zkTokenPrivateKey, zkPoolAddress.toFields());
+    const signature = Signature.create(bobKey, zkPoolAddress.toFields());
     const witness = merkle.getWitness(0n);
     const circuitWitness = new SignerMerkleWitness(witness);
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(zkPoolAddress, zkTokenAddress, zkTokenAddress, signature, circuitWitness);
+      await zkApp.createPool(zkPoolAddress, zkTokenAddress, bobAccount, signature, circuitWitness);
     });
 
     //console.log("Pool creation au", txn3.transaction.accountUpdates.length);

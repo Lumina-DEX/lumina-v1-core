@@ -190,10 +190,10 @@ describe('Farming pool mina', () => {
 
     const witness = merkle.getWitness(0n);
     const circuitWitness = new SignerMerkleWitness(witness);
-    const signature2 = Signature.create(zkTokenPrivateKey1, zkPoolMinaAddress.toFields());
+    const signature2 = Signature.create(bobKey, zkPoolMinaAddress.toFields());
     const txn6 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(zkPoolMinaAddress, zkTokenAddress1, zkTokenAddress1, signature2, circuitWitness);
+      await zkApp.createPool(zkPoolMinaAddress, zkTokenAddress1, bobAccount, signature2, circuitWitness);
     });
     console.log("Pool Mina creation au", txn6.transaction.accountUpdates.length);
     await txn6.prove();

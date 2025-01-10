@@ -106,14 +106,6 @@ export class Pool extends TokenContract implements IPool {
         Bool(false).assertTrue("You can't directly deploy a pool");
     }
 
-    @method async init() {
-        this.account.provedState.getAndRequireEquals().assertFalse();
-
-        super.init();
-        const token1 = this.token1.getAndRequireEquals();
-        token1.isEmpty().assertFalse("Invalid token 1 address");
-    }
-
     /**
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
      * @param vk new verification key
