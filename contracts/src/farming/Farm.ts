@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, method, Permissions, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, method, Permissions, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 import { Pool, UpdateVerificationKeyEvent } from "../indexpool.js"
 
 export class FarmingInfo extends Struct({
@@ -65,6 +65,8 @@ export class Farm extends TokenContract {
   }
 
   async deploy(args: FarmingDeployProps) {
+    this.account.isNew.requireEquals(Bool(true))
+
     await super.deploy(args)
 
     args.pool.isEmpty().assertFalse("Pool empty")

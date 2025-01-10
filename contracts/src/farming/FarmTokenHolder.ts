@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, method, Permissions, PublicKey, SmartContract, State, state, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, method, Permissions, PublicKey, SmartContract, State, state, UInt64, VerificationKey } from "o1js"
 import { Farm, FarmingEvent } from "./Farm.js"
 import { UpdateVerificationKeyEvent } from "../indexpool.js"
 
@@ -20,6 +20,8 @@ export class FarmTokenHolder extends SmartContract {
   }
 
   async deploy(args: FarmingDeployProps) {
+    this.account.isNew.requireEquals(Bool(true))
+
     await super.deploy(args)
 
     args.owner.isEmpty().assertFalse("Owner empty")
