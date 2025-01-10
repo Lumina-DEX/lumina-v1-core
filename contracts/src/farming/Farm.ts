@@ -1,5 +1,5 @@
-import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, method, Permissions, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
-import { Pool } from "../indexpool.js"
+import { AccountUpdate, AccountUpdateForest, DeployArgs, method, Permissions, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { Pool, UpdateVerificationKeyEvent } from "../indexpool.js"
 
 export class FarmingInfo extends Struct({
   startTimestamp: UInt64,
@@ -59,7 +59,7 @@ export class Farm extends TokenContract {
   endTimestamp = State<UInt64>()
 
   events = {
-    upgrade: Field,
+    upgrade: UpdateVerificationKeyEvent,
     deposit: FarmingEvent,
     burn: BurnEvent,
   }
@@ -69,6 +69,7 @@ export class Farm extends TokenContract {
 
     args.pool.isEmpty().assertFalse("Pool empty")
     args.owner.isEmpty().assertFalse("Owner empty")
+    args.startTimestamp.lessThan(args.endTimestamp);
 
     this.network.timestamp.requireBetween(UInt64.zero, args.endTimestamp);
 
@@ -105,7 +106,7 @@ export class Farm extends TokenContract {
     AccountUpdate.createSigned(owner)
 
     this.account.verificationKey.set(vk)
-    this.emitEvent("upgrade", vk.hash)
+    this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash))
   }
 
   @method

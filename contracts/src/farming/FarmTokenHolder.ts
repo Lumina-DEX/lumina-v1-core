@@ -1,5 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, DeployArgs, Field, method, Permissions, PublicKey, SmartContract, State, state, UInt64, VerificationKey } from "o1js"
 import { Farm, FarmingEvent } from "./Farm.js"
+import { UpdateVerificationKeyEvent } from "../indexpool.js"
 
 export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
   owner: PublicKey
@@ -49,7 +50,7 @@ export class FarmTokenHolder extends SmartContract {
     // only owner can update a pool
     AccountUpdate.createSigned(owner)
     this.account.verificationKey.set(vk)
-    this.emitEvent("upgrade", vk.hash)
+    this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash))
   }
 
   @method
