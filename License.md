@@ -8,9 +8,9 @@ Licensor: Lumina Labs
 
 Licensed Work: [Lumina V1 Core] The Licensed Work is (c) 2024 Lumina Labs
 
-Additional Use Grant: Any uses listed and defined at [docs.luminadex.com]
+Additional Use Grant: Any uses listed and defined at [luminadex.com/license]
 
-Change Date: 4 years from public distribution of finalized V1 Core source code on Oct 9, 2024.
+Change Date: 4 years from public distribution of V1 Core source code on December 31, 2024.
 
 Change License: GNU General Public License v2.0 or later
 
