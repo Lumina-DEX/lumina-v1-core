@@ -193,8 +193,6 @@ export class PoolFactory extends TokenContract {
         const publicKey = PublicKey.fromGroup(hash);
         publicKey.isEmpty().assertFalse("publicKey is empty");
         await this.createAccounts(newAccount, publicKey, token0, token1, signer, signature, path, true);
-
-        this.network.snarkedLedgerHash.getAndRequireEquals
     }
 
     private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, path: SignerMerkleWitness, isTokenPool: boolean) {
