@@ -78,8 +78,8 @@ export class Farm extends TokenContract {
     const endTimestamp = UInt64.from(args.endSlot).mul(slotTime).add(genesisTimestamp);
     startTimestamp.lessThan(endTimestamp);
 
-    // check endtimestamp greater than current timestamp
-    this.network.timestamp.requireBetween(UInt64.zero, endTimestamp);
+    // check starttimestamp greater than current timestamp
+    this.network.timestamp.requireBetween(UInt64.zero, startTimestamp);
 
     this.pool.set(args.pool)
     this.owner.set(args.owner)

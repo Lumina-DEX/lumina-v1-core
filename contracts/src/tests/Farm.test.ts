@@ -202,7 +202,7 @@ describe('Farming pool mina', () => {
 
     let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
 
-    let start = BigInt(Date.now() - 100_000);
+    let start = BigInt(Date.now() + 10_000);
     start = (start - genesisTimestamp.toBigInt()) / slotTime.toBigInt();
     let end = start + BigInt(1_000_000);
     end = end / slotTime.toBigInt();
