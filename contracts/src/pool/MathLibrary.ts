@@ -28,8 +28,8 @@ export function mulDivMod(a: UInt64, b: UInt64, denominator: UInt64): { quotient
     });
     let r = x.sub(q.value.mul(y_)).seal();
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, r);
-    let r_ = new UInt64(r.value);
-    r_.assertLessThan(new UInt64(y_.value));
+    let r_ = UInt64.Unsafe.fromField(new Field(r.value));
+    r_.assertLessThan(UInt64.Unsafe.fromField(new Field(y_.value)));
     return { quotient: q, rest: r_ };
 }
 
