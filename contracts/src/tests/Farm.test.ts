@@ -200,15 +200,20 @@ describe('Farming pool mina', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn6.sign([deployerKey, zkPoolMinaPrivateKey]).send();
 
-    let start = Date.now() - 100_000;
-    let end = start + 1_000_000;
+    let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
+
+    let start = BigInt(Date.now() + 10_000);
+    start = (start - genesisTimestamp.toBigInt()) / slotTime.toBigInt();
+    let end = start + BigInt(1_000_000);
+    end = end / slotTime.toBigInt();
+
     let txn10 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 2);
       await zkFarmToken.deploy({
         owner: deployerAccount,
         pool: zkPoolMinaAddress,
-        startTimestamp: new UInt64(start),
-        endTimestamp: new UInt64(end),
+        startSlot: new UInt64(start),
+        endSlot: new UInt64(end),
       });
       await zkFarmTokenHolder.deploy({
         owner: deployerAccount
