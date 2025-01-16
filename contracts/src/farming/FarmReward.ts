@@ -30,6 +30,17 @@ export class ClaimEvent extends Struct({
   }
 }
 
+
+export class UpgradeInitedEvent extends Struct({
+  user: PublicKey
+}) {
+  constructor(value: {
+    user: PublicKey
+  }) {
+    super(value)
+  }
+}
+
 /**
  * support 2^32 different claimer (easily adjustable)
  */
@@ -37,9 +48,9 @@ export const claimerNumber = 32;
 export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 
 /**
- * we can't withdraw dust or upgrade the contract before 2 weeks
+ * we can't withdraw upgrade before 1 day
  */
-export const minTime = UInt64.from(1_209_600_000);
+export const minTime = UInt64.from(86_400_000);
 
 /**
  * Farm reward contract
@@ -55,7 +66,8 @@ export class FarmReward extends TokenContract {
   timeUnlock = State<UInt64>()
 
   events = {
-    upgrade: Field,
+    upgrade: UpdateVerificationKeyEvent,
+    upgradeInited: UpgradeInitedEvent,
     claim: ClaimEvent,
     mint: MintEvent
   }
@@ -127,20 +139,6 @@ export class FarmReward extends TokenContract {
     this.emitEvent("mint", new MintEvent({ sender }))
     this.emitEvent("claim", new ClaimEvent({ user: sender, amount }))
 
-  }
-
-  @method
-  async withdrawDust() {
-    const timeUnlock = this.timeUnlock.getAndRequireEquals();
-    this.network.timestamp.requireBetween(timeUnlock, UInt64.MAXINT());
-
-    const sender = this.sender.getAndRequireSignature()
-    this.owner.requireEquals(sender)
-    // only owner can withdraw dust
-    const accountBalance = this.account.balance.getAndRequireEquals()
-    const accountUpdate = this.send({ to: sender, amount: accountBalance })
-    accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-    this.emitEvent("claim", new ClaimEvent({ user: sender, amount: accountBalance }))
   }
 
   /**
