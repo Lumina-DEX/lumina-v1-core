@@ -1,5 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Mina, Permissions, Poseidon, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 import { UpdateVerificationKeyEvent } from "../indexpool"
+import { UpdateInitEvent } from "./Farm"
 
 export interface FarmRewardDeployProps extends Exclude<DeployArgs, undefined> {
   merkleRoot: Field,
@@ -29,15 +30,7 @@ export class ClaimEvent extends Struct({
   }
 }
 
-export class UpdateInitEvent extends Struct({
-  owner: PublicKey
-}) {
-  constructor(value: {
-    owner: PublicKey
-  }) {
-    super(value)
-  }
-}
+
 
 /**
  * support 2^32 different claimer (easily adjustable)
@@ -48,7 +41,7 @@ export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 /**
  * we can't upgrade the contract before 1 day
  */
-export const minTime = UInt64.from(86_400);
+export const minTimeUnlockFarmReward = UInt64.from(86_400);
 
 /**
  * Farm reward contract
@@ -65,7 +58,7 @@ export class FarmReward extends TokenContract {
 
   events = {
     upgrade: UpdateVerificationKeyEvent,
-    updadeInited: UpdateInitEvent,
+    upgradeInited: UpdateInitEvent,
     claim: ClaimEvent,
     mint: MintEvent
   }
@@ -114,9 +107,9 @@ export class FarmReward extends TokenContract {
     this.network.timestamp.requireBetween(UInt64.zero, timestamp);
 
     // owner need to wait minimum 1 day before update this contract
-    const timeUnlock = timestamp.add(minTime);
+    const timeUnlock = timestamp.add(minTimeUnlockFarmReward);
     this.timeUnlock.set(timeUnlock);
-    this.emitEvent("updadeInited", new UpdateInitEvent({ owner }))
+    this.emitEvent("upgradeInited", new UpdateInitEvent({ owner }))
   }
 
   /**

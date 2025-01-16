@@ -4,7 +4,7 @@ import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, P
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
 import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
-import { claimerNumber, FarmMerkleWitness, FarmReward, minTime } from '../farming/FarmReward';
+import { claimerNumber, FarmMerkleWitness, FarmReward, minTimeUnlockFarmReward } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 
 let proofsEnabled = false;
@@ -350,7 +350,7 @@ describe('Farming pool token', () => {
     const farmRewardTokenHolder = new FarmRewardTokenHolder(key.toPublicKey(), zkToken2.deriveTokenId());
     // add more token for test
     const amountReward = dataReward.totalReward * 10n;
-    const timeUnlock = UInt64.from(Date.now()).add(minTime.mul(2));
+    const timeUnlock = UInt64.from(Date.now()).add(minTimeUnlockFarmReward.mul(2));
     txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 2);
       await farmReward.deploy({
