@@ -1,11 +1,10 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Mina, Permissions, Poseidon, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 import { UpdateVerificationKeyEvent } from "../indexpool"
 
 export interface FarmRewardDeployProps extends Exclude<DeployArgs, undefined> {
   merkleRoot: Field,
   token: PublicKey,
-  owner: PublicKey,
-  timeUnlock: UInt64
+  owner: PublicKey
 }
 
 export class MintEvent extends Struct({
@@ -30,6 +29,16 @@ export class ClaimEvent extends Struct({
   }
 }
 
+export class UpdateInitEvent extends Struct({
+  owner: PublicKey
+}) {
+  constructor(value: {
+    owner: PublicKey
+  }) {
+    super(value)
+  }
+}
+
 /**
  * support 2^32 different claimer (easily adjustable)
  */
@@ -37,9 +46,9 @@ export const claimerNumber = 32;
 export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 
 /**
- * we can't withdraw dust or upgrade the contract before 2 weeks
+ * we can't upgrade the contract before 1 day
  */
-export const minTime = UInt64.from(1_209_600_000);
+export const minTime = UInt64.from(86_400);
 
 /**
  * Farm reward contract
@@ -55,7 +64,8 @@ export class FarmReward extends TokenContract {
   timeUnlock = State<UInt64>()
 
   events = {
-    upgrade: Field,
+    upgrade: UpdateVerificationKeyEvent,
+    updadeInited: UpdateInitEvent,
     claim: ClaimEvent,
     mint: MintEvent
   }
@@ -67,12 +77,9 @@ export class FarmReward extends TokenContract {
 
     args.merkleRoot.equals(Field(0)).assertFalse("Merkle root is empty")
     args.owner.isEmpty().assertFalse("Owner is empty")
-    const timeSub = args.timeUnlock.sub(minTime);
-    this.network.timestamp.requireBetween(UInt64.zero, timeSub);
 
     this.owner.set(args.owner)
     this.merkleRoot.set(args.merkleRoot)
-    this.timeUnlock.set(args.timeUnlock)
     this.token.set(args.token)
 
     let permissions = Permissions.default()
@@ -93,12 +100,33 @@ export class FarmReward extends TokenContract {
   }
 
   /**
+   * Init Upgrade to a new version
+   * @param vk new verification key
+   */
+  @method
+  async initUpdate(timeSlot: UInt64) {
+    const owner = await this.owner.getAndRequireEquals()
+    // only owner can init a update
+    AccountUpdate.createSigned(owner);
+
+    const { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
+    const timestamp = UInt64.from(timeSlot).mul(slotTime).add(genesisTimestamp);
+    this.network.timestamp.requireBetween(UInt64.zero, timestamp);
+
+    // owner need to wait minimum 1 day before update this contract
+    const timeUnlock = timestamp.add(minTime);
+    this.timeUnlock.set(timeUnlock);
+    this.emitEvent("updadeInited", new UpdateInitEvent({ owner }))
+  }
+
+  /**
    * Upgrade to a new version
    * @param vk new verification key
    */
   @method
   async updateVerificationKey(vk: VerificationKey) {
     const timeUnlock = this.timeUnlock.getAndRequireEquals();
+    timeUnlock.assertGreaterThan(UInt64.zero, "Yime unlock not defined");
     this.network.timestamp.requireBetween(timeUnlock, UInt64.MAXINT());
 
     const owner = await this.owner.getAndRequireEquals()
@@ -127,20 +155,6 @@ export class FarmReward extends TokenContract {
     this.emitEvent("mint", new MintEvent({ sender }))
     this.emitEvent("claim", new ClaimEvent({ user: sender, amount }))
 
-  }
-
-  @method
-  async withdrawDust() {
-    const timeUnlock = this.timeUnlock.getAndRequireEquals();
-    this.network.timestamp.requireBetween(timeUnlock, UInt64.MAXINT());
-
-    const sender = this.sender.getAndRequireSignature()
-    this.owner.requireEquals(sender)
-    // only owner can withdraw dust
-    const accountBalance = this.account.balance.getAndRequireEquals()
-    const accountUpdate = this.send({ to: sender, amount: accountBalance })
-    accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-    this.emitEvent("claim", new ClaimEvent({ user: sender, amount: accountBalance }))
   }
 
   /**
