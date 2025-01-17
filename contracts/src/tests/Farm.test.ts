@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8, VerificationKey } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
@@ -7,6 +7,7 @@ import { FarmTokenHolder } from '../farming/FarmTokenHolder';
 import { claimerNumber, FarmReward, FarmMerkleWitness, minTimeUnlockFarmReward } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 import { generateRewardMerkle } from './Farm.Token.test';
+import { FarmUpgradeTest } from './FarmUpgradeTest';
 
 let proofsEnabled = false;
 
@@ -44,11 +45,16 @@ describe('Farming pool mina', () => {
     zkFarmToken: Farm,
     zkFarmTokenHolder: FarmTokenHolder,
     local: any,
+    compileKey: VerificationKey,
     tokenHolder: PoolTokenHolder;
 
   beforeAll(async () => {
     const analyze = await Pool.analyzeMethods();
     getGates(analyze);
+
+    const cache = Cache.FileSystem('./cache');
+    const compileResult = await FarmUpgradeTest.compile({ cache });
+    compileKey = compileResult.verificationKey;
 
     if (proofsEnabled) {
       console.time('compile pool');
@@ -508,6 +514,66 @@ describe('Farming pool mina', () => {
     const balanceContract = Mina.getBalance(key.toPublicKey());
     expect(balanceContract.value).toEqual(amountDust);
   });
+
+  it('update verification key', async () => {
+
+    let txn = await Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(bobAccount, 1);
+      await zkFarmToken.deposit(UInt64.from(1000));
+    });
+    await txn.prove();
+    await txn.sign([bobKey]).send();
+
+    local.setGlobalSlot(1);
+    txn = await Mina.transaction(bobAccount, async () => {
+      await zkFarmTokenHolder.withdraw(UInt64.from(1000));
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([bobKey]).send();
+    local.setGlobalSlot(2);
+
+    let timeUnlock = Date.now() + 1000_000;
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await zkFarmTokenHolder.initUpdate(UInt64.from(timeUnlock));
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    console.log("txn init", txn.toPretty());
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+
+    const dataReward = await generateRewardMerkle(zkFarmTokenAddress, zkPoolMina.deriveTokenId(), claimerNumber);
+    console.log("rewardList", dataReward.rewardList)
+
+    const key = PrivateKey.random();
+    const farmReward = new FarmReward(key.toPublicKey());
+    const farmRewardTokenHolder = new FarmRewardTokenHolder(key.toPublicKey(), zkToken2.deriveTokenId());
+    // add more token for test
+    const amountReward = dataReward.totalReward * 10n;
+
+    txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 2);
+      await farmReward.deploy({
+        owner: deployerAccount,
+        merkleRoot: dataReward.merkle.getRoot(),
+        token: zkTokenAddress2
+      });
+      await farmRewardTokenHolder.deploy({
+        owner: deployerAccount,
+        merkleRoot: dataReward.merkle.getRoot(),
+        token: zkTokenAddress2
+      });
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+      // we deploy and fund reward in one transaction
+      await zkToken2.transfer(deployerAccount, key.toPublicKey(), UInt64.from(amountReward));
+    });
+    //console.log("farmReward deploy", txn.toPretty());
+    await txn.prove();
+    await txn.sign([key, deployerKey]).send();
+
+  });
+
 
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test

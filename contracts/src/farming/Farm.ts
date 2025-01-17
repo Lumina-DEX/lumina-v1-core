@@ -125,17 +125,15 @@ export class Farm extends TokenContract {
    * @param vk new verification key
    */
   @method
-  async initUpdate(timeSlot: UInt64) {
+  async initUpdate(startTime: UInt64) {
     const owner = await this.owner.getAndRequireEquals()
     // only owner can init a update
     AccountUpdate.createSigned(owner);
 
-    const { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
-    const timestamp = UInt64.from(timeSlot).mul(slotTime).add(genesisTimestamp);
-    this.network.timestamp.requireBetween(UInt64.zero, timestamp);
+    this.network.timestamp.requireBetween(UInt64.zero, startTime);
 
     // owner need to wait minimum 1 day before update this contract
-    const timeUnlock = timestamp.add(minTimeUnlockFarm);
+    const timeUnlock = startTime.add(minTimeUnlockFarm);
     this.timeUnlock.set(timeUnlock);
     this.emitEvent("upgradeInited", new UpdateInitEvent({ owner }))
   }
