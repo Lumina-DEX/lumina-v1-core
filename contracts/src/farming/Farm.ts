@@ -57,7 +57,7 @@ export interface FarmingDeployProps extends Exclude<DeployArgs, undefined> {
 /**
  * we can't upgrade the contract before 1 day
  */
-export const minTimeUnlockFarm = UInt64.from(86_400);
+export const minTimeUnlockFarm = UInt64.from(86_400_000);
 
 /**
  * Farm contract

@@ -41,7 +41,7 @@ export class FarmMerkleWitness extends MerkleWitness(claimerNumber) { }
 /**
  * we can't upgrade the contract before 1 day
  */
-export const minTimeUnlockFarmReward = UInt64.from(86_400);
+export const minTimeUnlockFarmReward = UInt64.from(86_400_000);
 
 /**
  * Farm reward contract

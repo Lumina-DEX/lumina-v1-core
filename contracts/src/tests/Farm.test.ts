@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, Cache, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8, VerificationKey } from 'o1js';
+import { AccountUpdate, Bool, Cache, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
@@ -538,9 +538,29 @@ describe('Farming pool mina', () => {
       await zkFarmTokenHolder.initUpdate(UInt64.from(timeUnlock));
       await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
     });
-    console.log("txn init", txn.toPretty());
     await txn.prove();
     await txn.sign([deployerKey]).send();
+
+    local.setGlobalSlot(200);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await zkFarmTokenHolder.updateVerificationKey(compileKey);
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    // need to wait 1 day to update
+    await expect(txn.sign([deployerKey]).send()).rejects.toThrow();
+
+    local.setGlobalSlot(1000);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await zkFarmTokenHolder.updateVerificationKey(compileKey);
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+    let farmv2 = new FarmUpgradeTest(zkFarmTokenAddress, zkPoolMina.deriveTokenId());
+    let version = await farmv2.version();
+    expect(version?.toBigInt()).toEqual(112n);
 
 
     const dataReward = await generateRewardMerkle(zkFarmTokenAddress, zkPoolMina.deriveTokenId(), claimerNumber);
@@ -572,6 +592,35 @@ describe('Farming pool mina', () => {
     await txn.prove();
     await txn.sign([key, deployerKey]).send();
 
+    const state = local.getNetworkState();
+    const time = globalSlotToTimestamp(state.globalSlotSinceGenesis);
+    console.log("time chain", time.toBigInt());
+    const timeStart = time.add(100);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmReward.initUpdate(timeStart);
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+    local.setGlobalSlot(1200);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmReward.updateVerificationKey(compileKey);
+    });
+    await txn.prove();
+    // need to wait 1 day to update
+    await expect(txn.sign([deployerKey]).send()).rejects.toThrow();
+
+    local.setGlobalSlot(2000);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmReward.updateVerificationKey(compileKey);
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+    let farmRewardv2 = new FarmUpgradeTest(farmReward.address);
+    let versionReward = await farmRewardv2.version();
+    expect(versionReward?.toBigInt()).toEqual(112n);
+
   });
 
 
@@ -598,6 +647,12 @@ describe('Farming pool mina', () => {
     await txn.prove();
     await txn.sign([deployerKey, zkTokenPrivateKey2]).send();
 
+  }
+
+  function globalSlotToTimestamp(slot: UInt32) {
+    let { genesisTimestamp, slotTime } =
+      Mina.getNetworkConstants();
+    return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
   }
 
 });
