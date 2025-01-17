@@ -71,7 +71,7 @@ export class FarmTokenHolder extends SmartContract {
   @method
   async updateVerificationKey(vk: VerificationKey) {
     const timeUnlock = this.timeUnlock.getAndRequireEquals();
-    timeUnlock.assertGreaterThan(UInt64.zero, "Yime unlock not defined");
+    timeUnlock.assertGreaterThan(UInt64.zero, "Time unlock is not defined");
     this.network.timestamp.requireBetween(timeUnlock, UInt64.MAXINT());
 
     const owner = await this.owner.getAndRequireEquals()

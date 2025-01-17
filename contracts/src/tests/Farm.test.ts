@@ -623,6 +623,115 @@ describe('Farming pool mina', () => {
 
   });
 
+  it('update verification key 2', async () => {
+
+    // method who test mina as reward, reward can be mina or fungible token
+    let txn = await Mina.transaction(bobAccount, async () => {
+      AccountUpdate.fundNewAccount(bobAccount, 1);
+      await zkFarmToken.deposit(UInt64.from(1000));
+    });
+    await txn.prove();
+    await txn.sign([bobKey]).send();
+
+    local.setGlobalSlot(1);
+    txn = await Mina.transaction(bobAccount, async () => {
+      await zkFarmTokenHolder.withdraw(UInt64.from(1000));
+      await zkPoolMina.approveAccountUpdate(zkFarmTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([bobKey]).send();
+    local.setGlobalSlot(2);
+
+    let timeUnlock = Date.now() + 1000_000;
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await zkFarmToken.initUpdate(UInt64.from(timeUnlock));
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+
+    local.setGlobalSlot(200);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await zkFarmToken.updateVerificationKey(compileKey);
+    });
+    await txn.prove();
+    // need to wait 1 day to update
+    await expect(txn.sign([deployerKey]).send()).rejects.toThrow();
+
+    local.setGlobalSlot(1000);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await zkFarmToken.updateVerificationKey(compileKey);
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+    let farmv2 = new FarmUpgradeTest(zkFarmTokenAddress);
+    let version = await farmv2.version();
+    expect(version?.toBigInt()).toEqual(112n);
+
+    const dataReward = await generateRewardMerkle(zkFarmTokenAddress, zkPoolMina.deriveTokenId(), claimerNumber);
+    console.log("rewardList", dataReward.rewardList)
+
+    const key = PrivateKey.random();
+    const farmReward = new FarmReward(key.toPublicKey());
+    const farmRewardTokenHolder = new FarmRewardTokenHolder(key.toPublicKey(), zkToken2.deriveTokenId());
+    // add more token for test
+    const amountReward = dataReward.totalReward * 10n;
+
+    txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 2);
+      await farmReward.deploy({
+        owner: deployerAccount,
+        merkleRoot: dataReward.merkle.getRoot(),
+        token: zkTokenAddress2
+      });
+      await farmRewardTokenHolder.deploy({
+        owner: deployerAccount,
+        merkleRoot: dataReward.merkle.getRoot(),
+        token: zkTokenAddress2
+      });
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+      // we deploy and fund reward in one transaction
+      await zkToken2.transfer(deployerAccount, key.toPublicKey(), UInt64.from(amountReward));
+    });
+    //console.log("farmReward deploy", txn.toPretty());
+    await txn.prove();
+    await txn.sign([key, deployerKey]).send();
+
+    const state = local.getNetworkState();
+    const time = globalSlotToTimestamp(state.globalSlotSinceGenesis);
+    console.log("time chain", time.toBigInt());
+    const timeStart = time.add(100);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmRewardTokenHolder.initUpdate(timeStart);
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+    local.setGlobalSlot(1200);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmRewardTokenHolder.updateVerificationKey(compileKey);
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    await txn.prove();
+    // need to wait 1 day to update
+    await expect(txn.sign([deployerKey]).send()).rejects.toThrow();
+
+    local.setGlobalSlot(2000);
+    txn = await Mina.transaction(deployerAccount, async () => {
+      await farmRewardTokenHolder.updateVerificationKey(compileKey);
+      await zkToken2.approveAccountUpdate(farmRewardTokenHolder.self);
+    });
+    await txn.prove();
+    await txn.sign([deployerKey]).send();
+
+    let farmRewardv2 = new FarmUpgradeTest(key.toPublicKey(), zkToken2.deriveTokenId());
+    let versionReward = await farmRewardv2.version();
+    expect(versionReward?.toBigInt()).toEqual(112n);
+
+  });
+
 
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test
