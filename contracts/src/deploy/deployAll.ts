@@ -213,7 +213,7 @@ async function deployToken() {
             }
         );
         await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, zkTokenPrivateKey]).send();
+        let sentTx = await tx.sign([feepayerKey, zkTokenPrivateKey, zkTokenAdminPrivateKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
         }
