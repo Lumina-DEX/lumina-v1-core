@@ -38,7 +38,6 @@ node build/src/deploy/deployAll.js
 `);
 Error.stackTraceLimit = 1000;
 
-
 let feepayerKey = PrivateKey.fromBase58(process.env.FEE_PAYER!);
 let zkPoolTokenAMinaKey = PrivateKey.fromBase58(process.env.POOL_TOKA_MINA!);
 let zkPoolTokenATokenBKey = PrivateKey.fromBase58(process.env.POOL_TOKA_TOKB!);
