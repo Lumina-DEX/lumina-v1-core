@@ -12,8 +12,7 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import fs from 'fs/promises';
-import { AccountUpdate, Bool, Cache, fetchAccount, MerkleTree, Mina, NetworkId, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness } from '../index.js';
 import readline from "readline/promises";
 
@@ -38,63 +37,40 @@ Usage:
 node build/src/deploy/deployAll.js
 `);
 Error.stackTraceLimit = 1000;
-const DEFAULT_NETWORK_ID = 'zeko';
 
-// parse config and private key from file
-type Config = {
-    deployAliases: Record<
-        string,
-        {
-            networkId?: string;
-            url: string;
-            keyPath: string;
-            fee: string;
-            feepayerKeyPath: string;
-            feepayerAlias: string;
-        }
-    >;
-};
-let configJson: Config = JSON.parse(await fs.readFile('config.json', 'utf8'));
-let config = configJson.deployAliases[deployAlias];
-let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-    await fs.readFile(config.feepayerKeyPath, 'utf8'));
 
-let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-// B62qjmz2oEe8ooqBmvj3a6fAbemfhk61rjxTYmUMP9A6LPdsBLmRAxK
-let zkPoolTokenAMinaKey = PrivateKey.fromBase58("EKEVcNxyPchkFYBvkzPvPz9PVPNPKPEkM33QNpPGPfet7Ga4MBQZ");
-// B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w
-let zkTokenAPrivateKey = PrivateKey.fromBase58("EKDpsCUu1roVtrqoprUyseGZVKbPLZMvGagBoN7WRUVHzDWBUWFj");
-// B62qq7cGn7rx6wwbjMP2Q2c8nm3nuwH3JPAuezzihZjNLhV66KCK9Ct
-let zkTokenBPrivateKey = PrivateKey.fromBase58("EKEk3mQKdVvp42q5ixsLHgFcWanXNFmtGd6qcWyjo4mxLCz5YQa4");
-// B62qmZpuEkuf3MeH2WAkxzXRJMBMmZHb1JxSZqqQR8T3jtt2FUTy9wK
-let zkTokenAdminPrivateKey = PrivateKey.fromBase58("EKDym4pZnbRVmWtubWaBgEeQ5GHrhtQc1KyD6sJm5cFaDWcj3vai");
-// B62qnigaSA2ZdhmGuKfQikjYKxb6V71mLq3H8RZzvkH4htHBEtMRUAG
-let zkFaucetKey = PrivateKey.fromBase58("EKDrpqX83AMJPT4X2dpPhAESbtrL96YV85gGCjECiK523LnBNqka");
-// B62qpfZ1egTLiRyX2DxfeFENrumeZowycer3Y5J9pKbiGVkgQBDkhW3
-let zkFactoryKey = PrivateKey.fromBase58("EKFaHTuesnx5QDU2DBAZmZBMhPTnEPCib3g83gvvQtaSBUx5thZW");
-// B62qkrzCSQXVgjaWBc2evMGne2KMnx62MYFXdtQGKVc9G8eBQ1KYhk1
-let zkEthKey = PrivateKey.fromBase58("EKEmhcRYSzhcS6j5DSBDopneC4jd6HdFhK32JwJVghViY9gPNLAe");
-// weth address B62qqKNnNRpCtgcBexw5khZSpk9K2d9Z7Wzcyir3WZcVd15Bz8eShVi
+let feepayerKey = PrivateKey.fromBase58(process.env.FEE_PAYER!);
+let zkPoolTokenAMinaKey = PrivateKey.fromBase58(process.env.POOL_TOKA_MINA!);
+let zkPoolTokenATokenBKey = PrivateKey.fromBase58(process.env.POOL_TOKA_TOKB!);
+let zkTokenAPrivateKey = PrivateKey.fromBase58(process.env.TOKA!);
+let zkTokenBPrivateKey = PrivateKey.fromBase58(process.env.TOKB!);
+let zkTokenAdminPrivateKey = PrivateKey.fromBase58(process.env.TOKEN_ADMIN!);
+let zkFaucetKey = PrivateKey.fromBase58(process.env.FAUCET!);
+let zkFactoryKey = PrivateKey.fromBase58(process.env.FACTORY!);
+let zkEthKey = PrivateKey.fromBase58(process.env.POOL_ETH_MINA!);
+// use it to deploy pool on testnet
+// B62qpko6oWqKU4LwAaT7PSX3b6TYvroj6umbpyEXL5EEeBbiJTUMU5Z
+let approvedSigner = PrivateKey.fromBase58("EKE9dyeMmvz6deCC2jD9rBk7d8bG6ZDqVno8wRe8tAbQDussfBYi");
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
     // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
     // This is to ensure the backward compatibility.
-    networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-    //
-    mina: "https://devnet.zeko.io/graphql",
-    //mina: "https://api.minascan.io/node/devnet/v1/graphql",
-    archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
+    networkId: "testnet",
+    mina: process.env.GRAPHQL!,
+    archive: process.env.ARCHIVE!,
 });
-console.log("network", config.url);
+console.log("network", process.env.GRAPHQL);
 // const Network = Mina.Network(config.url);
-const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
+const fee = Number(process.env.FEE) * 1e9; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
 let feepayerAddress = feepayerKey.toPublicKey();
 let zkPoolTokenAMinaAddress = zkPoolTokenAMinaKey.toPublicKey();
+let zkPoolTokenAMina = new Pool(zkPoolTokenAMinaAddress);
+let zkPoolTokenATokenBAddress = zkPoolTokenATokenBKey.toPublicKey();
+let zkPoolTokenATokenB = new Pool(zkPoolTokenATokenBAddress);
 let zkFactoryAddress = zkFactoryKey.toPublicKey();
 let zkFactory = new PoolFactory(zkFactoryAddress);
-let zkPoolTokenAMina = new Pool(zkPoolTokenAMinaAddress);
 let zkTokenAAddress = zkTokenAPrivateKey.toPublicKey();
 let zkTokenA = new FungibleToken(zkTokenAAddress);
 let zkTokenBAddress = zkTokenBPrivateKey.toPublicKey();
@@ -109,13 +85,16 @@ let zkPoolEthMina = new Pool(zkEthAddress);
 console.log("token A", zkTokenAAddress.toBase58());
 console.log("token B", zkTokenBAddress.toBase58());
 console.log("pool token A/Mina", zkPoolTokenAMinaAddress.toBase58());
+console.log("pool token A/token B", zkPoolTokenATokenBAddress.toBase58());
 console.log("factory", zkFactoryKey.toBase58());
 console.log("zkTokenAdmin", zkTokenAdminAddress.toBase58());
 console.log("zkFaucet", zkFaucetAddress.toBase58());
 console.log("pool ETH/Mina", zkEthAddress.toBase58());
+console.log("approved signer", zkEthAddress.toBase58());
 
 const merkle = new MerkleTree(32);
 merkle.setLeaf(0n, Poseidon.hash(feepayerAddress.toFields()));
+merkle.setLeaf(1n, Poseidon.hash(approvedSigner.toFields()));
 const root = merkle.getRoot();
 
 // compile the contract to create prover keys
