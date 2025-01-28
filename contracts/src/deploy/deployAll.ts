@@ -13,8 +13,8 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import fs from 'fs/promises';
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolMina, PoolTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory } from '../indexmina.js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, Mina, NetworkId, PrivateKey, PublicKey, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
+import { PoolMina, PoolTokenHolder, FungibleToken, PoolMinaDeployProps, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, PoolCreationEvent } from '../indexmina.js';
 import readline from "readline/promises";
 
 const prompt = async (message: string) => {
@@ -80,7 +80,7 @@ const Network = Mina.Network({
     // This is to ensure the backward compatibility.
     networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
     //
-    mina: "https://devnet.zeko.io/graphql",
+    mina: "https://api.minascan.io/graphql",
     //mina: "https://api.minascan.io/node/devnet/v1/graphql",
     archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
 });
@@ -136,6 +136,7 @@ async function ask() {
             9 mint token
             10 show event
             11 deploy faucet
+            12 all event
             `);
         switch (result) {
             case "1":
@@ -170,6 +171,9 @@ async function ask() {
                 break;
             case "11":
                 await deployFaucet();
+                break;
+            case "12":
+                await getAllEvent();
                 break;
             default:
                 await ask();
@@ -501,6 +505,50 @@ async function displayEvents(contract: SmartContract) {
             return { type: e.type, data: JSON.stringify(e.event) };
         })
     );
+}
+
+async function getAllEvent() {
+    try {
+        const start = new UInt32(348885);
+        const eventFactory = await zkFactory.fetchEvents(start);
+        console.log("eventFactory length", eventFactory.length);
+        let totalSwap = 0;
+        let totalAdd = 0;
+        let totalWithdraw = 0;
+        for (let index = 0; index < eventFactory.length; index++) {
+            const element = eventFactory[index];
+            if (element.type === "poolAdded") {
+                const data = element.event.data as unknown as PoolCreationEvent;
+                console.log(`pool ${data.poolAddress.toBase58()} token ${data.tokenAddress.toBase58()} block ${element.blockHeight.toString()}`);
+                const token = new FungibleToken(data.tokenAddress);
+
+                const pool = new PoolMina(data.poolAddress);
+                const eventPool = await pool.fetchEvents(start);
+                const swapCount = eventPool.filter(x => x.type === "swap").length;
+                const addLiquidityCount = eventPool.filter(x => x.type === "addLiquidity").length;
+                const withdrawLiquidityCount = eventPool.filter(x => x.type === "withdrawLiquidity").length;
+                console.log("eventPool swap length", swapCount);
+                console.log("eventPool addLiquidity length", addLiquidityCount);
+                console.log("eventPool withdrawLiquidity length", withdrawLiquidityCount);
+
+                const poolHolder = new PoolTokenHolder(data.poolAddress, token.deriveTokenId());
+                const eventPoolHolder = await poolHolder.fetchEvents(start);
+                const swapHolderCount = eventPoolHolder.filter(x => x.type === "swap").length;
+
+                console.log("eventPoolHolder swap length", swapHolderCount);
+                totalSwap += swapCount;
+                totalSwap += swapHolderCount;
+                totalAdd += addLiquidityCount;
+                totalWithdraw += withdrawLiquidityCount;
+
+            }
+        }
+        console.log("totalSwap", totalSwap)
+        console.log("totalAdd", totalAdd)
+        console.log("totalWithdraw", totalWithdraw)
+    } catch (err) {
+        console.log(err);
+    }
 }
 
 
