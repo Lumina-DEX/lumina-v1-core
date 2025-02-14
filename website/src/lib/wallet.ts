@@ -11,7 +11,7 @@ type ChainInfoArgs = {
 }
 
 export const zekoTestnet = "zeko:testnet";
-export const minaTestnet = "mina:testnet";
+export const minaTestnet = "mina:devnet";
 const addInfo = {
   url: encodeURIComponent("https://devnet.zeko.io/graphql"),
   name: "zeko",

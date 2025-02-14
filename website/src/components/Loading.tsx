@@ -9,10 +9,10 @@ const Loading = () => {
   const time = countdown > 30 ? countdown : 30;
 
 
-  const [counter, setCounter] = React.useState(time);
+  const [counter, setCounter] = React.useState(0);
 
   useEffect(() => {
-    counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
+    setTimeout(() => setCounter(counter + 1), 1000);
   }, [counter]);
 
   return (

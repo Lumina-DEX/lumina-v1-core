@@ -94,6 +94,7 @@ const Swap = ({ accountState }) => {
           await zkState.zkappWorkerClient?.swapFromMina(pool, user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
         }
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
+        setLoading(false);
         console.timeEnd("swap");
         await mina.sendTransaction({ transaction: json });
       }
