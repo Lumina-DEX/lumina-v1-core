@@ -8,7 +8,7 @@ No DA is needed, everything is stored and managed on chain.
 
 It is based on a model of transaction fees allocated to the various players who make it possible for this dex to function : 
 - 0.25% for liquidity providers  
-- between 0-0.15% for frontend operators, allowing free competition between them  
+- between 0-0.10% for frontend operators, allowing free competition between them  
 - 0.05% for Lumina as creator and maintainer of the protocol  
 
 It is permissionless, these access methods are public and require no special rights to add/withdraw liquidities, swap or create a pool.

@@ -6,6 +6,10 @@ Adding/withdrawing liquidities, or swapping, each action requires only one trans
 
 These actions can be performed concurrently with other users.
 
+# The new repo
+
+[LuminaDEX](https://github.com/Lumina-DEX/lumina/tree/main/packages/contracts)
+
 ## Licensing
 
 Business Source License 1.1
@@ -29,7 +33,7 @@ Pool factory, to create only one pool by pair, avoids liquidity fragmentation.
 
 0.25% for liquidity providers  
 
-between 0-0.15% for frontend operators
+between 0-0.10% for frontend operators
 
 ## Testnet address 
 
