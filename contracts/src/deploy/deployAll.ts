@@ -105,7 +105,7 @@ const key = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 await PoolTokenHolder.compile({ cache });
-await PoolFactory.compile({ cache });
+const factoryKey = await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
 //const keyV2 = await PoolMinaV2.compile({ cache });
 
@@ -535,11 +535,15 @@ async function swapToken() {
 async function upgrade() {
     try {
         console.log("upgrade");
+        await fetchAccount({ publicKey: zkFactoryAddress })
+        //const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            //  await zkApp.updateVerificationKey(keyV2.verificationKey);
+            const update = AccountUpdate.createSigned(zkFactoryAddress);
+            update.account.verificationKey.set(factoryKey.verificationKey);
         });
+        console.log("upgrade  proof", tx.toPretty());
         await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, zkPoolTokenAMinaKey]).send();
+        let sentTx = await tx.sign([feepayerKey, zkFactoryKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
         }
