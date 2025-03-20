@@ -13,7 +13,7 @@
  * Run with node:     `$ node build/src/deploy.js`.
  */
 import { AccountUpdate, Bool, Cache, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness, getAmountLiquidityOut } from '../index.js';
+import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness, getAmountLiquidityOut, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
 import { PoolOld } from '../pool/PoolOld.js';
 import { PoolTokenHolderOld } from '../pool/PoolTokenHolderOld.js';
@@ -439,15 +439,12 @@ async function addLiquidity() {
 async function addSecondLiquidity() {
     try {
         console.log("add liquidity");
-        let amt = UInt64.from(5000 * 10 ** 9);
         let amtMina = UInt64.from(20 * 10 ** 9);
-        const token = await zkPoolTokenAMina.token1.fetch();
         const reserve = await getReserves(zkPoolTokenAMinaAddress);
-        const out = getAmountLiquidityOut(Number(amt), Number(reserve.amountMina), Number(reserve.amountToken), Number(reserve.liquidity), 1);
+        const out = getAmountLiquidityOutUint(amtMina, reserve.amountMina, reserve.amountToken, reserve.liquidity, UInt64.one);
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
             AccountUpdate.fundNewAccount(feepayerAddress, 1);
-            await zkPoolTokenAMina.supplyLiquidity(UInt64.from(out.amountAIn.toFixed(0))
-                , UInt64.from(out.amountBIn.toFixed(0)), UInt64.from(out.balanceAMax.toFixed(0)), UInt64.from(out.balanceBMax.toFixed(0)), UInt64.from(out.supplyMin.toFixed(0)));
+            await zkPoolTokenAMina.supplyLiquidity(out.amountAIn, out.amountBIn, out.balanceAMax, out.balanceBMax, out.supplyMin);
         });
         console.log("tx liquidity", tx.toPretty());
         await tx.prove();
