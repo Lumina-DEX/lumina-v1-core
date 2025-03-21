@@ -72,9 +72,9 @@ export class BurnLiqudityEvent extends Struct({
 }
 
 /**
- * Pool contract for Lumina dex, Old version used to upgrade version
+ * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class PoolOld extends TokenContract implements IPool {
+export class PoolV2 extends TokenContract implements IPool {
 
     // we need the token address to instantiate it
     @state(PublicKey) token0 = State<PublicKey>();
@@ -85,8 +85,8 @@ export class PoolOld extends TokenContract implements IPool {
      */
     @state(PublicKey) protocol = State<PublicKey>();
 
-    // max fee for frontend 0.15 %
-    static maxFee: UInt64 = UInt64.from(15);
+    // max fee for frontend 0.10 %
+    static maxFee: UInt64 = UInt64.from(10);
     static minimumLiquidity: UInt64 = UInt64.from(1000);
 
     events = {
@@ -219,7 +219,7 @@ export class PoolOld extends TokenContract implements IPool {
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountMinaOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
         amountMinaOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
-        taxFeeFrontend.assertLessThanOrEqual(PoolOld.maxFee, "Frontend fee exceed max fees");
+        taxFeeFrontend.assertLessThanOrEqual(PoolV2.maxFee, "Frontend fee exceed max fees");
 
         // token 0 need to be empty on mina pool
         const [, token1] = checkToken(this, true);
@@ -230,7 +230,7 @@ export class PoolOld extends TokenContract implements IPool {
         tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
-        const { feeLP, feeFrontend, feeProtocol, amountOut } = PoolOld.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
+        const { feeLP, feeFrontend, feeProtocol, amountOut } = PoolV2.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
@@ -327,7 +327,6 @@ export class PoolOld extends TokenContract implements IPool {
 
     private async supply(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
-        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
         if (!isFirstSupply) {
             reserveToken1Max.assertGreaterThan(UInt64.zero, "Reserve token 1 max can't be zero");
             reserveToken0Max.assertGreaterThan(UInt64.zero, "Reserve token 0 max can't be zero");
@@ -350,11 +349,12 @@ export class PoolOld extends TokenContract implements IPool {
         const token1Account = AccountUpdate.create(this.address, tokenId1);
 
         if (isFirstSupply) {
+            const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
             // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
             balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
             liquidityAmount = amountToken0.add(amountToken1);
             // on first mint remove minimal liquidity amount to prevent from inflation attack
-            liquidityUser = liquidityAmount.sub(PoolOld.minimumLiquidity);
+            liquidityUser = liquidityAmount.sub(PoolV2.minimumLiquidity);
         } else {
             token0Account.account.balance.requireBetween(UInt64.one, reserveToken0Max);
             token1Account.account.balance.requireBetween(UInt64.one, reserveToken1Max);

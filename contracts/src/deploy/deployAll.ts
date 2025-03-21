@@ -15,8 +15,8 @@
 import { AccountUpdate, Bool, Cache, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness, getAmountLiquidityOut, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { PoolOld } from '../pool/PoolOld.js';
-import { PoolTokenHolderOld } from '../pool/PoolTokenHolderOld.js';
+import { PoolV1 } from '../pool/Poolv1.js';
+import { PoolTokenHolderV1 } from '../pool/PoolTokenHolderv1.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -103,14 +103,14 @@ const root = merkle.getRoot();
 console.log('compile the contract...');
 
 const cache: Cache = Cache.FileSystem('./cache');
-const keyPoolV2 = await Pool.compile({ cache });
+const keyPoolLatest = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
-const keyPoolHolderV2 = await PoolTokenHolder.compile({ cache });
+const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
-await PoolOld.compile({ cache });
-await PoolTokenHolderOld.compile({ cache });
+await PoolV1.compile({ cache });
+await PoolTokenHolderV1.compile({ cache });
 
 async function ask() {
     try {
@@ -611,9 +611,9 @@ async function upgradePool() {
         await fetchAccount({ publicKey: zkPoolTokenAMinaAddress })
         const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
         await fetchAccount({ publicKey: ownerKey.toPublicKey() })
-        const zkPool = new PoolOld(zkPoolTokenAMinaAddress);
+        const zkPool = new PoolV1(zkPoolTokenAMinaAddress);
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkPool.updateVerificationKey(keyPoolV2.verificationKey)
+            await zkPool.updateVerificationKey(keyPoolLatest.verificationKey)
         });
         console.log("upgrade  proof", tx.toPretty());
         await tx.prove();
@@ -631,11 +631,11 @@ async function upgradePoolTokenHolder() {
     try {
         console.log("upgrade pool token holder");
         await fetchAccount({ publicKey: zkPoolTokenAMinaAddress, tokenId: zkTokenA.deriveTokenId() });
-        const zkHolder = new PoolTokenHolderOld(zkPoolTokenAMinaAddress, zkTokenA.deriveTokenId())
+        const zkHolder = new PoolTokenHolderV1(zkPoolTokenAMinaAddress, zkTokenA.deriveTokenId())
         const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
         await fetchAccount({ publicKey: ownerKey.toPublicKey() })
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkHolder.updateVerificationKey(keyPoolHolderV2.verificationKey)
+            await zkHolder.updateVerificationKey(keyPoolHolderLatest.verificationKey)
             await zkTokenA.approveAccountUpdate(zkHolder.self);
         });
         console.log("upgrade  proof", tx.toPretty());
