@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, method, Mina, Permissions, Provable, PublicKey, SmartContract, State, state, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, method, Permissions, PublicKey, SmartContract, State, state, UInt64, VerificationKey } from "o1js"
 import { Farm, FarmingEvent, minTimeUnlockFarm, UpdateInitEvent } from "./Farm.js"
 import { UpdateVerificationKeyEvent } from "../indexpool.js"
 

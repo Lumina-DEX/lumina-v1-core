@@ -327,6 +327,7 @@ export class PoolV2 extends TokenContract implements IPool {
 
     private async supply(amountToken0: UInt64, amountToken1: UInt64, reserveToken0Max: UInt64, reserveToken1Max: UInt64, supplyMin: UInt64, isMinaPool: boolean, isFirstSupply: boolean) {
         const circulationUpdate = AccountUpdate.create(this.address, this.deriveTokenId());
+        const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
         if (!isFirstSupply) {
             reserveToken1Max.assertGreaterThan(UInt64.zero, "Reserve token 1 max can't be zero");
             reserveToken0Max.assertGreaterThan(UInt64.zero, "Reserve token 0 max can't be zero");
@@ -349,7 +350,6 @@ export class PoolV2 extends TokenContract implements IPool {
         const token1Account = AccountUpdate.create(this.address, tokenId1);
 
         if (isFirstSupply) {
-            const balanceLiquidity = circulationUpdate.account.balance.getAndRequireEquals();
             // calculate liquidity token output simply as liquidityAmount = amountA + amountB 
             balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
             liquidityAmount = amountToken0.add(amountToken1);

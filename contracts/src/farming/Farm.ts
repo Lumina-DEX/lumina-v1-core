@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, method, Mina, Permissions, Provable, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, method, Mina, Permissions, PublicKey, State, state, Struct, TokenContract, UInt64, VerificationKey } from "o1js"
 import { Pool, UpdateVerificationKeyEvent } from "../indexpool.js"
 
 export class FarmingInfo extends Struct({
