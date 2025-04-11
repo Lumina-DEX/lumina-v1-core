@@ -1,8 +1,6 @@
 import { AccountUpdate, Bool, Field, MerkleMap, MerkleMapWitness, method, Poseidon, Provable, PublicKey, Signature, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey, ZkProgram } from 'o1js';
 
 export class UpgradeInfo extends Struct({
-    // merkle root of account who can sign to upgrade
-    approvedUpgrader: Field,
     // contract to upgrade
     contractAddress: PublicKey,
     // subaccount to upgrade
@@ -13,7 +11,6 @@ export class UpgradeInfo extends Struct({
     newVkHash: Field
 }) {
     constructor(value: {
-        approvedUpgrader: Field,
         contractAddress: PublicKey,
         tokenId: Field,
         oldVkHash: Field,
@@ -27,14 +24,39 @@ export class UpgradeInfo extends Struct({
      * @returns array of field of all parameters
      */
     toFields(): Field[] {
-        return this.approvedUpgrader.toFields().concat(
-            this.contractAddress.toFields().concat(
-                this.tokenId.toFields().concat(
-                    this.oldVkHash.toFields().concat(
-                        this.newVkHash.toFields()
-                    )
+        return this.contractAddress.toFields().concat(
+            this.tokenId.toFields().concat(
+                this.oldVkHash.toFields().concat(
+                    this.newVkHash.toFields()
                 )
-            ));
+            )
+        );
+    }
+
+    hash(): Field {
+        return Poseidon.hash(this.toFields());
+    }
+}
+
+export class MultisigInfo extends Struct({
+    // merkle root of account who can sign to upgrade
+    approvedUpgrader: Field,
+    // hash of data passed to the signature
+    messageHash: Field
+}) {
+    constructor(value: {
+        approvedUpgrader: Field,
+        messageHash: Field
+    }) {
+        super(value);
+    }
+
+    /**
+   * Data use to create the signature
+   * @returns array of field of all parameters
+   */
+    toFields(): Field[] {
+        return this.approvedUpgrader.toFields().concat(this.messageHash.toFields());
     }
 }
 
@@ -71,7 +93,7 @@ export class SignatureInfo extends Struct({
 
 export const MultisigProgram = ZkProgram({
     name: 'multisig',
-    publicInput: UpgradeInfo,
+    publicInput: MultisigInfo,
 
     methods: {
 
@@ -79,7 +101,7 @@ export const MultisigProgram = ZkProgram({
             privateInputs: [Provable.Array(SignatureInfo, 3)],
 
             async method(
-                info: UpgradeInfo,
+                info: MultisigInfo,
                 signatures: SignatureInfo[]
             ) {
                 // check the signature come from 3 different users
@@ -96,3 +118,7 @@ export const MultisigProgram = ZkProgram({
         },
     },
 });
+
+
+export let MultisigProof_ = ZkProgram.Proof(MultisigProgram);
+export class MultisigProof extends MultisigProof_ { }

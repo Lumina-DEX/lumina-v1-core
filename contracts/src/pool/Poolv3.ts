@@ -1,7 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
-import { MultisigProof, UpgradeInfo } from './MultisigProof.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -75,7 +74,7 @@ export class BurnLiqudityEvent extends Struct({
 /**
  * Pool contract for Lumina dex (Future implementation for direct mina token support)
  */
-export class Pool extends TokenContract implements IPool {
+export class PoolV3 extends TokenContract implements IPool {
 
     // we need the token address to instantiate it
     @state(PublicKey) token0 = State<PublicKey>();
@@ -111,16 +110,12 @@ export class Pool extends TokenContract implements IPool {
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
      * @param vk new verification key
      */
-    @method async updateVerificationKey(vk: VerificationKey, proof: MultisigProof) {
+    @method async updateVerificationKey(vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
         const owner = await factory.getOwner();
-
-        // proof attest we can upgrade
-        proof.verify();
-        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, oldVkHash: vk.hash, newVkHash: vk.hash });
-        proof.publicInput.messageHash.assertEquals(upgradeInfo.hash());
-
+        // only protocol owner can update a pool
+        AccountUpdate.createSigned(owner);
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
@@ -224,7 +219,7 @@ export class Pool extends TokenContract implements IPool {
         balanceInMax.assertGreaterThan(UInt64.zero, "Balance max can't be zero");
         amountMinaOutMin.assertGreaterThan(UInt64.zero, "Amount out can't be zero");
         amountMinaOutMin.assertLessThan(balanceOutMin, "Amount out exceeds reserves");
-        taxFeeFrontend.assertLessThanOrEqual(Pool.maxFee, "Frontend fee exceed max fees");
+        taxFeeFrontend.assertLessThanOrEqual(PoolV3.maxFee, "Frontend fee exceed max fees");
 
         // token 0 need to be empty on mina pool
         const [, token1] = checkToken(this, true);
@@ -235,7 +230,7 @@ export class Pool extends TokenContract implements IPool {
         tokenAccount.account.balance.requireBetween(UInt64.one, balanceInMax);
         this.account.balance.requireBetween(balanceOutMin, UInt64.MAXINT());
 
-        const { feeLP, feeFrontend, feeProtocol, amountOut } = Pool.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
+        const { feeLP, feeFrontend, feeProtocol, amountOut } = PoolV3.getAmountOut(taxFeeFrontend, amountTokenIn, balanceInMax, balanceOutMin);
         amountOut.assertGreaterThanOrEqual(amountMinaOutMin, "Insufficient amount out");
 
         // send token to the pool
@@ -359,7 +354,7 @@ export class Pool extends TokenContract implements IPool {
             balanceLiquidity.equals(UInt64.zero).assertTrue("First liquidities already supplied");
             liquidityAmount = amountToken0.add(amountToken1);
             // on first mint remove minimal liquidity amount to prevent from inflation attack
-            liquidityUser = liquidityAmount.sub(Pool.minimumLiquidity);
+            liquidityUser = liquidityAmount.sub(PoolV3.minimumLiquidity);
         } else {
             token0Account.account.balance.requireBetween(UInt64.one, reserveToken0Max);
             token1Account.account.balance.requireBetween(UInt64.one, reserveToken1Max);
