@@ -1,5 +1,34 @@
 import { AccountUpdate, Bool, Field, MerkleMap, MerkleMapWitness, method, Poseidon, Provable, PublicKey, Signature, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey, ZkProgram } from 'o1js';
 
+export class UpgradeInfo extends Struct({
+    approvedUpgrader: Field,
+    contractAddress: PublicKey,
+    tokenId: Field,
+    oldVkHash: Field,
+    newVkHash: Field
+}) {
+    constructor(value: {
+        approvedUpgrader: Field,
+        contractAddress: PublicKey,
+        tokenId: Field,
+        oldVkHash: Field,
+        newVkHash: Field
+    }) {
+        super(value);
+    }
+
+    toFields(): Field[] {
+        return this.approvedUpgrader.toFields().concat(
+            this.contractAddress.toFields().concat(
+                this.tokenId.toFields().concat(
+                    this.oldVkHash.toFields().concat(
+                        this.newVkHash.toFields()
+                    )
+                )
+            ));
+    }
+}
+
 export class MultisigInfo extends Struct({
     approvedUpgrader: Field,
     contractAddress: PublicKey,
@@ -42,12 +71,12 @@ export class SignatureInfo extends Struct({
         super(value);
     }
 
-    validate(info: MultisigInfo): Bool {
+    validate(merkle: Field, data: Field[]): Bool {
         const hashUser = Poseidon.hash(this.user.toFields());
         const [root, key] = this.witness.computeRootAndKey(hashUser);
-        root.assertEquals(info.approvedUpgrader, "Invalid signer");
+        root.assertEquals(merkle, "Invalid signer");
         key.assertEquals(hashUser, "Invalid key");
-        return this.signature.verify(this.user, info.toFields());
+        return this.signature.verify(this.user, data);
     }
 }
 
@@ -57,7 +86,7 @@ export const MultisigProgram = ZkProgram({
 
     methods: {
 
-        verifySignature: {
+        verifyUpgradeSignature: {
             privateInputs: [Provable.Array(SignatureInfo, 3)],
 
             async method(
@@ -66,9 +95,10 @@ export const MultisigProgram = ZkProgram({
             ) {
                 signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
                 signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
                 for (let index = 0; index < signatures.length; index++) {
                     const element = signatures[index];
-                    const valid = element.validate(info);
+                    const valid = element.validate(info.approvedUpgrader, info.toFields());
                     valid.assertTrue("Invalid signature");
                 }
             },
