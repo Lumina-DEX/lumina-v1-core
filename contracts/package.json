@@ -28,6 +28,7 @@
     "testdata": "node --experimental-vm-modules node_modules/jest/bin/jest.js pooldata.test",
     "testtoken": "node --experimental-vm-modules node_modules/jest/bin/jest.js pooltoken.test",
     "testprivate": "node --experimental-vm-modules node_modules/jest/bin/jest.js privatepool.test",
+    "test:multisig": "node --experimental-vm-modules node_modules/jest/bin/jest.js multisig.test",
     "lint": "npx eslint src/**/*.ts --fix",
     "patch": "node patch.js",
     "doc": "npx typedoc src/indexpool.ts --out ../docs"
@@ -52,7 +53,7 @@
     "node": ">=18.14.0"
   },
   "peerDependencies": {
-    "o1js": "^2.*"
+    "o1js": "^2.4.*"
   },
   "dependencies": {
     "mina-fungible-token": "^1.1.0"

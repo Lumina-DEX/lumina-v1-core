@@ -5,16 +5,16 @@ export class UpgradeInfo extends Struct({
     contractAddress: PublicKey,
     // subaccount to upgrade
     tokenId: Field,
-    // current contract verification key hash
-    oldVkHash: Field,
     // new verification key hash to submit
-    newVkHash: Field
+    newVkHash: Field,
+    // deadline to use this signature
+    deadline: UInt64
 }) {
     constructor(value: {
         contractAddress: PublicKey,
         tokenId: Field,
-        oldVkHash: Field,
-        newVkHash: Field
+        newVkHash: Field,
+        deadline: UInt64
     }) {
         super(value);
     }
@@ -26,11 +26,8 @@ export class UpgradeInfo extends Struct({
     toFields(): Field[] {
         return this.contractAddress.toFields().concat(
             this.tokenId.toFields().concat(
-                this.oldVkHash.toFields().concat(
-                    this.newVkHash.toFields()
-                )
-            )
-        );
+                this.newVkHash.toFields().concat(
+                    this.deadline.toFields())));
     }
 
     hash(): Field {
@@ -87,6 +84,8 @@ export class SignatureInfo extends Struct({
         const [root, key] = this.witness.computeRootAndKey(hashUser);
         root.assertEquals(merkle, "Invalid signer");
         key.assertEquals(hashUser, "Invalid key");
+        Provable.log("user", this.user);
+        Provable.log("data validate", data);
         return this.signature.verify(this.user, data);
     }
 }
