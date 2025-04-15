@@ -60,9 +60,9 @@ describe('Pool data', () => {
 
         Provable.log("info validate", info.toFields());
         Provable.log("bob", bobPublic);
-        const signBob = Signature.create(bobKey, info.toFields());
-        const signAlice = Signature.create(aliceKey, info.toFields());
-        const signDylan = Signature.create(dylanAccount.key, info.toFields());
+        const signBob = Signature.create(bobKey, info.hash().toFields());
+        const signAlice = Signature.create(aliceKey, info.hash().toFields());
+        const signDylan = Signature.create(dylanAccount.key, info.hash().toFields());
 
         const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash() })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob })

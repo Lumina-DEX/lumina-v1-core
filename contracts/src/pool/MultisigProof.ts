@@ -39,7 +39,7 @@ export class MultisigInfo extends Struct({
     // merkle root of account who can sign to upgrade
     approvedUpgrader: Field,
     // hash of data passed to the signature
-    messageHash: Field
+    messageHash: Field,
 }) {
     constructor(value: {
         approvedUpgrader: Field,
@@ -53,7 +53,7 @@ export class MultisigInfo extends Struct({
    * @returns array of field of all parameters
    */
     toFields(): Field[] {
-        return this.approvedUpgrader.toFields().concat(this.messageHash.toFields());
+        return this.messageHash.toFields();
     }
 }
 
