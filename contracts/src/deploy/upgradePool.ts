@@ -12,8 +12,8 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { AccountUpdate, Bool, Cache, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness, getAmountLiquidityOutUint } from '../index.js';
+import { Cache, fetchAccount, Mina, PrivateKey, PublicKey } from 'o1js';
+import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, PoolFactory, Pool } from '../index.js';
 import readline from "readline/promises";
 import { PoolV1 } from '../pool/Poolv1.js';
 import { PoolTokenHolderV1 } from '../pool/PoolTokenHolderv1.js';

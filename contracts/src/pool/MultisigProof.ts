@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, Field, MerkleMap, MerkleMapWitness, method, Poseidon, Provable, PublicKey, Signature, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey, ZkProgram } from 'o1js';
+import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt64, ZkProgram } from 'o1js';
 
 export class UpgradeInfo extends Struct({
     // contract to upgrade

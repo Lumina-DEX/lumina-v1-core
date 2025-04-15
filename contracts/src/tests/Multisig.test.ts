@@ -1,8 +1,5 @@
-import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
-import { AccountUpdate, Bool, Cache, Field, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt64, UInt8, VerificationKey } from 'o1js';
-import { PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness, mulDiv } from '../index';
-import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { MultisigInfo, MultisigProgram, MultisigProof, SignatureInfo, UpgradeInfo } from '../pool/MultisigProof';
+import { Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt64 } from 'o1js';
+import { MultisigInfo, MultisigProgram, SignatureInfo, UpgradeInfo } from '../pool/MultisigProof';
 
 const proofsEnabled = false;
 
