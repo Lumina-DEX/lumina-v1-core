@@ -1,5 +1,42 @@
 import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt64, ZkProgram } from 'o1js';
 
+
+export class SignatureRight extends Struct({
+    deployPool: Bool,
+    uppdatePool: Bool,
+    updateSigner: Bool,
+    updateProtocol: Bool,
+    updateDelegator: Bool
+}) {
+    constructor(deployPool: Bool,
+        uppdatePool: Bool,
+        updateSigner: Bool,
+        updateProtocol: Bool,
+        updateDelegator: Bool) {
+        super({
+            deployPool,
+            uppdatePool,
+            updateSigner,
+            updateProtocol,
+            updateDelegator
+        });
+    }
+
+    toFields(): Field[] {
+        return this.deployPool.toFields().concat(
+            this.uppdatePool.toFields().concat(
+                this.updateSigner.toFields().concat(
+                    this.updateProtocol.toFields().concat(
+                        this.updateDelegator.toFields()))));
+    }
+
+    // hash store in the signer merkle map
+    hash(): Field {
+        return Poseidon.hash(this.toFields());
+    }
+}
+
+
 export class UpgradeInfo extends Struct({
     // contract to upgrade
     contractAddress: PublicKey,
