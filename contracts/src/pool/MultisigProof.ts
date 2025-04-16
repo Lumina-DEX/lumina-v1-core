@@ -107,12 +107,16 @@ export class SignatureInfo extends Struct({
     // witness of this account in the merkle root
     witness: MerkleMapWitness,
     // signature created by this user
-    signature: Signature
+    signature: Signature,
+    // right
+    right: SignatureRight
+
 }) {
     constructor(value: {
         user: PublicKey,
         witness: MerkleMapWitness,
-        signature: Signature
+        signature: Signature,
+        right: SignatureRight
     }) {
         super(value);
     }
@@ -125,7 +129,8 @@ export class SignatureInfo extends Struct({
      */
     validate(merkle: Field, data: Field[]): Bool {
         const hashUser = Poseidon.hash(this.user.toFields());
-        const [root, key] = this.witness.computeRootAndKey(hashUser);
+        const value = this.right.hash();
+        const [root, key] = this.witness.computeRootAndKey(value);
         root.assertEquals(merkle, "Invalid signer");
         key.assertEquals(hashUser, "Invalid key");
         Provable.log("user", this.user);
@@ -140,7 +145,7 @@ export const MultisigProgram = ZkProgram({
     publicOutput: SignatureRight,
 
     methods: {
-        verifyUpgradeSignature: {
+        verifyUpdatePool: {
             privateInputs: [UpgradeInfo, Provable.Array(SignatureInfo, 3)],
             async method(
                 info: MultisigInfo,
@@ -154,6 +159,8 @@ export const MultisigProgram = ZkProgram({
                 signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
                 for (let index = 0; index < signatures.length; index++) {
                     const element = signatures[index];
+                    // check if he can upgrade a pool
+                    element.right.uppdatePool.assertTrue("User doesn't have the right to update a pool");
                     // verfify the signature validity for all users
                     const valid = element.validate(info.approvedUpgrader, upgradeInfo.toFields());
                     // hash valid

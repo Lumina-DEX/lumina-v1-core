@@ -114,12 +114,22 @@ export class Pool extends TokenContract implements IPool {
     @method async updateVerificationKey(vk: VerificationKey, proof: MultisigProof) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
-        const owner = await factory.getOwner();
+        const merkle = await factory.getApprovedSigner();
+
+        proof.publicInput.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
+
+        const deadline = proof.publicInput.deadline;
+        // we can update only before the deadline to prevent signature reuse
+        this.network.timestamp.requireBetween(UInt64.zero, deadline)
+
+        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadline });
+        proof.publicInput.messageHash.assertEquals(upgradeInfo.hash());
+
+        // prevent user to sign with incorrect right
+        proof.publicOutput.uppdatePool.assertTrue("inccorect signer right");
 
         // proof attest we can upgrade
         proof.verify();
-        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, oldVkHash: vk.hash, newVkHash: vk.hash });
-        proof.publicInput.messageHash.assertEquals(upgradeInfo.hash());
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));

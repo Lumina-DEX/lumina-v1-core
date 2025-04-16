@@ -99,7 +99,7 @@ export class PoolFactory extends TokenContract {
         this.delegator.set(args.delegator);
 
         let permissions = Permissions.default();
-        permissions.access = Permissions.proof();
+        permissions.access = Permissions.proofOrSignature();
         permissions.setPermissions = Permissions.impossible();
         permissions.setVerificationKey = Permissions.VerificationKey.proofOrSignature();
         this.account.permissions.set(permissions);
@@ -154,11 +154,6 @@ export class PoolFactory extends TokenContract {
     @method.returns(PublicKey) async getDelegator() {
         const delegator = this.delegator.getAndRequireEquals();
         return delegator;
-    }
-
-    @method.returns(Field) async getApprovedSigner() {
-        const approvedSigner = this.approvedSigner.getAndRequireEquals();
-        return approvedSigner;
     }
 
     @method
