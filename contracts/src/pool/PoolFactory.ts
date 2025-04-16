@@ -101,7 +101,7 @@ export class PoolFactory extends TokenContract {
         let permissions = Permissions.default();
         permissions.access = Permissions.proof();
         permissions.setPermissions = Permissions.impossible();
-        permissions.setVerificationKey = Permissions.VerificationKey.proofOrSignature();
+        permissions.setVerificationKey = Permissions.VerificationKey.proofDuringCurrentVersion();
         this.account.permissions.set(permissions);
     }
 
