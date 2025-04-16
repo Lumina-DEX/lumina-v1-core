@@ -34,6 +34,10 @@ export class SignatureRight extends Struct({
         return new SignatureRight(Bool(false), Bool(true), Bool(false), Bool(false), Bool(false))
     }
 
+    static canUpdateSigner(): SignatureRight {
+        return new SignatureRight(Bool(false), Bool(false), Bool(true), Bool(false), Bool(false))
+    }
+
     // hash store in the signer merkle map
     hash(): Field {
         return Poseidon.hash(this.toFields());
@@ -76,6 +80,36 @@ export class UpgradeInfo extends Struct({
     }
 }
 
+export class UpdateSignerData extends Struct({
+    // old signer root
+    oldRoot: Field,
+    // new signer root
+    newRoot: Field,
+    // deadline to use this signature
+    deadline: UInt64
+}) {
+    constructor(value: {
+        oldRoot: Field,
+        newRoot: Field,
+        deadline: UInt64
+    }) {
+        super(value);
+    }
+
+    /**
+     * Data use to create the signature
+     * @returns array of field of all parameters
+     */
+    toFields(): Field[] {
+        return this.oldRoot.toFields().concat(
+            this.newRoot.toFields().concat(
+                this.deadline.toFields()));
+    }
+
+    hash(): Field {
+        return Poseidon.hash(this.toFields());
+    }
+}
 export class MultisigInfo extends Struct({
     // merkle root of account who can sign to upgrade
     approvedUpgrader: Field,
@@ -145,6 +179,43 @@ export const MultisigProgram = ZkProgram({
     publicOutput: SignatureRight,
 
     methods: {
+        verifyUpdateSigner: {
+            privateInputs: [UpdateSignerData, Provable.Array(SignatureInfo, 3), Provable.Array(SignatureInfo, 3)],
+            async method(
+                info: MultisigInfo,
+                upgradeInfo: UpdateSignerData,
+                signatures: SignatureInfo[],
+                // the signer in the new merkle root need to sign to prevent to lock proof update
+                newSignatures: SignatureInfo[]
+            ) {
+                info.deadline.equals(upgradeInfo.deadline).assertTrue("Deadline doesn't match")
+                // check the signature come from 3 different users
+                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
+                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                newSignatures[0].user.equals(newSignatures[1].user).assertFalse("Can't include new same signer");
+                newSignatures[1].user.equals(newSignatures[2].user).assertFalse("Can't include new same signer");
+                newSignatures[0].user.equals(newSignatures[2].user).assertFalse("Can't include new same signer");
+
+                for (let index = 0; index < signatures.length; index++) {
+                    const element = signatures[index];
+                    const newElement = newSignatures[index];
+                    // check if he can update signer
+                    element.right.updateSigner.assertTrue("User doesn't have the right to update the signer root");
+                    newElement.right.updateSigner.assertTrue("New user doesn't have the right to update the signer root");
+                    // verfify the signature validity for all users
+                    info.approvedUpgrader.equals(upgradeInfo.oldRoot).assertTrue("Merkle root doesn't match")
+                    const valid = element.validate(info.approvedUpgrader, upgradeInfo.toFields());
+                    const newValid = element.validate(upgradeInfo.newRoot, upgradeInfo.toFields());
+                    // hash valid
+                    info.messageHash.equals(upgradeInfo.hash()).assertTrue("Message didn't match parameters")
+                    valid.assertTrue("Invalid signature");
+                    newValid.assertTrue("Invalid new signature");
+                }
+
+                return { publicOutput: SignatureRight.canUpdateSigner() };
+            },
+        },
         verifyUpdatePool: {
             privateInputs: [UpgradeInfo, Provable.Array(SignatureInfo, 3)],
             async method(
