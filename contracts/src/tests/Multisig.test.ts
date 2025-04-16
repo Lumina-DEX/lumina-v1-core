@@ -57,16 +57,16 @@ describe('Pool data', () => {
 
         Provable.log("info validate", info.toFields());
         Provable.log("bob", bobPublic);
-        const signBob = Signature.create(bobKey, info.hash().toFields());
-        const signAlice = Signature.create(aliceKey, info.hash().toFields());
-        const signDylan = Signature.create(dylanAccount.key, info.hash().toFields());
+        const signBob = Signature.create(bobKey, info.toFields());
+        const signAlice = Signature.create(aliceKey, info.toFields());
+        const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash() })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice })
         const infoDylqn = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan })
         const array = [infoBob, infoAlice, infoDylqn];
-        const multisig = await MultisigProgram.verifyUpgradeSignature(multi, array);
+        const multisig = await MultisigProgram.verifyUpgradeSignature(multi, info, array);
 
         await multisig.proof.verify();
     });

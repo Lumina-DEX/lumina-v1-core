@@ -30,6 +30,10 @@ export class SignatureRight extends Struct({
                         this.updateDelegator.toFields()))));
     }
 
+    static canUpdatePool(): SignatureRight {
+        return new SignatureRight(Bool(false), Bool(true), Bool(false), Bool(false), Bool(false))
+    }
+
     // hash store in the signer merkle map
     hash(): Field {
         return Poseidon.hash(this.toFields());
@@ -77,10 +81,13 @@ export class MultisigInfo extends Struct({
     approvedUpgrader: Field,
     // hash of data passed to the signature
     messageHash: Field,
+    // deadline 
+    deadline: UInt64
 }) {
     constructor(value: {
         approvedUpgrader: Field,
-        messageHash: Field
+        messageHash: Field,
+        deadline: UInt64
     }) {
         super(value);
     }
@@ -130,16 +137,17 @@ export class SignatureInfo extends Struct({
 export const MultisigProgram = ZkProgram({
     name: 'multisig',
     publicInput: MultisigInfo,
+    publicOutput: SignatureRight,
 
     methods: {
-
         verifyUpgradeSignature: {
-            privateInputs: [Provable.Array(SignatureInfo, 3)],
-
+            privateInputs: [UpgradeInfo, Provable.Array(SignatureInfo, 3)],
             async method(
                 info: MultisigInfo,
+                upgradeInfo: UpgradeInfo,
                 signatures: SignatureInfo[]
             ) {
+                info.deadline.equals(upgradeInfo.deadline).assertTrue("Deadline doesn't match")
                 // check the signature come from 3 different users
                 signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
                 signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
@@ -147,9 +155,13 @@ export const MultisigProgram = ZkProgram({
                 for (let index = 0; index < signatures.length; index++) {
                     const element = signatures[index];
                     // verfify the signature validity for all users
-                    const valid = element.validate(info.approvedUpgrader, info.toFields());
+                    const valid = element.validate(info.approvedUpgrader, upgradeInfo.toFields());
+                    // hash valid
+                    info.messageHash.equals(upgradeInfo.hash()).assertTrue("Message didn't match parameters")
                     valid.assertTrue("Invalid signature");
                 }
+
+                return { publicOutput: SignatureRight.canUpdatePool() };
             },
         },
     },
