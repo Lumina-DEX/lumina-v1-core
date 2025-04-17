@@ -6,19 +6,22 @@ export class SignatureRight extends Struct({
     uppdatePool: Bool,
     updateSigner: Bool,
     updateProtocol: Bool,
-    updateDelegator: Bool
+    updateDelegator: Bool,
+    updateFactory: Bool
 }) {
     constructor(deployPool: Bool,
         uppdatePool: Bool,
         updateSigner: Bool,
         updateProtocol: Bool,
-        updateDelegator: Bool) {
+        updateDelegator: Bool,
+        updateFactory: Bool) {
         super({
             deployPool,
             uppdatePool,
             updateSigner,
             updateProtocol,
-            updateDelegator
+            updateDelegator,
+            updateFactory
         });
     }
 
@@ -27,15 +30,29 @@ export class SignatureRight extends Struct({
             this.uppdatePool.toFields().concat(
                 this.updateSigner.toFields().concat(
                     this.updateProtocol.toFields().concat(
-                        this.updateDelegator.toFields()))));
+                        this.updateDelegator.toFields().concat(
+                            this.updateFactory.toFields()
+                        )))));
     }
 
     static canUpdatePool(): SignatureRight {
-        return new SignatureRight(Bool(false), Bool(true), Bool(false), Bool(false), Bool(false))
+        return new SignatureRight(Bool(false), Bool(true), Bool(false), Bool(false), Bool(false), Bool(false))
+    }
+
+    static canUpdateDelegator(): SignatureRight {
+        return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(false), Bool(true), Bool(false))
+    }
+
+    static canUpdateProtocol(): SignatureRight {
+        return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(true), Bool(false), Bool(false))
     }
 
     static canUpdateSigner(): SignatureRight {
-        return new SignatureRight(Bool(false), Bool(false), Bool(true), Bool(false), Bool(false))
+        return new SignatureRight(Bool(false), Bool(false), Bool(true), Bool(false), Bool(false), Bool(false))
+    }
+
+    static canUpdateFactory(): SignatureRight {
+        return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(false), Bool(false), Bool(true))
     }
 
     // hash store in the signer merkle map
@@ -44,6 +61,33 @@ export class SignatureRight extends Struct({
     }
 }
 
+
+export class UpdateFactoryInfo extends Struct({
+    // new verification key hash to submit
+    newVkHash: Field,
+    // deadline to use this signature
+    deadline: UInt64
+}) {
+    constructor(value: {
+        newVkHash: Field,
+        deadline: UInt64
+    }) {
+        super(value);
+    }
+
+    /**
+     * Data use to create the signature
+     * @returns array of field of all parameters
+     */
+    toFields(): Field[] {
+        return this.newVkHash.toFields().concat(
+            this.deadline.toFields());
+    }
+
+    hash(): Field {
+        return Poseidon.hash(this.toFields());
+    }
+}
 
 export class UpgradeInfo extends Struct({
     // contract to upgrade
@@ -73,6 +117,37 @@ export class UpgradeInfo extends Struct({
             this.tokenId.toFields().concat(
                 this.newVkHash.toFields().concat(
                     this.deadline.toFields())));
+    }
+
+    hash(): Field {
+        return Poseidon.hash(this.toFields());
+    }
+}
+
+export class UpdateAccountInfo extends Struct({
+    // old account address
+    oldUser: PublicKey,
+    // new account address
+    newUser: PublicKey,
+    // deadline to use this signature
+    deadline: UInt64
+}) {
+    constructor(value: {
+        oldUser: PublicKey,
+        newUser: PublicKey,
+        deadline: UInt64
+    }) {
+        super(value);
+    }
+
+    /**
+     * Data use to create the signature
+     * @returns array of field of all parameters
+     */
+    toFields(): Field[] {
+        return this.oldUser.toFields().concat(
+            this.newUser.toFields().concat(
+                this.deadline.toFields()));
     }
 
     hash(): Field {
@@ -240,6 +315,84 @@ export const MultisigProgram = ZkProgram({
                 }
 
                 return { publicOutput: SignatureRight.canUpdatePool() };
+            },
+        },
+        verifyUpdateDelegator: {
+            privateInputs: [UpdateAccountInfo, Provable.Array(SignatureInfo, 3)],
+            async method(
+                info: MultisigInfo,
+                updateInfo: UpdateAccountInfo,
+                signatures: SignatureInfo[]
+            ) {
+                info.deadline.equals(updateInfo.deadline).assertTrue("Deadline doesn't match")
+                // check the signature come from 3 different users
+                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
+                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                for (let index = 0; index < signatures.length; index++) {
+                    const element = signatures[index];
+                    // check if he can upgrade a pool
+                    element.right.updateDelegator.assertTrue("User doesn't have the right to update the delegator");
+                    // verfify the signature validity for all users
+                    const valid = element.validate(info.approvedUpgrader, updateInfo.toFields());
+                    // hash valid
+                    info.messageHash.equals(updateInfo.hash()).assertTrue("Message didn't match parameters")
+                    valid.assertTrue("Invalid signature");
+                }
+
+                return { publicOutput: SignatureRight.canUpdateDelegator() };
+            },
+        },
+        verifyUpdateProtocol: {
+            privateInputs: [UpdateAccountInfo, Provable.Array(SignatureInfo, 3)],
+            async method(
+                info: MultisigInfo,
+                updateInfo: UpdateAccountInfo,
+                signatures: SignatureInfo[]
+            ) {
+                info.deadline.equals(updateInfo.deadline).assertTrue("Deadline doesn't match")
+                // check the signature come from 3 different users
+                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
+                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                for (let index = 0; index < signatures.length; index++) {
+                    const element = signatures[index];
+                    // check if he can upgrade a pool
+                    element.right.updateProtocol.assertTrue("User doesn't have the right to update the protcol");
+                    // verfify the signature validity for all users
+                    const valid = element.validate(info.approvedUpgrader, updateInfo.toFields());
+                    // hash valid
+                    info.messageHash.equals(updateInfo.hash()).assertTrue("Message didn't match parameters")
+                    valid.assertTrue("Invalid signature");
+                }
+
+                return { publicOutput: SignatureRight.canUpdateProtocol() };
+            },
+        },
+        verifyUpdateFactory: {
+            privateInputs: [UpdateFactoryInfo, Provable.Array(SignatureInfo, 3)],
+            async method(
+                info: MultisigInfo,
+                updateInfo: UpdateFactoryInfo,
+                signatures: SignatureInfo[]
+            ) {
+                info.deadline.equals(updateInfo.deadline).assertTrue("Deadline doesn't match")
+                // check the signature come from 3 different users
+                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
+                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+                for (let index = 0; index < signatures.length; index++) {
+                    const element = signatures[index];
+                    // check if he can upgrade a pool
+                    element.right.updateFactory.assertTrue("User doesn't have the right to update the factory");
+                    // verfify the signature validity for all users
+                    const valid = element.validate(info.approvedUpgrader, updateInfo.toFields());
+                    // hash valid
+                    info.messageHash.equals(updateInfo.hash()).assertTrue("Message didn't match parameters")
+                    valid.assertTrue("Invalid signature");
+                }
+
+                return { publicOutput: SignatureRight.canUpdateFactory() };
             },
         },
     },
