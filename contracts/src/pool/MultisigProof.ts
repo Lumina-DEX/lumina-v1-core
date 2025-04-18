@@ -55,6 +55,17 @@ export class SignatureRight extends Struct({
         return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(false), Bool(false), Bool(true))
     }
 
+    hasRight(right: SignatureRight) {
+        const newRight = new SignatureRight(
+            right.deployPool.and(this.deployPool),
+            right.uppdatePool.and(this.uppdatePool),
+            right.updateSigner.and(this.updateSigner),
+            right.updateProtocol.and(this.updateProtocol),
+            right.updateDelegator.and(this.updateDelegator),
+            right.updateFactory.and(this.updateFactory))
+        return newRight.hash().equals(right.hash());
+    }
+
     // hash store in the signer merkle map
     hash(): Field {
         return Poseidon.hash(this.toFields());
@@ -248,6 +259,27 @@ export class SignatureInfo extends Struct({
     }
 }
 
+export function verifySignature(signatures: SignatureInfo[], deadline: UInt64, info: MultisigInfo, root: Field, data: Field[], right: SignatureRight) {
+    info.deadline.equals(deadline).assertTrue("Deadline doesn't match")
+    // check the signature come from 3 different users
+    signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
+    signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+    signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
+
+    const hash = Poseidon.hash(data);
+    for (let index = 0; index < signatures.length; index++) {
+        const element = signatures[index];
+        // check if he can upgrade a pool
+        element.right.hasRight(right).assertTrue("User doesn't have the right to update a pool");
+        // verfify the signature validity for all users
+        const valid = element.validate(root, data);
+        // hash valid
+        info.messageHash.equals(hash).assertTrue("Message didn't match parameters")
+        valid.assertTrue("Invalid signature");
+    }
+
+}
+
 export const MultisigProgram = ZkProgram({
     name: 'multisig',
     publicInput: MultisigInfo,
@@ -298,23 +330,9 @@ export const MultisigProgram = ZkProgram({
                 upgradeInfo: UpgradeInfo,
                 signatures: SignatureInfo[]
             ) {
-                info.deadline.equals(upgradeInfo.deadline).assertTrue("Deadline doesn't match")
-                // check the signature come from 3 different users
-                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
-                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                for (let index = 0; index < signatures.length; index++) {
-                    const element = signatures[index];
-                    // check if he can upgrade a pool
-                    element.right.uppdatePool.assertTrue("User doesn't have the right to update a pool");
-                    // verfify the signature validity for all users
-                    const valid = element.validate(info.approvedUpgrader, upgradeInfo.toFields());
-                    // hash valid
-                    info.messageHash.equals(upgradeInfo.hash()).assertTrue("Message didn't match parameters")
-                    valid.assertTrue("Invalid signature");
-                }
-
-                return { publicOutput: SignatureRight.canUpdatePool() };
+                const right = SignatureRight.canUpdatePool();
+                verifySignature(signatures, upgradeInfo.deadline, info, info.approvedUpgrader, upgradeInfo.toFields(), right);
+                return { publicOutput: right };
             },
         },
         verifyUpdateDelegator: {
@@ -324,23 +342,9 @@ export const MultisigProgram = ZkProgram({
                 updateInfo: UpdateAccountInfo,
                 signatures: SignatureInfo[]
             ) {
-                info.deadline.equals(updateInfo.deadline).assertTrue("Deadline doesn't match")
-                // check the signature come from 3 different users
-                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
-                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                for (let index = 0; index < signatures.length; index++) {
-                    const element = signatures[index];
-                    // check if he can upgrade a pool
-                    element.right.updateDelegator.assertTrue("User doesn't have the right to update the delegator");
-                    // verfify the signature validity for all users
-                    const valid = element.validate(info.approvedUpgrader, updateInfo.toFields());
-                    // hash valid
-                    info.messageHash.equals(updateInfo.hash()).assertTrue("Message didn't match parameters")
-                    valid.assertTrue("Invalid signature");
-                }
-
-                return { publicOutput: SignatureRight.canUpdateDelegator() };
+                const right = SignatureRight.canUpdateDelegator();
+                verifySignature(signatures, updateInfo.deadline, info, info.approvedUpgrader, updateInfo.toFields(), right);
+                return { publicOutput: right };
             },
         },
         verifyUpdateProtocol: {
@@ -350,23 +354,9 @@ export const MultisigProgram = ZkProgram({
                 updateInfo: UpdateAccountInfo,
                 signatures: SignatureInfo[]
             ) {
-                info.deadline.equals(updateInfo.deadline).assertTrue("Deadline doesn't match")
-                // check the signature come from 3 different users
-                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
-                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                for (let index = 0; index < signatures.length; index++) {
-                    const element = signatures[index];
-                    // check if he can upgrade a pool
-                    element.right.updateProtocol.assertTrue("User doesn't have the right to update the protcol");
-                    // verfify the signature validity for all users
-                    const valid = element.validate(info.approvedUpgrader, updateInfo.toFields());
-                    // hash valid
-                    info.messageHash.equals(updateInfo.hash()).assertTrue("Message didn't match parameters")
-                    valid.assertTrue("Invalid signature");
-                }
-
-                return { publicOutput: SignatureRight.canUpdateProtocol() };
+                const right = SignatureRight.canUpdateProtocol();
+                verifySignature(signatures, updateInfo.deadline, info, info.approvedUpgrader, updateInfo.toFields(), right);
+                return { publicOutput: right };
             },
         },
         verifyUpdateFactory: {
@@ -376,23 +366,9 @@ export const MultisigProgram = ZkProgram({
                 updateInfo: UpdateFactoryInfo,
                 signatures: SignatureInfo[]
             ) {
-                info.deadline.equals(updateInfo.deadline).assertTrue("Deadline doesn't match")
-                // check the signature come from 3 different users
-                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
-                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                for (let index = 0; index < signatures.length; index++) {
-                    const element = signatures[index];
-                    // check if he can upgrade a pool
-                    element.right.updateFactory.assertTrue("User doesn't have the right to update the factory");
-                    // verfify the signature validity for all users
-                    const valid = element.validate(info.approvedUpgrader, updateInfo.toFields());
-                    // hash valid
-                    info.messageHash.equals(updateInfo.hash()).assertTrue("Message didn't match parameters")
-                    valid.assertTrue("Invalid signature");
-                }
-
-                return { publicOutput: SignatureRight.canUpdateFactory() };
+                const right = SignatureRight.canUpdateFactory();
+                verifySignature(signatures, updateInfo.deadline, info, info.approvedUpgrader, updateInfo.toFields(), right);
+                return { publicOutput: right };
             },
         },
     },
