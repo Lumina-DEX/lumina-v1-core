@@ -295,32 +295,10 @@ export const MultisigProgram = ZkProgram({
                 // the signer in the new merkle root need to sign to prevent to lock proof update
                 newSignatures: SignatureInfo[]
             ) {
-                info.deadline.equals(upgradeInfo.deadline).assertTrue("Deadline doesn't match")
-                // check the signature come from 3 different users
-                signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
-                signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                signatures[0].user.equals(signatures[2].user).assertFalse("Can't include same signer");
-                newSignatures[0].user.equals(newSignatures[1].user).assertFalse("Can't include new same signer");
-                newSignatures[1].user.equals(newSignatures[2].user).assertFalse("Can't include new same signer");
-                newSignatures[0].user.equals(newSignatures[2].user).assertFalse("Can't include new same signer");
-
-                for (let index = 0; index < signatures.length; index++) {
-                    const element = signatures[index];
-                    const newElement = newSignatures[index];
-                    // check if he can update signer
-                    element.right.updateSigner.assertTrue("User doesn't have the right to update the signer root");
-                    newElement.right.updateSigner.assertTrue("New user doesn't have the right to update the signer root");
-                    // verfify the signature validity for all users
-                    info.approvedUpgrader.equals(upgradeInfo.oldRoot).assertTrue("Merkle root doesn't match")
-                    const valid = element.validate(info.approvedUpgrader, upgradeInfo.toFields());
-                    const newValid = element.validate(upgradeInfo.newRoot, upgradeInfo.toFields());
-                    // hash valid
-                    info.messageHash.equals(upgradeInfo.hash()).assertTrue("Message didn't match parameters")
-                    valid.assertTrue("Invalid signature");
-                    newValid.assertTrue("Invalid new signature");
-                }
-
-                return { publicOutput: SignatureRight.canUpdateSigner() };
+                const right = SignatureRight.canUpdateSigner();
+                verifySignature(signatures, upgradeInfo.deadline, info, info.approvedUpgrader, upgradeInfo.toFields(), right);
+                verifySignature(newSignatures, upgradeInfo.deadline, info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
+                return { publicOutput: right };
             },
         },
         verifyUpdatePool: {
