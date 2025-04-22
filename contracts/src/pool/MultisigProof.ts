@@ -1,6 +1,5 @@
 import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt64, ZkProgram } from 'o1js';
 
-
 export class SignatureRight extends Struct({
     deployPool: Bool,
     uppdatePool: Bool,
@@ -277,6 +276,22 @@ export function verifySignature(signatures: SignatureInfo[], deadline: UInt64, i
         info.messageHash.equals(hash).assertTrue("Message didn't match parameters")
         valid.assertTrue("Invalid signature");
     }
+
+}
+
+export function verifyProof(proof: MultisigProof, merkle: Field, messageHash: Field, right: SignatureRight) {
+    proof.publicInput.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
+
+    proof.publicInput.messageHash.assertEquals(messageHash);
+
+    // prevent user to sign with incorrect right
+    proof.publicOutput.updateFactory.assertTrue("inccorect signer right");
+
+    // proof attest we can upgrade
+    proof.verify();
+
+    // check proof match the right required
+    proof.publicOutput.hasRight(right);
 
 }
 

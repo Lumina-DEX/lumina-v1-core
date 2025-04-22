@@ -1,6 +1,6 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-
+import { MultisigProof, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifyProof } from './MultisigProof.js';
 
 export const contractData = "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";
 export const contractHash = Field(28914498791139984246878523371877322220585110462113415176460809537136606539364n);
@@ -11,7 +11,6 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     symbol: string;
     src: string;
     protocol: PublicKey;
-    owner: PublicKey;
     delegator: PublicKey;
     approvedSigner: Field;
 }
@@ -73,7 +72,6 @@ export class SignerMerkleWitness extends MerkleWitness(32) { }
 export class PoolFactory extends TokenContract {
 
     @state(Field) approvedSigner = State<Field>();
-    @state(PublicKey) owner = State<PublicKey>();
     @state(PublicKey) protocol = State<PublicKey>();
     @state(PublicKey) delegator = State<PublicKey>();
 
@@ -89,12 +87,13 @@ export class PoolFactory extends TokenContract {
 
     async deploy(args: PoolDeployProps) {
         await super.deploy(args);
-        args.owner.isEmpty().assertFalse("Owner is empty");
+        const defaultRoot = new MerkleMap().getRoot();
+        args.approvedSigner.equals(Field.empty()).assertFalse("Approved signer is empty");
+        args.approvedSigner.equals(defaultRoot).assertFalse("Approved signer is empty");
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
         this.approvedSigner.set(args.approvedSigner);
-        this.owner.set(args.owner);
         this.protocol.set(args.protocol);
         this.delegator.set(args.delegator);
 
@@ -109,46 +108,48 @@ export class PoolFactory extends TokenContract {
      * Upgrade to a new version
      * @param vk new verification key
      */
-    @method async updateVerificationKey(vk: VerificationKey) {
-        await this.getOwnerSignature();
+    @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
+        const deadline = proof.publicInput.deadline;
+        const upgradeInfo = new UpdateFactoryInfo({ newVkHash: vk.hash, deadline });
+        await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateFactory())
+
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
 
-    @method async updateApprovedSigner(newSigner: Field) {
-        await this.getOwnerSignature();
-        this.approvedSigner.set(newSigner);
-        this.emitEvent("updateSigner", new UpdateSignerEvent(newSigner));
+    @method async updateApprovedSigner(proof: MultisigProof, newRoot: Field) {
+        const oldRoot = this.approvedSigner.getAndRequireEquals();
+        const deadline = proof.publicInput.deadline;
+        const upgradeInfo = new UpdateSignerData({ oldRoot, newRoot, deadline });
+        await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateSigner())
+
+        this.approvedSigner.set(newRoot);
+        this.emitEvent("updateSigner", new UpdateSignerEvent(newRoot));
     }
 
-    @method async setNewOwner(newOwner: PublicKey) {
-        await this.getOwnerSignature();
-        // require signature for the new owner to prevent incorrect transfer
-        AccountUpdate.createSigned(newOwner);
-        this.owner.set(newOwner);
-        this.emitEvent("updateOwner", new UpdateUserEvent(newOwner));
+    @method async setNewProtocol(proof: MultisigProof, newUser: PublicKey) {
+        const oldUser = this.protocol.getAndRequireEquals();
+        const deadline = proof.publicInput.deadline;
+        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadline });
+        await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateProtocol())
+
+        this.protocol.set(newUser);
+        this.emitEvent("updateProtocol", new UpdateUserEvent(newUser));
     }
 
-    @method async setNewProtocol(newProtocol: PublicKey) {
-        await this.getOwnerSignature();
-        this.protocol.set(newProtocol);
-        this.emitEvent("updateProtocol", new UpdateUserEvent(newProtocol));
-    }
+    @method async setNewDelegator(proof: MultisigProof, newUser: PublicKey) {
+        const oldUser = this.delegator.getAndRequireEquals();
+        const deadline = proof.publicInput.deadline;
+        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadline });
+        await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateProtocol())
 
-    @method async setNewDelegator(newDelegator: PublicKey) {
-        await this.getOwnerSignature();
-        this.delegator.set(newDelegator);
-        this.emitEvent("updateDelegator", new UpdateUserEvent(newDelegator));
+        this.delegator.set(newUser);
+        this.emitEvent("updateDelegator", new UpdateUserEvent(newUser));
     }
 
     @method.returns(PublicKey) async getProtocol() {
         const protocol = this.protocol.getAndRequireEquals();
         return protocol;
-    }
-
-    @method.returns(PublicKey) async getOwner() {
-        const owner = this.owner.getAndRequireEquals();
-        return owner;
     }
 
     @method.returns(PublicKey) async getDelegator() {
@@ -313,9 +314,12 @@ export class PoolFactory extends TokenContract {
         return poolHolderAccount;
     }
 
-    private async getOwnerSignature() {
-        const owner = this.owner.getAndRequireEquals();
-        // only owner can update a pool
-        AccountUpdate.createSigned(owner);
+    private async verifyMultisigProof(proof: MultisigProof, messageHash: Field, right: SignatureRight) {
+        const merkle = this.approvedSigner.getAndRequireEquals();
+        const deadline = proof.publicInput.deadline;
+        // we can update only before the deadline to prevent signature reuse
+        this.network.timestamp.requireBetween(UInt64.zero, deadline)
+        verifyProof(proof, merkle, messageHash, right)
+
     }
 }
