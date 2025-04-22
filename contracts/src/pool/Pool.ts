@@ -1,7 +1,7 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
-import { MultisigProof, UpgradeInfo } from './MultisigProof.js';
+import { MultisigProof, UpgradeInfo, verifyProof, SignatureRight } from './MultisigProof.js';
 
 export class SwapEvent extends Struct({
     sender: PublicKey,
@@ -111,25 +111,17 @@ export class Pool extends TokenContract implements IPool {
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
      * @param vk new verification key
      */
-    @method async updateVerificationKey(vk: VerificationKey, proof: MultisigProof) {
+    @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
         const merkle = await factory.getApprovedSigner();
-
-        proof.publicInput.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
         const deadline = proof.publicInput.deadline;
         // we can update only before the deadline to prevent signature reuse
         this.network.timestamp.requireBetween(UInt64.zero, deadline)
 
         const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadline });
-        proof.publicInput.messageHash.assertEquals(upgradeInfo.hash());
-
-        // prevent user to sign with incorrect right
-        proof.publicOutput.uppdatePool.assertTrue("inccorect signer right");
-
-        // proof attest we can upgrade
-        proof.verify();
+        await verifyProof(proof, merkle, upgradeInfo.hash(), SignatureRight.canUpdatePool())
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));

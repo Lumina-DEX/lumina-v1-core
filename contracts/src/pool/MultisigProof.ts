@@ -54,6 +54,10 @@ export class SignatureRight extends Struct({
         return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(false), Bool(false), Bool(true))
     }
 
+    static canDeployPool(): SignatureRight {
+        return new SignatureRight(Bool(true), Bool(false), Bool(false), Bool(false), Bool(false), Bool(false))
+    }
+
     hasRight(right: SignatureRight) {
         const newRight = new SignatureRight(
             right.deployPool.and(this.deployPool),

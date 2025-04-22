@@ -1,6 +1,7 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
+import { MultisigProof, UpgradeInfo, verifyProof, SignatureRight } from './MultisigProof.js';
 
 
 export class WithdrawLiquidityEvent extends Struct({
@@ -57,12 +58,18 @@ export class PoolTokenHolder extends SmartContract implements IPool {
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
      * @param vk new verification key
      */
-    @method async updateVerificationKey(vk: VerificationKey) {
+    @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
-        const owner = await factory.getOwner();
-        // only protocol owner can update a pool
-        AccountUpdate.createSigned(owner);
+        const merkle = await factory.getApprovedSigner();
+
+        const deadline = proof.publicInput.deadline;
+        // we can update only before the deadline to prevent signature reuse
+        this.network.timestamp.requireBetween(UInt64.zero, deadline)
+
+        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadline });
+        await verifyProof(proof, merkle, upgradeInfo.hash(), SignatureRight.canUpdatePool())
+
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
