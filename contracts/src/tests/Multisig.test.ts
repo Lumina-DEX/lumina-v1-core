@@ -1,5 +1,5 @@
 import { Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt64 } from 'o1js';
-import { MultisigInfo, MultisigProgram, SignatureInfo, SignatureRight, UpdateAccountInfo, UpgradeInfo } from '../pool/MultisigProof';
+import { MultisigInfo, MultisigProgram, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
 
 const proofsEnabled = false;
 
@@ -118,6 +118,119 @@ describe('Pool data', () => {
 
     });
 
+    it('update protocol', async () => {
+        const right = updateProtocolRight;
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
+
+        const pk = PrivateKey.random();
+        const oldAccount = pk.toPublicKey();
+        const pkNew = PrivateKey.random();
+        const newAccount = pkNew.toPublicKey();
+        const time = Date.now();
+        const info = new UpdateAccountInfo({ oldUser: oldAccount, newUser: newAccount, deadline: UInt64.from(time) });
 
 
+        Provable.log("info validate", info.toFields());
+        Provable.log("bob", bobPublic);
+        const signBob = Signature.create(bobKey, info.toFields());
+        const signAlice = Signature.create(aliceKey, info.toFields());
+        const signDylan = Signature.create(dylanAccount.key, info.toFields());
+
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
+        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
+        const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right })
+        const array = [infoBob, infoAlice, infoDylan];
+        const multisig = await MultisigProgram.verifyUpdateProtocol(multi, info, array);
+
+        await multisig.proof.verify();
+        multisig.proof.publicOutput.updateProtocol.assertTrue("Is not an update the protool");
+
+    });
+
+    it('update factory', async () => {
+        const right = updateFactoryRight;
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
+
+        const pk = PrivateKey.random();
+        const oldAccount = pk.toPublicKey();
+        const pkNew = PrivateKey.random();
+        const newAccount = pkNew.toPublicKey();
+        const time = Date.now();
+        const info = new UpdateFactoryInfo({ newVkHash: Field(123), deadline: UInt64.from(time) });
+
+
+        Provable.log("info validate", info.toFields());
+        Provable.log("bob", bobPublic);
+        const signBob = Signature.create(bobKey, info.toFields());
+        const signAlice = Signature.create(aliceKey, info.toFields());
+        const signDylan = Signature.create(dylanAccount.key, info.toFields());
+
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
+        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
+        const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right })
+        const array = [infoBob, infoAlice, infoDylan];
+        const multisig = await MultisigProgram.verifyUpdateFactory(multi, info, array);
+
+        await multisig.proof.verify();
+        multisig.proof.publicOutput.updateFactory.assertTrue("Is not an update for the factory");
+
+    });
+
+    it('update signer', async () => {
+        const right = updateSignerRight;
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right.hash());
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
+
+        const newMerkle = new MerkleMap();
+        newMerkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
+        newMerkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
+        newMerkle.set(Poseidon.hash(deployerAccount.toFields()), right.hash());
+
+        const pk = PrivateKey.random();
+        const oldAccount = pk.toPublicKey();
+        const pkNew = PrivateKey.random();
+        const newAccount = pkNew.toPublicKey();
+        const time = Date.now();
+        const info = new UpdateSignerData({ oldRoot: merkle.getRoot(), newRoot: newMerkle.getRoot(), deadline: UInt64.from(time) });
+
+
+        Provable.log("info validate", info.toFields());
+        Provable.log("bob", bobPublic);
+        const signBob = Signature.create(bobKey, info.toFields());
+        const signAlice = Signature.create(aliceKey, info.toFields());
+        const signDylan = Signature.create(dylanAccount.key, info.toFields());
+
+        const deployerPublic = deployerAccount.key.toPublicKey();
+        const newsignBob = Signature.create(bobKey, info.toFields());
+        const newsignAlice = Signature.create(aliceKey, info.toFields());
+        const newsignDeployer = Signature.create(deployerAccount.key, info.toFields());
+
+
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
+        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
+        const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right })
+        const array = [infoBob, infoAlice, infoDylan];
+
+        const newinfoBob = new SignatureInfo({ user: bobPublic, witness: newMerkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: newsignBob, right })
+        const newinfoAlice = new SignatureInfo({ user: alicePublic, witness: newMerkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: newsignAlice, right })
+        const newinfoDeployer = new SignatureInfo({ user: deployerPublic, witness: newMerkle.getWitness(Poseidon.hash(deployerPublic.toFields())), signature: newsignDeployer, right })
+        const newarray = [newinfoBob, newinfoAlice, newinfoDeployer];
+
+        const multisig = await MultisigProgram.verifyUpdateSigner(multi, info, array, newarray);
+
+        await multisig.proof.verify();
+        multisig.proof.publicOutput.updateSigner.assertTrue("Is not an update for the signer");
+
+    });
 });

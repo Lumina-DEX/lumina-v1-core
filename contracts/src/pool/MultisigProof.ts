@@ -296,6 +296,7 @@ export const MultisigProgram = ZkProgram({
                 newSignatures: SignatureInfo[]
             ) {
                 const right = SignatureRight.canUpdateSigner();
+                upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");
                 verifySignature(signatures, upgradeInfo.deadline, info, info.approvedUpgrader, upgradeInfo.toFields(), right);
                 verifySignature(newSignatures, upgradeInfo.deadline, info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
                 return { publicOutput: right };
