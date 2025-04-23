@@ -1,7 +1,7 @@
-import { AccountUpdate, Bool, fetchAccount, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness, getAmountLiquidityOutUint } from '../index';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, getAmountLiquidityOutUint } from '../index';
 import { SignatureRight } from '../pool/MultisigProof';
 
 let proofsEnabled = false;
@@ -119,7 +119,7 @@ describe('Pool Factory Token', () => {
     merkle.set(Poseidon.hash(bobPublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(alicePublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(senderPublic.toFields()), signerRight.hash())
-    merkle.set(Poseidon.hash(dylanPublic.toFields()), allRight.hash());;
+    merkle.set(Poseidon.hash(dylanPublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
 
     const root = merkle.getRoot();

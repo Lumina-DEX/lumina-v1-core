@@ -1,6 +1,5 @@
 import { FungibleToken, FungibleTokenAdmin, PoolFactory, Pool, PoolTokenHolder } from '../index.js';
 import { MultisigProgram } from '../pool/MultisigProof.js';
-import { PoolUpgradeTest } from '../tests/PoolUpgradeTest.js';
 
 // node build/src/utils/verificationKey.js
 

@@ -131,7 +131,7 @@ describe('Pool data', () => {
     merkle.set(Poseidon.hash(bobPublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(alicePublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(senderPublic.toFields()), signerRight.hash())
-    merkle.set(Poseidon.hash(dylanPublic.toFields()), allRight.hash());;
+    merkle.set(Poseidon.hash(dylanPublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
     const root = merkle.getRoot();
 

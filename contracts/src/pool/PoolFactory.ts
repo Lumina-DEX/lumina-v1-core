@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, MerkleWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
 import { MultisigProof, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifyProof } from './MultisigProof.js';
 
