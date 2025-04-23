@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, fetchAccount, Field, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
@@ -6,6 +6,7 @@ import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
 import { claimerNumber, FarmMerkleWitness, FarmReward, minTimeUnlockFarmReward } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
+import { SignatureRight } from '../pool/MultisigProof';
 
 let proofsEnabled = false;
 
@@ -16,10 +17,17 @@ describe('Farming pool token', () => {
     senderKey: PrivateKey,
     bobAccount: Mina.TestPublicKey,
     bobKey: PrivateKey,
-    merkle: MerkleTree,
+    merkle: MerkleMap,
     aliceAccount: Mina.TestPublicKey,
     aliceKey: PrivateKey,
     dylanAccount: Mina.TestPublicKey,
+    bobPublic: PublicKey,
+    alicePublic: PublicKey,
+    dylanPublic: PublicKey,
+    senderPublic: PublicKey,
+    deployerPublic: PublicKey,
+    allRight: SignatureRight,
+    deployRight: SignatureRight,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: PoolFactory,
@@ -82,6 +90,15 @@ describe('Farming pool token', () => {
     bobKey = bobAccount.key;
     aliceKey = aliceAccount.key;
 
+    senderPublic = senderKey.toPublicKey();
+    bobPublic = bobKey.toPublicKey();
+    alicePublic = aliceKey.toPublicKey();
+    dylanPublic = dylanAccount.key.toPublicKey();
+    deployerPublic = deployerKey.toPublicKey();
+
+    allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
+    deployRight = SignatureRight.canDeployPool();
+
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new PoolFactory(zkAppAddress);
@@ -119,9 +136,12 @@ describe('Farming pool token', () => {
 
     tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken0.deriveTokenId());
 
-    merkle = new MerkleTree(32);
-    merkle.setLeaf(0n, Poseidon.hash(bobAccount.toFields()));
-    merkle.setLeaf(1n, Poseidon.hash(aliceAccount.toFields()));
+    merkle = new MerkleMap();
+    merkle.set(Poseidon.hash(bobPublic.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(alicePublic.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(senderPublic.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
+
     const root = merkle.getRoot();
 
 
@@ -129,7 +149,7 @@ describe('Farming pool token', () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.deploy({
         symbol: "FAC", src: "https://luminadex.com/",
-        owner: bobAccount, protocol: aliceAccount, delegator: dylanAccount,
+        protocol: aliceAccount, delegator: dylanAccount,
         approvedSigner: root
       });
       await zkTokenAdmin.deploy({
@@ -187,11 +207,11 @@ describe('Farming pool token', () => {
     await txn4.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey2]).send();
 
     const signature = Signature.create(bobKey, zkPoolAddress.toFields());
-    const witness = merkle.getWitness(0n);
-    const circuitWitness = new SignerMerkleWitness(witness);
+    const witness = merkle.getWitness(Poseidon.hash(bobPublic.toFields()));
+
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 5);
-      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, bobAccount, signature, circuitWitness);
+      await zkApp.createPoolToken(zkPoolAddress, zkTokenAddress0, zkTokenAddress1, bobAccount, signature, witness, allRight);
     });
 
     //console.log("Pool creation", txn3.toPretty());
