@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder, SignerMerkleWitness } from '../index';
+import { FungibleTokenAdmin, FungibleToken, PoolFactory, Pool, PoolTokenHolder } from '../index';
 import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
 import { claimerNumber, FarmMerkleWitness, FarmReward, minTimeUnlockFarmReward } from '../farming/FarmReward';

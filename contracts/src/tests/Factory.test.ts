@@ -1,7 +1,7 @@
-import { AccountUpdate, Bool, fetchAccount, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness, getAmountLiquidityOutUint } from '../index';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool, getAmountLiquidityOutUint } from '../index';
 import { SignatureRight } from '../pool/MultisigProof';
 
 let proofsEnabled = false;
