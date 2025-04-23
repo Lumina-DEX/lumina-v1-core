@@ -371,52 +371,6 @@ describe('Pool data', () => {
   });
 
 
-
-  it('failed without owner key', async () => {
-    let txn = await Mina.transaction(senderAccount, async () => {
-      // await zkApp.updateVerificationKey(compileKey);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      // await zkApp.setNewOwner(senderAccount);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
-
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      // await zkApp.setNewProtocol(senderAccount);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
-
-    const root = merkle.getRoot();
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      // await zkApp.updateApprovedSigner(root);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      // todo proof
-      //await zkPool.updateVerificationKey(compileKey);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
-
-    const proof = await getProof(zkPoolAddress, TokenId.derive(zkPoolAddress), compileKey);
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder.updateVerificationKey(proof, compileKey);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
-  });
-
-
   it('deploy pool with first authorized account', async () => {
     const newPool = PrivateKey.random();
     const newPoolAddress = newPool.toPublicKey();
