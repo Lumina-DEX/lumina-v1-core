@@ -63,9 +63,6 @@ export class UpdateSignerEvent extends Struct({
     }
 }
 
-// 2^32 signers approved signer possible
-export class SignerMerkleWitness extends MerkleWitness(32) { }
-
 /**
  * Factory who create pools
  */

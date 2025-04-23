@@ -256,8 +256,6 @@ export class SignatureInfo extends Struct({
         const [root, key] = this.witness.computeRootAndKey(value);
         root.assertEquals(merkle, "Invalid signer");
         key.assertEquals(hashUser, "Invalid key");
-        Provable.log("user", this.user);
-        Provable.log("data validate", data);
         return this.signature.verify(this.user, data);
     }
 }
@@ -287,9 +285,6 @@ export function verifyProof(proof: MultisigProof, merkle: Field, messageHash: Fi
     proof.publicInput.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
     proof.publicInput.messageHash.assertEquals(messageHash);
-
-    // prevent user to sign with incorrect right
-    proof.publicOutput.updateFactory.assertTrue("inccorect signer right");
 
     // proof attest we can upgrade
     proof.verify();

@@ -1,11 +1,16 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
-import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, TokenId, UInt64, UInt8, VerificationKey } from 'o1js';
-import { PoolFactory, PoolTokenHolder, Pool, SignerMerkleWitness, mulDiv } from '../index';
+import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt64, UInt8, VerificationKey } from 'o1js';
+import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
 import { MultisigInfo, MultisigProgram, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpgradeInfo } from '../pool/MultisigProof';
 
 
 let proofsEnabled = false;
+
+const vkUpgradeTest = new VerificationKey({
+  data: "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",
+  hash: Field.from(1094855669395027188090902596744887124365128625005606285591537108109825582697n)
+});
 
 
 describe('Pool data', () => {
@@ -50,10 +55,14 @@ describe('Pool data', () => {
     //const analyze = await Faucet.analyzeMethods();
     //getGates(analyze);
 
+    compileKey = vkUpgradeTest;
+
     const cache = Cache.FileSystem('./cache');
-    await MultisigProgram.compile({ cache });
-    const compileResult = await PoolUpgradeTest.compile({ cache });
-    compileKey = compileResult.verificationKey;
+    const multisigProgram = await MultisigProgram.compile({ proofsEnabled });
+    // const compileResult = await PoolUpgradeTest.compile({ cache, });
+
+    // console.log("poolUpgradeTest", compileResult.verificationKey.data);
+    // console.log("poolUpgradeTest hash", compileResult.verificationKey.hash.toBigInt());
 
     if (proofsEnabled) {
       console.time('compile PoolData');
@@ -184,7 +193,8 @@ describe('Pool data', () => {
   });
 
   it('update pool', async () => {
-    const proof = await getProof(zkPoolAddress, TokenId.derive(zkPoolAddress), compileKey);
+    const proof = await getProof(zkPoolAddress, zkPool.tokenId, compileKey);
+    Provable.log("Tokenid", zkPool.tokenId);
     const txn1 = await Mina.transaction(deployerAccount, async () => {
       await zkPool.updateVerificationKey(proof, compileKey);
     });
@@ -214,6 +224,29 @@ describe('Pool data', () => {
     const multisig = await MultisigProgram.verifyUpdatePool(multi, info, array);
     const proof = new MultisigProof(multisig.proof);
     return proof;
+  }
+
+  async function getProofAccount(oldUser: PublicKey, newUser: PublicKey, delegator: boolean) {
+    const time = Date.now();
+    const info = new UpdateAccountInfo({ oldUser, newUser, deadline: UInt64.from(time) });
+
+    const signBob = Signature.create(bobKey, info.toFields());
+    const signAlice = Signature.create(aliceKey, info.toFields());
+    const signDylan = Signature.create(dylanAccount.key, info.toFields());
+
+    const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+    const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
+    const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
+    const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
+    const array = [infoBob, infoAlice, infoDylan];
+
+    if (delegator) {
+      const multisig1 = await MultisigProgram.verifyUpdateDelegator(multi, info, array);
+      return new MultisigProof(multisig1.proof);
+    }
+
+    const multisig0 = await MultisigProgram.verifyUpdateProtocol(multi, info, array);
+    return new MultisigProof(multisig0.proof);
   }
 
   it('update pool holder', async () => {
@@ -269,8 +302,10 @@ describe('Pool data', () => {
 
     let protocol = await zkApp.protocol.fetch();
     expect(protocol?.toBase58()).toEqual(aliceAccount.toBase58());
+
+    const proof = await getProofAccount(aliceAccount, deployerAccount, false);
     let txn = await Mina.transaction(senderAccount, async () => {
-      // await zkApp.setNewProtocol(deployerAccount);
+      await zkApp.setNewProtocol(proof, deployerAccount);
     });
     await txn.prove();
     await txn.sign([senderKey, bobKey]).send();
@@ -303,25 +338,11 @@ describe('Pool data', () => {
     poolAccount = zkPool.account?.delegate?.get();
     expect(poolAccount?.toBase58()).toEqual(dylanAccount.toBase58());
 
-    const time = Date.now();
-    const info = new UpdateAccountInfo({ oldUser: aliceAccount, newUser: bobAccount, deadline: UInt64.from(time) });
-
-    const signBob = Signature.create(bobKey, info.toFields());
-    const signAlice = Signature.create(aliceKey, info.toFields());
-    const signDylan = Signature.create(dylanAccount.key, info.toFields());
-
-    const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
-    const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
-    const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
-    const infoDylan = new SignatureInfo({ user: senderPublic, witness: merkle.getWitness(Poseidon.hash(senderPublic.toFields())), signature: signDylan, right: allRight })
-    const array = [infoBob, infoAlice, infoDylan];
-    const multisig = await MultisigProgram.verifyUpdateDelegator(multi, info, array);
-    const proof = new MultisigProof(multisig.proof);
-
+    const proofDelegator = await getProofAccount(dylanAccount, aliceAccount, true);
 
     // define a new delegator
     txn = await Mina.transaction(senderAccount, async () => {
-      await zkApp.setNewDelegator(proof, aliceAccount);
+      await zkApp.setNewDelegator(proofDelegator, aliceAccount);
     });
     await txn.prove();
     await txn.sign([senderKey, bobKey]).send();
@@ -340,13 +361,12 @@ describe('Pool data', () => {
 
 
   it('failed change delegator', async () => {
+    const proofDelegator = await getProofAccount(dylanAccount, deployerAccount, true);
 
-    // only owner can change it
-    let txn = await Mina.transaction(senderAccount, async () => {
-      //await zkApp.setNewDelegator(aliceAccount);
-    });
-    await txn.prove();
-    await expect(txn.sign([senderKey]).send()).rejects.toThrow();
+    // proof not match the new oyner
+    await expect(Mina.transaction(senderAccount, async () => {
+      await zkApp.setNewDelegator(proofDelegator, aliceAccount);
+    })).rejects.toThrow();
 
   });
 
@@ -459,14 +479,14 @@ describe('Pool data', () => {
     });
     await txn.prove();
     await txn.sign([senderKey, bobKey]).send();
-
+ 
     const newWitness = merkle.getWitness(2n);
     const newCircuitWitness = new SignerMerkleWitness(newWitness);
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.createPool(newPoolAddress, zkToken2Address, senderAccount, signature, newCircuitWitness);
     });
-
+ 
     await txn3.prove();
     await txn3.sign([deployerKey, newPool]).send();*/
   });
