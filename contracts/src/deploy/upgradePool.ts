@@ -100,19 +100,19 @@ async function upgradePool(poolAddressStr: string) {
         const zkToken = new FungibleToken(tokenAddress!);
         // new version
         const zkHolder = new PoolTokenHolder(poolAddress, zkToken.deriveTokenId())
-
-        let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkPool.updateVerificationKey(keyPoolLatest.verificationKey)
-            await zkHolder.updateVerificationKey(keyPoolHolderLatest.verificationKey)
-            await zkToken.approveAccountUpdate(zkHolder.self);
-        });
-        console.log("upgrade  proof", tx.toPretty());
-        await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
-        if (sentTx.status === 'pending') {
-            console.log("hash", sentTx.hash);
-        }
-
+        /*
+                let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
+                    await zkPool.updateVerificationKey(keyPoolLatest.verificationKey)
+                    await zkHolder.updateVerificationKey(keyPoolHolderLatest.verificationKey)
+                    await zkToken.approveAccountUpdate(zkHolder.self);
+                });
+                console.log("upgrade  proof", tx.toPretty());
+                await tx.prove();
+                let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
+                if (sentTx.status === 'pending') {
+                    console.log("hash", sentTx.hash);
+                }
+        */
     } catch (err) {
         console.log(err);
     }
