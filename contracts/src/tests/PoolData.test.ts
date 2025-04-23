@@ -51,7 +51,7 @@ describe('Pool data', () => {
     //getGates(analyze);
 
     const cache = Cache.FileSystem('./cache');
-    await MultisigProgram.compile({ proofsEnabled });
+    await MultisigProgram.compile({ cache });
     const compileResult = await PoolUpgradeTest.compile({ cache });
     compileKey = compileResult.verificationKey;
 
@@ -173,7 +173,7 @@ describe('Pool data', () => {
     const witness = merkle.getWitness(Poseidon.hash(deployerPublic.toFields()));
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(zkPoolAddress, zkTokenAddress, bobAccount, signature, witness, deployRight);
+      await zkApp.createPool(zkPoolAddress, zkTokenAddress, deployerAccount, signature, witness, deployRight);
     });
 
     //console.log("Pool creation au", txn3.transaction.accountUpdates.length);
