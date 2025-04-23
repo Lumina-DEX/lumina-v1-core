@@ -12,12 +12,10 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { AccountUpdate, Bool, Cache, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, MerkleMap, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { PoolV1 } from '../pool/Poolv1.js';
-import { PoolTokenHolderV1 } from '../pool/PoolTokenHolderv1.js';
-import { PoolV2 } from '../pool/Poolv2.js';
+import { SignatureRight } from '../pool/MultisigProof.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -95,9 +93,11 @@ console.log("zkFaucet", zkFaucetAddress.toBase58());
 console.log("pool ETH/Mina", zkEthAddress.toBase58());
 console.log("approved signer", signerAddress.toBase58());
 
-const merkle = new MerkleTree(32);
-merkle.setLeaf(0n, Poseidon.hash(feepayerAddress.toFields()));
-merkle.setLeaf(1n, Poseidon.hash(signerAddress.toFields()));
+const merkle = new MerkleMap();
+const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
+
+merkle.set(Poseidon.hash(feepayerAddress.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(signerAddress.toFields()), allRight.hash());
 const root = merkle.getRoot();
 
 // compile the contract to create prover keys
@@ -110,9 +110,6 @@ await FungibleTokenAdmin.compile({ cache });
 const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
-await PoolV1.compile({ cache });
-await PoolV2.compile({ cache });
-await PoolTokenHolderV1.compile({ cache });
 
 async function ask() {
     try {
@@ -134,9 +131,7 @@ async function ask() {
             14 mint token B
             15 update signer
             16 create token account
-            17 upgrade pool
-            18 upgrade pool token holder
-            19 supply second liquidity
+            17 supply second liquidity
             `);
         switch (result) {
             case "1":
@@ -188,12 +183,6 @@ async function ask() {
                 await createTokenAccount();
                 break;
             case "17":
-                await upgradePool();
-                break;
-            case "18":
-                await upgradePoolTokenHolder();
-                break;
-            case "19":
                 await addSecondLiquidity();
                 break;
             default:
@@ -282,13 +271,12 @@ async function deployPool() {
     try {
         console.log("deploy pool");
         const signature = Signature.create(approvedSigner, zkPoolTokenAMinaAddress.toFields());
-        const witness = merkle.getWitness(1n);
-        const circuitWitness = new SignerMerkleWitness(witness);
+        const witness = merkle.getWitness(Poseidon.hash(signerAddress.toFields()));
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkPoolTokenAMinaAddress, zkTokenAAddress, approvedSigner.toPublicKey(), signature, circuitWitness);
+                await zkFactory.createPool(zkPoolTokenAMinaAddress, zkTokenAAddress, approvedSigner.toPublicKey(), signature, witness, allRight);
             }
         );
         await tx.prove();
@@ -314,7 +302,7 @@ async function deployFactory() {
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", delegator: delegatorKey.toPublicKey(), owner: ownerKey.toPublicKey(), protocol: protocolKey.toPublicKey(), approvedSigner: root });
+                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", delegator: delegatorKey.toPublicKey(), protocol: protocolKey.toPublicKey(), approvedSigner: root });
             }
         );
         await tx.prove();
@@ -334,13 +322,12 @@ async function deployPoolEth() {
         const wethAddress = PublicKey.fromBase58("B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H");
         console.log("deploy pool eth");
         const signature = Signature.create(approvedSigner, zkEthAddress.toFields());
-        const witness = merkle.getWitness(1n);
-        const circuitWitness = new SignerMerkleWitness(witness);
+        const witness = merkle.getWitness(Poseidon.hash(signerAddress.toFields()));
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkEthAddress, wethAddress, approvedSigner.toPublicKey(), signature, circuitWitness);
+                await zkFactory.createPool(zkEthAddress, wethAddress, approvedSigner.toPublicKey(), signature, witness, allRight);
             }
         );
         await tx.prove();
@@ -359,13 +346,12 @@ async function deployPoolToken() {
     try {
         console.log("deploy pool token A/token B");
         const signature = Signature.create(approvedSigner, zkPoolTokenATokenBAddress.toFields());
-        const witness = merkle.getWitness(1n);
-        const circuitWitness = new SignerMerkleWitness(witness);
+        const witness = merkle.getWitness(Poseidon.hash(signerAddress.toFields()));
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 5);
-                await zkFactory.createPoolToken(zkPoolTokenATokenBAddress, zkTokenAAddress, zkTokenBAddress, approvedSigner.toPublicKey(), signature, circuitWitness);
+                await zkFactory.createPoolToken(zkPoolTokenATokenBAddress, zkTokenAAddress, zkTokenBAddress, approvedSigner.toPublicKey(), signature, witness, allRight);
             }
         );
         await tx.prove();
@@ -607,50 +593,7 @@ async function upgrade() {
 }
 
 
-async function upgradePool() {
-    try {
-        console.log("upgrade pool");
-        await fetchAccount({ publicKey: zkPoolTokenAMinaAddress })
-        const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
-        await fetchAccount({ publicKey: ownerKey.toPublicKey() })
-        const zkPool = new PoolV2(zkPoolTokenAMinaAddress);
-        let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkPool.updateVerificationKey(keyPoolLatest.verificationKey)
-        });
-        console.log("upgrade  proof", tx.toPretty());
-        await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
-        if (sentTx.status === 'pending') {
-            console.log("hash", sentTx.hash);
-        }
 
-    } catch (err) {
-        console.log(err);
-    }
-}
-
-async function upgradePoolTokenHolder() {
-    try {
-        console.log("upgrade pool token holder");
-        await fetchAccount({ publicKey: zkPoolTokenAMinaAddress, tokenId: zkTokenA.deriveTokenId() });
-        const zkHolder = new PoolTokenHolderV1(zkPoolTokenAMinaAddress, zkTokenA.deriveTokenId())
-        const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
-        await fetchAccount({ publicKey: ownerKey.toPublicKey() })
-        let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkHolder.updateVerificationKey(keyPoolHolderLatest.verificationKey)
-            await zkTokenA.approveAccountUpdate(zkHolder.self);
-        });
-        console.log("upgrade  proof", tx.toPretty());
-        await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
-        if (sentTx.status === 'pending') {
-            console.log("hash", sentTx.hash);
-        }
-
-    } catch (err) {
-        console.log(err);
-    }
-}
 
 async function mintTokenA() {
     try {
@@ -692,15 +635,15 @@ async function mintTokenB() {
 async function updateSigner() {
     try {
         console.log("update signer");
-        const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
-        let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkFactory.updateApprovedSigner(root);
-        });
-        await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
-        if (sentTx.status === 'pending') {
-            console.log("hash", sentTx.hash);
-        }
+        // const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
+        // let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
+        //     await zkFactory.updateApprovedSigner(root);
+        // });
+        // await tx.prove();
+        // let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
+        // if (sentTx.status === 'pending') {
+        //     console.log("hash", sentTx.hash);
+        // }
 
     } catch (err) {
         console.log(err);
