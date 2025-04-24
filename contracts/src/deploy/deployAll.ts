@@ -12,10 +12,10 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { AccountUpdate, Bool, Cache, fetchAccount, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { SignatureRight } from '../pool/MultisigProof.js';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -48,6 +48,7 @@ let zkTokenAdminPrivateKey = PrivateKey.fromBase58(process.env.TOKEN_ADMIN!);
 let zkFaucetKey = PrivateKey.fromBase58(process.env.FAUCET!);
 let zkFactoryKey = PrivateKey.fromBase58(process.env.FACTORY!);
 let zkEthKey = PrivateKey.fromBase58(process.env.POOL_ETH_MINA!);
+
 // use it to deploy pool on testnet
 // B62qpko6oWqKU4LwAaT7PSX3b6TYvroj6umbpyEXL5EEeBbiJTUMU5Z
 let approvedSigner = PrivateKey.fromBase58("EKE9dyeMmvz6deCC2jD9rBk7d8bG6ZDqVno8wRe8tAbQDussfBYi");
@@ -93,12 +94,27 @@ console.log("zkFaucet", zkFaucetAddress.toBase58());
 console.log("pool ETH/Mina", zkEthAddress.toBase58());
 console.log("approved signer", signerAddress.toBase58());
 
-const merkle = new MerkleMap();
 const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
+const deployRight = SignatureRight.canDeployPool();
 
-merkle.set(Poseidon.hash(feepayerAddress.toFields()), allRight.hash());
-merkle.set(Poseidon.hash(signerAddress.toFields()), allRight.hash());
-const root = merkle.getRoot();
+const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
+const signer1Key = PrivateKey.fromBase58(process.env.SIGNER1!);
+const signer2Key = PrivateKey.fromBase58(process.env.SIGNER2!);
+const signer3Key = PrivateKey.fromBase58(process.env.SIGNER3!);
+
+const ownerPublic = ownerKey.toPublicKey();
+const signer1Public = signer1Key.toPublicKey();
+const signer2Public = signer2Key.toPublicKey();
+const signer3Public = signer3Key.toPublicKey();
+const approvedSignerPublic = approvedSigner.toPublicKey();
+
+const merkle = new MerkleMap();
+merkle.set(Poseidon.hash(ownerPublic.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(signer1Public.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(signer2Public.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(signer3Public.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
+
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
@@ -295,14 +311,38 @@ async function deployPool() {
 async function deployFactory() {
     try {
         console.log("deploy factory");
-        const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
+
         const protocolKey = PrivateKey.fromBase58(process.env.PROTOCOL!);
         const delegatorKey = PrivateKey.fromBase58(process.env.DELEGATOR!);
+
+        const root = merkle.getRoot();
+
+        const time = Date.now();
+        const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadline: UInt64.from(time) });
+
+        const signBob = Signature.create(signer1Key, info.toFields());
+        const signAlice = Signature.create(signer2Key, info.toFields());
+        const signDylan = Signature.create(signer3Key, info.toFields());
+
+        const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadline: UInt64.from(time) })
+        const infoBob = new SignatureInfo({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
+        const infoAlice = new SignatureInfo({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
+        const infoDylan = new SignatureInfo({ user: signer3Public, witness: merkle.getWitness(Poseidon.hash(signer3Public.toFields())), signature: signDylan, right: allRight })
+        const array = [infoBob, infoAlice, infoDylan];
+
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 1);
-                await zkFactory.deploy({ symbol: "FAC", src: "https://luminadex.com/", delegator: delegatorKey.toPublicKey(), protocol: protocolKey.toPublicKey(), approvedSigner: root });
+                await zkFactory.deploy({
+                    symbol: "FAC",
+                    src: "https://luminadex.com/",
+                    delegator: delegatorKey.toPublicKey(),
+                    protocol: protocolKey.toPublicKey(),
+                    approvedSigner: root,
+                    signatures: array,
+                    signatureInfo: multi
+                });
             }
         );
         await tx.prove();
