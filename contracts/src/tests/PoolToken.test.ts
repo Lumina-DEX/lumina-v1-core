@@ -1,8 +1,8 @@
-import { AccountUpdate, Bool, fetchAccount, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, getAmountLiquidityOutUint } from '../index';
-import { SignatureRight } from '../pool/MultisigProof';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
 
 let proofsEnabled = false;
 
@@ -124,13 +124,28 @@ describe('Pool Factory Token', () => {
 
     const root = merkle.getRoot();
 
+    const time = Date.now();
+    const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadline: UInt64.from(time) });
+
+    const signBob = Signature.create(bobKey, info.toFields());
+    const signAlice = Signature.create(aliceKey, info.toFields());
+    const signDylan = Signature.create(dylanAccount.key, info.toFields());
+
+    const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadline: UInt64.from(time) })
+    const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
+    const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
+    const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
+    const array = [infoBob, infoAlice, infoDylan];
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.deploy({
         symbol: "FAC", src: "https://luminadex.com/",
-        protocol: aliceAccount, delegator: dylanAccount,
-        approvedSigner: root
+        protocol: aliceAccount,
+        delegator: dylanAccount,
+        approvedSigner: root,
+        signatures: array,
+        signatureInfo: multi
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

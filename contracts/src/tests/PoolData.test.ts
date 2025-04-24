@@ -2,7 +2,7 @@ import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { MultisigInfo, MultisigProgram, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpgradeInfo } from '../pool/MultisigProof';
+import { MultisigInfo, MultisigProgram, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
 
 
 let proofsEnabled = false;
@@ -135,13 +135,31 @@ describe('Pool data', () => {
     merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
     const root = merkle.getRoot();
 
+    const time = Date.now();
+    const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadline: UInt64.from(time) });
+
+    const signBob = Signature.create(bobKey, info.toFields());
+    const signAlice = Signature.create(aliceKey, info.toFields());
+    const signDylan = Signature.create(dylanAccount.key, info.toFields());
+
+    const signToBase58: string = signDylan.toBase58();
+    const signFromBase58 = Signature.fromBase58(signToBase58);
+
+    const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadline: UInt64.from(time) })
+    const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
+    const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
+    const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signFromBase58, right: allRight })
+    const array = [infoBob, infoAlice, infoDylan];
+
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.deploy({
         symbol: "FAC", src: "https://luminadex.com/",
         protocol: aliceAccount,
         delegator: dylanAccount,
-        approvedSigner: root
+        approvedSigner: root,
+        signatures: array,
+        signatureInfo: multi
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

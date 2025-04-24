@@ -1,6 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-import { MultisigProof, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifyProof } from './MultisigProof.js';
+import { MultisigInfo, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifyProof, verifySignature } from './MultisigProof.js';
 
 export const contractData = "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";
 export const contractHash = Field(857914076893194701875655121155576272306427676493104530722463082559797815190n);
@@ -12,6 +12,8 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     protocol: PublicKey;
     delegator: PublicKey;
     approvedSigner: Field;
+    signatures: SignatureInfo[];
+    signatureInfo: MultisigInfo;
 }
 
 export class PoolCreationEvent extends Struct({
@@ -86,6 +88,13 @@ export class PoolFactory extends TokenContract {
         const defaultRoot = new MerkleMap().getRoot();
         args.approvedSigner.equals(Field.empty()).assertFalse("Approved signer is empty");
         args.approvedSigner.equals(defaultRoot).assertFalse("Approved signer is empty");
+
+        this.network.timestamp.requireBetween(UInt64.zero, args.signatureInfo.deadline);
+
+        const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadline: args.signatureInfo.deadline });
+        // we need 3 signatures to update signer, prevent to deadlock contract update
+        const right = SignatureRight.canUpdateSigner();
+        verifySignature(args.signatures, args.signatureInfo.deadline, args.signatureInfo, args.signatureInfo.approvedUpgrader, updateSignerData.toFields(), right);
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
