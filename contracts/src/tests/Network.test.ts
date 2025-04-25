@@ -1,6 +1,4 @@
 import { AccountUpdate, Bool, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
-
-
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, PoolTokenHolder, Pool } from '../index';
 import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
 
@@ -28,13 +26,25 @@ describe('Pool Factory Mina', () => {
         const testSlot = globalSlotToTimestamp(UInt32.from(183157));
         Provable.log("testSlot", testSlot);
 
-        let slotCalculated = UInt64.from(Date.UTC(2026, 10, 1));
-        slotCalculated = slotCalculated.sub(genesisTimestamp).div(slotTime);
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
 
+        let slotCalculated = getSlotFromTimestamp(tomorrow);
         Provable.log("slotCalculated", slotCalculated);
+
+        const timestampFromslot = globalSlotToTimestamp(slotCalculated);
+        Provable.log("timestampFromslot", timestampFromslot);
     });
 
 
+    function getSlotFromTimestamp(date: number) {
+        const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
+        let slotCalculated = UInt64.from(date);
+        slotCalculated = (slotCalculated.sub(genesisTimestamp)).div(slotTime);
+        Provable.log("slotCalculated64", slotCalculated);
+        return slotCalculated.toUInt32();
+    }
 
     function globalSlotToTimestamp(slot: UInt32) {
         let { genesisTimestamp, slotTime } =

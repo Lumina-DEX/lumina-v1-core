@@ -1,4 +1,4 @@
-import { Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt64 } from 'o1js';
+import { Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64 } from 'o1js';
 import { MultisigInfo, MultisigProgram, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
 
 const proofsEnabled = false;
@@ -66,7 +66,7 @@ describe('Pool data', () => {
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
         const time = Date.now();
-        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadline: UInt64.from(time) });
+        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -75,7 +75,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updatePoolRight })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updatePoolRight })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updatePoolRight })
@@ -97,7 +97,7 @@ describe('Pool data', () => {
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
         const time = Date.now();
-        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadline: UInt64.from(time) });
+        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -106,7 +106,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updatePoolRight })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updatePoolRight })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updatePoolRight })
@@ -126,7 +126,7 @@ describe('Pool data', () => {
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
         const time = Date.now();
-        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadline: UInt64.from(time) });
+        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -135,7 +135,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updatePoolRight })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updatePoolRight })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updateDelegatorRight })
@@ -154,8 +154,8 @@ describe('Pool data', () => {
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
         const time = Date.now();
-        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadline: UInt64.from(time) });
-        const infoProof = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(5000), deadline: UInt64.from(time) });
+        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
+        const infoProof = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(5000), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -164,7 +164,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updatePoolRight })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updatePoolRight })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updatePoolRight })
@@ -183,7 +183,7 @@ describe('Pool data', () => {
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
         const time = Date.now();
-        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadline: UInt64.from(time) });
+        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
         Provable.log("info validate", info.toFields());
         Provable.log("bob", bobPublic);
@@ -191,7 +191,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updatePoolRight })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updatePoolRight })
         // we pass alice signature to throy the error
@@ -211,7 +211,7 @@ describe('Pool data', () => {
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
         const time = Date.now();
-        const info = new UpdateAccountInfo({ oldUser: oldAccount, newUser: newAccount, deadline: UInt64.from(time) });
+        const info = new UpdateAccountInfo({ oldUser: oldAccount, newUser: newAccount, deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -220,7 +220,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updateDelegatorRight })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updateDelegatorRight })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updateDelegatorRight })
@@ -244,7 +244,7 @@ describe('Pool data', () => {
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
         const time = Date.now();
-        const info = new UpdateAccountInfo({ oldUser: oldAccount, newUser: newAccount, deadline: UInt64.from(time) });
+        const info = new UpdateAccountInfo({ oldUser: oldAccount, newUser: newAccount, deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -253,7 +253,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right })
@@ -277,7 +277,7 @@ describe('Pool data', () => {
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
         const time = Date.now();
-        const info = new UpdateFactoryInfo({ newVkHash: Field(123), deadline: UInt64.from(time) });
+        const info = new UpdateFactoryInfo({ newVkHash: Field(123), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -286,7 +286,7 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
         const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right })
@@ -315,7 +315,7 @@ describe('Pool data', () => {
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
         const time = Date.now();
-        const info = new UpdateSignerData({ oldRoot: merkle.getRoot(), newRoot: newMerkle.getRoot(), deadline: UInt64.from(time) });
+        const info = new UpdateSignerData({ oldRoot: merkle.getRoot(), newRoot: newMerkle.getRoot(), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -330,7 +330,7 @@ describe('Pool data', () => {
         const newsignDeployer = Signature.create(deployerAccount.key, info.toFields());
 
 
-        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right })

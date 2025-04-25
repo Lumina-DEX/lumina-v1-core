@@ -1,4 +1,4 @@
-import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt64, ZkProgram } from 'o1js';
+import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt32, UInt64, ZkProgram } from 'o1js';
 
 export class SignatureRight extends Struct({
     deployPool: Bool,
@@ -80,11 +80,11 @@ export class UpdateFactoryInfo extends Struct({
     // new verification key hash to submit
     newVkHash: Field,
     // deadline to use this signature
-    deadline: UInt64
+    deadlineSlot: UInt32
 }) {
     constructor(value: {
         newVkHash: Field,
-        deadline: UInt64
+        deadlineSlot: UInt32
     }) {
         super(value);
     }
@@ -95,7 +95,7 @@ export class UpdateFactoryInfo extends Struct({
      */
     toFields(): Field[] {
         return this.newVkHash.toFields().concat(
-            this.deadline.toFields());
+            this.deadlineSlot.toFields());
     }
 
     hash(): Field {
@@ -111,13 +111,13 @@ export class UpgradeInfo extends Struct({
     // new verification key hash to submit
     newVkHash: Field,
     // deadline to use this signature
-    deadline: UInt64
+    deadlineSlot: UInt32
 }) {
     constructor(value: {
         contractAddress: PublicKey,
         tokenId: Field,
         newVkHash: Field,
-        deadline: UInt64
+        deadlineSlot: UInt32
     }) {
         super(value);
     }
@@ -130,7 +130,7 @@ export class UpgradeInfo extends Struct({
         return this.contractAddress.toFields().concat(
             this.tokenId.toFields().concat(
                 this.newVkHash.toFields().concat(
-                    this.deadline.toFields())));
+                    this.deadlineSlot.toFields())));
     }
 
     hash(): Field {
@@ -144,12 +144,12 @@ export class UpdateAccountInfo extends Struct({
     // new account address
     newUser: PublicKey,
     // deadline to use this signature
-    deadline: UInt64
+    deadlineSlot: UInt32
 }) {
     constructor(value: {
         oldUser: PublicKey,
         newUser: PublicKey,
-        deadline: UInt64
+        deadlineSlot: UInt32
     }) {
         super(value);
     }
@@ -161,7 +161,7 @@ export class UpdateAccountInfo extends Struct({
     toFields(): Field[] {
         return this.oldUser.toFields().concat(
             this.newUser.toFields().concat(
-                this.deadline.toFields()));
+                this.deadlineSlot.toFields()));
     }
 
     hash(): Field {
@@ -175,12 +175,12 @@ export class UpdateSignerData extends Struct({
     // new signer root
     newRoot: Field,
     // deadline to use this signature
-    deadline: UInt64
+    deadlineSlot: UInt32
 }) {
     constructor(value: {
         oldRoot: Field,
         newRoot: Field,
-        deadline: UInt64
+        deadlineSlot: UInt32
     }) {
         super(value);
     }
@@ -192,7 +192,7 @@ export class UpdateSignerData extends Struct({
     toFields(): Field[] {
         return this.oldRoot.toFields().concat(
             this.newRoot.toFields().concat(
-                this.deadline.toFields()));
+                this.deadlineSlot.toFields()));
     }
 
     hash(): Field {
@@ -205,12 +205,12 @@ export class MultisigInfo extends Struct({
     // hash of data passed to the signature
     messageHash: Field,
     // deadline 
-    deadline: UInt64
+    deadlineSlot: UInt32
 }) {
     constructor(value: {
         approvedUpgrader: Field,
         messageHash: Field,
-        deadline: UInt64
+        deadlineSlot: UInt32
     }) {
         super(value);
     }
@@ -260,8 +260,8 @@ export class SignatureInfo extends Struct({
     }
 }
 
-export function verifySignature(signatures: SignatureInfo[], deadline: UInt64, info: MultisigInfo, root: Field, data: Field[], right: SignatureRight) {
-    info.deadline.equals(deadline).assertTrue("Deadline doesn't match")
+export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt32, info: MultisigInfo, root: Field, data: Field[], right: SignatureRight) {
+    info.deadlineSlot.equals(deadlineSlot).assertTrue("Deadline doesn't match")
     // check the signature come from 3 different users
     signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
     signatures[1].user.equals(signatures[2].user).assertFalse("Can't include same signer");
@@ -311,8 +311,8 @@ export const MultisigProgram = ZkProgram({
             ) {
                 const right = SignatureRight.canUpdateSigner();
                 upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");
-                verifySignature(signatures, upgradeInfo.deadline, info, info.approvedUpgrader, upgradeInfo.toFields(), right);
-                verifySignature(newSignatures, upgradeInfo.deadline, info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
+                verifySignature(signatures, upgradeInfo.deadlineSlot, info, info.approvedUpgrader, upgradeInfo.toFields(), right);
+                verifySignature(newSignatures, upgradeInfo.deadlineSlot, info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
                 return { publicOutput: right };
             },
         },
@@ -324,7 +324,7 @@ export const MultisigProgram = ZkProgram({
                 signatures: SignatureInfo[]
             ) {
                 const right = SignatureRight.canUpdatePool();
-                verifySignature(signatures, upgradeInfo.deadline, info, info.approvedUpgrader, upgradeInfo.toFields(), right);
+                verifySignature(signatures, upgradeInfo.deadlineSlot, info, info.approvedUpgrader, upgradeInfo.toFields(), right);
                 return { publicOutput: right };
             },
         },
@@ -336,7 +336,7 @@ export const MultisigProgram = ZkProgram({
                 signatures: SignatureInfo[]
             ) {
                 const right = SignatureRight.canUpdateDelegator();
-                verifySignature(signatures, updateInfo.deadline, info, info.approvedUpgrader, updateInfo.toFields(), right);
+                verifySignature(signatures, updateInfo.deadlineSlot, info, info.approvedUpgrader, updateInfo.toFields(), right);
                 return { publicOutput: right };
             },
         },
@@ -348,7 +348,7 @@ export const MultisigProgram = ZkProgram({
                 signatures: SignatureInfo[]
             ) {
                 const right = SignatureRight.canUpdateProtocol();
-                verifySignature(signatures, updateInfo.deadline, info, info.approvedUpgrader, updateInfo.toFields(), right);
+                verifySignature(signatures, updateInfo.deadlineSlot, info, info.approvedUpgrader, updateInfo.toFields(), right);
                 return { publicOutput: right };
             },
         },
@@ -360,7 +360,7 @@ export const MultisigProgram = ZkProgram({
                 signatures: SignatureInfo[]
             ) {
                 const right = SignatureRight.canUpdateFactory();
-                verifySignature(signatures, updateInfo.deadline, info, info.approvedUpgrader, updateInfo.toFields(), right);
+                verifySignature(signatures, updateInfo.deadlineSlot, info, info.approvedUpgrader, updateInfo.toFields(), right);
                 return { publicOutput: right };
             },
         },

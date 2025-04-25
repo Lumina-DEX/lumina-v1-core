@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
 import { MultisigInfo, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifyProof, verifySignature } from './MultisigProof.js';
 
@@ -89,12 +89,12 @@ export class PoolFactory extends TokenContract {
         args.approvedSigner.equals(Field.empty()).assertFalse("Approved signer is empty");
         args.approvedSigner.equals(defaultRoot).assertFalse("Approved signer is empty");
 
-        this.network.timestamp.requireBetween(UInt64.zero, args.signatureInfo.deadline);
+        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, args.signatureInfo.deadlineSlot);
 
-        const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadline: args.signatureInfo.deadline });
+        const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.signatureInfo.deadlineSlot });
         // we need 3 signatures to update signer, prevent to deadlock contract update
         const right = SignatureRight.canUpdateSigner();
-        verifySignature(args.signatures, args.signatureInfo.deadline, args.signatureInfo, args.signatureInfo.approvedUpgrader, updateSignerData.toFields(), right);
+        verifySignature(args.signatures, args.signatureInfo.deadlineSlot, args.signatureInfo, args.signatureInfo.approvedUpgrader, updateSignerData.toFields(), right);
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
@@ -114,8 +114,8 @@ export class PoolFactory extends TokenContract {
      * @param vk new verification key
      */
     @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
-        const deadline = proof.publicInput.deadline;
-        const upgradeInfo = new UpdateFactoryInfo({ newVkHash: vk.hash, deadline });
+        const deadlineSlot = proof.publicInput.deadlineSlot;
+        const upgradeInfo = new UpdateFactoryInfo({ newVkHash: vk.hash, deadlineSlot });
         await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateFactory())
 
         this.account.verificationKey.set(vk);
@@ -124,8 +124,8 @@ export class PoolFactory extends TokenContract {
 
     @method async updateApprovedSigner(proof: MultisigProof, newRoot: Field) {
         const oldRoot = this.approvedSigner.getAndRequireEquals();
-        const deadline = proof.publicInput.deadline;
-        const upgradeInfo = new UpdateSignerData({ oldRoot, newRoot, deadline });
+        const deadlineSlot = proof.publicInput.deadlineSlot;
+        const upgradeInfo = new UpdateSignerData({ oldRoot, newRoot, deadlineSlot });
         await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateSigner())
 
         this.approvedSigner.set(newRoot);
@@ -134,8 +134,8 @@ export class PoolFactory extends TokenContract {
 
     @method async setNewProtocol(proof: MultisigProof, newUser: PublicKey) {
         const oldUser = this.protocol.getAndRequireEquals();
-        const deadline = proof.publicInput.deadline;
-        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadline });
+        const deadlineSlot = proof.publicInput.deadlineSlot;
+        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot });
         await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateProtocol())
 
         this.protocol.set(newUser);
@@ -144,8 +144,8 @@ export class PoolFactory extends TokenContract {
 
     @method async setNewDelegator(proof: MultisigProof, newUser: PublicKey) {
         const oldUser = this.delegator.getAndRequireEquals();
-        const deadline = proof.publicInput.deadline;
-        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadline });
+        const deadlineSlot = proof.publicInput.deadlineSlot;
+        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot });
         await this.verifyMultisigProof(proof, upgradeInfo.hash(), SignatureRight.canUpdateProtocol())
 
         this.delegator.set(newUser);
@@ -324,9 +324,9 @@ export class PoolFactory extends TokenContract {
 
     private async verifyMultisigProof(proof: MultisigProof, messageHash: Field, right: SignatureRight) {
         const merkle = this.approvedSigner.getAndRequireEquals();
-        const deadline = proof.publicInput.deadline;
+        const deadlineSlot = proof.publicInput.deadlineSlot;
         // we can update only before the deadline to prevent signature reuse
-        this.network.timestamp.requireBetween(UInt64.zero, deadline)
+        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot)
         verifyProof(proof, merkle, messageHash, right)
 
     }

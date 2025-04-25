@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
 import { MultisigProof, UpgradeInfo, verifyProof, SignatureRight } from './MultisigProof.js';
@@ -63,11 +63,11 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const factory = new PoolFactory(factoryAddress);
         const merkle = await factory.getApprovedSigner();
 
-        const deadline = proof.publicInput.deadline;
+        const deadlineSlot = proof.publicInput.deadlineSlot;
         // we can update only before the deadline to prevent signature reuse
-        this.network.timestamp.requireBetween(UInt64.zero, deadline)
+        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot)
 
-        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadline });
+        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadlineSlot });
         await verifyProof(proof, merkle, upgradeInfo.hash(), SignatureRight.canUpdatePool())
 
         this.account.verificationKey.set(vk);

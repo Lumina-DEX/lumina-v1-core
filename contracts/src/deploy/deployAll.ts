@@ -12,7 +12,7 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
 import { MultisigInfo, MultisigProgram, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof.js';
@@ -323,16 +323,17 @@ async function deployFactory() {
 
         const today = new Date();
         today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
 
         //const time = today.getTime();
-        const time = UInt64.from(Date.UTC(2026, 10, 1));
-        const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadline: UInt64.from(time) });
+        const timeSlot = getSlotFromTimestamp(tomorrow);
+        const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadlineSlot: UInt32.from(timeSlot) });
 
         const signBob = Signature.create(signer1Key, info.toFields());
         const signAlice = Signature.create(signer2Key, info.toFields());
         const signDylan = Signature.create(signer3Key, info.toFields());
 
-        const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadline: UInt64.from(time) })
+        const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(timeSlot) })
         const infoBob = new SignatureInfo({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
         const infoAlice = new SignatureInfo({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
         const infoDylan = new SignatureInfo({ user: signer3Public, witness: merkle.getWitness(Poseidon.hash(signer3Public.toFields())), signature: signDylan, right: allRight })
@@ -365,6 +366,15 @@ async function deployFactory() {
     } catch (err) {
         console.log(err);
     }
+}
+
+
+function getSlotFromTimestamp(date: number) {
+    const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
+    let slotCalculated = UInt64.from(date);
+    slotCalculated = (slotCalculated.sub(genesisTimestamp)).div(slotTime);
+    Provable.log("slotCalculated64", slotCalculated);
+    return slotCalculated.toUInt32();
 }
 
 async function deployPoolEth() {
