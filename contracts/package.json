@@ -29,6 +29,7 @@
     "testtoken": "node --experimental-vm-modules node_modules/jest/bin/jest.js pooltoken.test",
     "testprivate": "node --experimental-vm-modules node_modules/jest/bin/jest.js privatepool.test",
     "test:multisig": "node --experimental-vm-modules node_modules/jest/bin/jest.js multisig.test",
+    "test:network": "node --experimental-vm-modules node_modules/jest/bin/jest.js network.test",
     "lint": "npx eslint src/**/*.ts --fix",
     "patch": "node patch.js",
     "doc": "npx typedoc src/indexpool.ts --out ../docs"

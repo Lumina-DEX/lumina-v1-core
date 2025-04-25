@@ -15,7 +15,7 @@
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof.js';
+import { MultisigInfo, MultisigProgram, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -120,6 +120,7 @@ merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
 console.log('compile the contract...');
 
 const cache: Cache = Cache.FileSystem('./cache');
+await MultisigProgram.compile({ cache });
 const keyPoolLatest = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
@@ -312,12 +313,19 @@ async function deployFactory() {
     try {
         console.log("deploy factory");
 
+        const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
+
+
         const protocolKey = PrivateKey.fromBase58(process.env.PROTOCOL!);
         const delegatorKey = PrivateKey.fromBase58(process.env.DELEGATOR!);
 
         const root = merkle.getRoot();
 
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+
+        //const time = today.getTime();
+        const time = UInt64.from(Date.UTC(2026, 10, 1));
         const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadline: UInt64.from(time) });
 
         const signBob = Signature.create(signer1Key, info.toFields());
@@ -345,6 +353,8 @@ async function deployFactory() {
                 });
             }
         );
+
+        console.log("tx", tx.toPretty());
         await tx.prove();
         let sentTx = await tx.sign([feepayerKey, zkFactoryKey]).send();
         if (sentTx.status === 'pending') {

@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool, getAmountLiquidityOutUint } from '../index';
@@ -447,6 +447,36 @@ describe('Pool Factory Mina', () => {
     const balAfter = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
     expect(balAfter.value).toEqual(balBefore.sub(amountIn).value);
   });
+
+  it("signature expired", async () => {
+    const newFacKey = PrivateKey.random();
+    const newFac = new PoolFactory(newFacKey.toPublicKey());
+
+    const root = merkle.getRoot();
+    const time = Date.now();
+    console.log("signature time", time);
+    const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadline: UInt64.from(time) });
+
+    const signBob = Signature.create(bobKey, info.toFields());
+    const signAlice = Signature.create(aliceKey, info.toFields());
+    const signDylan = Signature.create(senderAccount.key, info.toFields());
+
+    const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadline: UInt64.from(time) })
+    const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
+    const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
+    const infoDylan = new SignatureInfo({ user: senderPublic, witness: merkle.getWitness(Poseidon.hash(senderPublic.toFields())), signature: signDylan, right: allRight })
+    const array = [infoBob, infoAlice, infoDylan];
+
+    const txn = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount, 1);
+      await newFac.deploy({ symbol: "FAC", signatures: array, signatureInfo: multi, src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root });
+    });
+    console.log("signature expired txn", txn.toPretty());
+    await txn.prove();
+    // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
+    await txn.sign([deployerKey, newFacKey]).send();
+  })
+
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test
     let txn = await Mina.transaction(deployerAccount, async () => {
