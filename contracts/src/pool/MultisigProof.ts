@@ -1,4 +1,4 @@
-import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt32, UInt64, ZkProgram } from 'o1js';
+import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt32, ZkProgram } from 'o1js';
 
 export class SignatureRight extends Struct({
     deployPool: Bool,

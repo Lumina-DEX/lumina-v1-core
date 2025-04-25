@@ -4,7 +4,6 @@ import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
 import { MultisigInfo, MultisigProgram, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
 
-
 let proofsEnabled = false;
 
 const vkUpgradeTest = new VerificationKey({
@@ -135,7 +134,10 @@ describe('Pool data', () => {
     merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
     const root = merkle.getRoot();
 
-    const time = Date.now();
+    const today = new Date();
+    today.setDate(today.getDate() + 1);
+    const tomorrow = today.getTime();
+    const time = getSlotFromTimestamp(tomorrow);
     const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadlineSlot: UInt32.from(time) });
 
     const signBob = Signature.create(bobKey, info.toFields());
@@ -226,7 +228,10 @@ describe('Pool data', () => {
   });
 
   async function getProof(contractAddress: PublicKey, tokenId: Field, key: VerificationKey) {
-    const time = Date.now();
+    const today = new Date();
+    today.setDate(today.getDate() + 1);
+    const tomorrow = today.getTime();
+    const time = getSlotFromTimestamp(tomorrow);
     const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: key.hash, deadlineSlot: UInt32.from(time) });
 
 
@@ -245,7 +250,10 @@ describe('Pool data', () => {
   }
 
   async function getProofAccount(oldUser: PublicKey, newUser: PublicKey, delegator: boolean) {
-    const time = Date.now();
+    const today = new Date();
+    today.setDate(today.getDate() + 1);
+    const tomorrow = today.getTime();
+    const time = getSlotFromTimestamp(tomorrow);
     const info = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot: UInt32.from(time) });
 
     const signBob = Signature.create(bobKey, info.toFields());
@@ -462,4 +470,12 @@ describe('Pool data', () => {
     await txn3.prove();
     await txn3.sign([deployerKey, newPool]).send();*/
   });
+
+  function getSlotFromTimestamp(date: number) {
+    const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
+    let slotCalculated = UInt64.from(date);
+    slotCalculated = (slotCalculated.sub(genesisTimestamp)).div(slotTime);
+    Provable.log("slotCalculated64", slotCalculated);
+    return slotCalculated.toUInt32();
+  }
 });

@@ -65,7 +65,10 @@ describe('Pool data', () => {
         const pk = PrivateKey.random();
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
 
@@ -96,7 +99,10 @@ describe('Pool data', () => {
         const pk = PrivateKey.random();
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
 
@@ -125,7 +131,10 @@ describe('Pool data', () => {
         const pk = PrivateKey.random();
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
 
@@ -153,7 +162,10 @@ describe('Pool data', () => {
         const pk = PrivateKey.random();
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
         const infoProof = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(5000), deadlineSlot: UInt32.from(time) });
 
@@ -182,7 +194,10 @@ describe('Pool data', () => {
         const pk = PrivateKey.random();
         const contractAddress = pk.toPublicKey();
         const tokenId = TokenId.derive(contractAddress);
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
 
         Provable.log("info validate", info.toFields());
@@ -210,7 +225,10 @@ describe('Pool data', () => {
         const oldAccount = pk.toPublicKey();
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpdateAccountInfo({ oldUser: oldAccount, newUser: newAccount, deadlineSlot: UInt32.from(time) });
 
 
@@ -243,7 +261,10 @@ describe('Pool data', () => {
         const oldAccount = pk.toPublicKey();
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpdateAccountInfo({ oldUser: oldAccount, newUser: newAccount, deadlineSlot: UInt32.from(time) });
 
 
@@ -276,7 +297,10 @@ describe('Pool data', () => {
         const oldAccount = pk.toPublicKey();
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpdateFactoryInfo({ newVkHash: Field(123), deadlineSlot: UInt32.from(time) });
 
 
@@ -314,7 +338,10 @@ describe('Pool data', () => {
         const oldAccount = pk.toPublicKey();
         const pkNew = PrivateKey.random();
         const newAccount = pkNew.toPublicKey();
-        const time = Date.now();
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        const tomorrow = today.getTime();
+        const time = getSlotFromTimestamp(tomorrow);
         const info = new UpdateSignerData({ oldRoot: merkle.getRoot(), newRoot: newMerkle.getRoot(), deadlineSlot: UInt32.from(time) });
 
 
@@ -347,4 +374,12 @@ describe('Pool data', () => {
         multisig.proof.publicOutput.updateSigner.assertTrue("Is not an update for the signer");
 
     });
+
+    function getSlotFromTimestamp(date: number) {
+        const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
+        let slotCalculated = UInt64.from(date);
+        slotCalculated = (slotCalculated.sub(genesisTimestamp)).div(slotTime);
+        Provable.log("slotCalculated64", slotCalculated);
+        return slotCalculated.toUInt32();
+    }
 });

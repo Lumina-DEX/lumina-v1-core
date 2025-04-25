@@ -1,6 +1,4 @@
-import { AccountUpdate, Bool, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
-import { FungibleTokenAdmin, FungibleToken, PoolFactory, PoolTokenHolder, Pool } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
+import { Mina, Provable, UInt32, UInt64 } from 'o1js';
 
 let proofsEnabled = true;
 

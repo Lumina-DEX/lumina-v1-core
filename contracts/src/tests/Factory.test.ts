@@ -36,7 +36,8 @@ describe('Pool Factory Mina', () => {
     zkTokenAddress: PublicKey,
     zkTokenPrivateKey: PrivateKey,
     zkToken: FungibleToken,
-    tokenHolder: PoolTokenHolder;
+    tokenHolder: PoolTokenHolder,
+    Local: any;
 
   beforeAll(async () => {
     const analyze = await Pool.analyzeMethods();
@@ -65,7 +66,7 @@ describe('Pool Factory Mina', () => {
 
 
   beforeEach(async () => {
-    const Local = await Mina.LocalBlockchain({ proofsEnabled });
+    Local = await Mina.LocalBlockchain({ proofsEnabled });
     Mina.setActiveInstance(Local);
     [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
     deployerKey = deployerAccount.key;
@@ -108,7 +109,11 @@ describe('Pool Factory Mina', () => {
 
     const root = merkle.getRoot();
 
-    const time = Date.now();
+    const today = new Date();
+    today.setDate(today.getDate() + 1);
+    const tomorrow = today.getTime();
+    const time = getSlotFromTimestamp(tomorrow);
+
     const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadlineSlot: UInt32.from(time) });
 
     const signBob = Signature.create(bobKey, info.toFields());
@@ -453,8 +458,11 @@ describe('Pool Factory Mina', () => {
     const newFac = new PoolFactory(newFacKey.toPublicKey());
 
     const root = merkle.getRoot();
-    const time = Date.now();
+
+    const time = UInt32.from(1);
     console.log("signature time", time);
+
+    Local.setGlobalSlot(2);
     const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadlineSlot: UInt32.from(time) });
 
     const signBob = Signature.create(bobKey, info.toFields());
@@ -474,7 +482,7 @@ describe('Pool Factory Mina', () => {
     console.log("signature expired txn", txn.toPretty());
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn.sign([deployerKey, newFacKey]).send();
+    await expect(txn.sign([deployerKey, newFacKey]).send()).rejects.toThrow();
   })
 
   async function mintToken(user: PublicKey) {
@@ -495,4 +503,11 @@ describe('Pool Factory Mina', () => {
 
   }
 
+  function getSlotFromTimestamp(date: number) {
+    const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
+    let slotCalculated = UInt64.from(date);
+    slotCalculated = (slotCalculated.sub(genesisTimestamp)).div(slotTime);
+    Provable.log("slotCalculated64", slotCalculated);
+    return slotCalculated.toUInt32();
+  }
 });
