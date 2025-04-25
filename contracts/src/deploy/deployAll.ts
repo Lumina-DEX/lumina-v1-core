@@ -288,12 +288,12 @@ async function deployPool() {
     try {
         console.log("deploy pool");
         const signature = Signature.create(approvedSigner, zkPoolTokenAMinaAddress.toFields());
-        const witness = merkle.getWitness(Poseidon.hash(signerAddress.toFields()));
+        const witness = merkle.getWitness(Poseidon.hash(approvedSignerPublic.toFields()));
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
                 AccountUpdate.fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkPoolTokenAMinaAddress, zkTokenAAddress, approvedSigner.toPublicKey(), signature, witness, allRight);
+                await zkFactory.createPool(zkPoolTokenAMinaAddress, zkTokenAAddress, approvedSignerPublic, signature, witness, deployRight);
             }
         );
         await tx.prove();
