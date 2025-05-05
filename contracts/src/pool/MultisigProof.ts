@@ -1,5 +1,8 @@
 import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt32, ZkProgram } from 'o1js';
 
+/**
+ * Signature right to update pool information 
+ */
 export class SignatureRight extends Struct({
     deployPool: Bool,
     uppdatePool: Bool,
@@ -58,6 +61,10 @@ export class SignatureRight extends Struct({
         return new SignatureRight(Bool(true), Bool(false), Bool(false), Bool(false), Bool(false), Bool(false))
     }
 
+    /**
+     * Check if the user right match the necessary right
+     * @param right user right
+     */
     hasRight(right: SignatureRight) {
         const newRight = new SignatureRight(
             right.deployPool.and(this.deployPool),
@@ -69,17 +76,26 @@ export class SignatureRight extends Struct({
         return newRight.hash().equals(right.hash());
     }
 
-    // hash store in the signer merkle map
+    /**
+     * hash store in the signer merkle map
+     */
     hash(): Field {
         return Poseidon.hash(this.toFields());
     }
 }
 
 
+/**
+ * Information needed to update the factory verification key
+ */
 export class UpdateFactoryInfo extends Struct({
-    // new verification key hash to submit
+    /**
+     * new verification key hash to submit
+     */
     newVkHash: Field,
-    // deadline to use this signature
+    /**
+     * deadline to use this signature
+     */
     deadlineSlot: UInt32
 }) {
     constructor(value: {
@@ -103,6 +119,9 @@ export class UpdateFactoryInfo extends Struct({
     }
 }
 
+/**
+ * Information needed to update the pool verification key
+ */
 export class UpgradeInfo extends Struct({
     // contract to upgrade
     contractAddress: PublicKey,
@@ -138,6 +157,9 @@ export class UpgradeInfo extends Struct({
     }
 }
 
+/**
+ * Information needed to update the delegator/protocol
+ */
 export class UpdateAccountInfo extends Struct({
     // old account address
     oldUser: PublicKey,
@@ -169,6 +191,9 @@ export class UpdateAccountInfo extends Struct({
     }
 }
 
+/**
+ * Information needed to update the approved signer
+ */
 export class UpdateSignerData extends Struct({
     // old signer root
     oldRoot: Field,
@@ -224,6 +249,9 @@ export class MultisigInfo extends Struct({
     }
 }
 
+/**
+ * Information needed to verify signature in the proof
+ */
 export class SignatureInfo extends Struct({
     // signer account
     user: PublicKey,
@@ -260,6 +288,9 @@ export class SignatureInfo extends Struct({
     }
 }
 
+/**
+ * Check if the 3 signatures are valid
+ */
 export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt32, info: MultisigInfo, root: Field, data: Field[], right: SignatureRight) {
     info.deadlineSlot.equals(deadlineSlot).assertTrue("Deadline doesn't match")
     // check the signature come from 3 different users
@@ -281,6 +312,9 @@ export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt3
 
 }
 
+/**
+ * Check if the proof is valid
+ */
 export function verifyProof(proof: MultisigProof, merkle: Field, messageHash: Field, right: SignatureRight) {
     proof.publicInput.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
@@ -294,6 +328,9 @@ export function verifyProof(proof: MultisigProof, merkle: Field, messageHash: Fi
 
 }
 
+/**
+ * Multisig proof program
+ */
 export const MultisigProgram = ZkProgram({
     name: 'multisig',
     publicInput: MultisigInfo,

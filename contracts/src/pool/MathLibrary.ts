@@ -4,7 +4,7 @@ import { Field, Provable, Gadgets as RangeCheck, UInt64 } from "o1js";
  * Function to multiply one Uint64 by another and divide the result,
  * We check for overflow on the final result to avoid a premature overflow error.
  * @param a The multiplicand
- * @param b The multiplier 
+ * @param b The multiplier
  * @param denominator The divisor
  * @returns  the quotient and the remainder
  */
@@ -37,9 +37,9 @@ export function mulDivMod(a: UInt64, b: UInt64, denominator: UInt64): { quotient
  * Function to multiply one Uint64 by another and divide the result,
  * We check for overflow on the final result to avoid a premature overflow error.
  * @param a The multiplicand
- * @param b The multiplier 
+ * @param b The multiplier
  * @param denominator The divisor
- * @returns The 64-bit result 
+ * @returns The 64-bit result
  */
 export function mulDiv(a: UInt64, b: UInt64, denominator: UInt64): UInt64 {
     return mulDivMod(a, b, denominator).quotient;
