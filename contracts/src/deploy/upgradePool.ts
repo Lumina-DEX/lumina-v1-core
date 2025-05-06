@@ -12,12 +12,9 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { AccountUpdate, Bool, Cache, fetchAccount, MerkleTree, Mina, Poseidon, PrivateKey, PublicKey, Signature, SmartContract, UInt64, UInt8 } from 'o1js';
-import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, SignerMerkleWitness, getAmountLiquidityOutUint } from '../index.js';
+import { Cache, fetchAccount, Mina, PrivateKey, PublicKey } from 'o1js';
+import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, PoolFactory, Pool } from '../index.js';
 import readline from "readline/promises";
-import { PoolV1 } from '../pool/Poolv1.js';
-import { PoolTokenHolderV1 } from '../pool/PoolTokenHolderv1.js';
-import { PoolV2 } from '../pool/Poolv2.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -71,9 +68,9 @@ await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
-await PoolV1.compile({ cache });
-await PoolV2.compile({ cache });
-await PoolTokenHolderV1.compile({ cache });
+// await PoolV1.compile({ cache });
+// await PoolV2.compile({ cache });
+// await PoolTokenHolderV1.compile({ cache });
 
 async function ask() {
     try {
@@ -97,23 +94,25 @@ async function upgradePool(poolAddressStr: string) {
         const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
         await fetchAccount({ publicKey: ownerKey.toPublicKey() })
         const poolAddress = PublicKey.fromBase58(poolAddressStr);
-        const zkPool = new PoolV1(poolAddress);
+        // new version
+        const zkPool = new Pool(poolAddress);
         const tokenAddress = await zkPool.token1.fetch();
         const zkToken = new FungibleToken(tokenAddress!);
-        const zkHolder = new PoolTokenHolderV1(poolAddress, zkToken.deriveTokenId())
-
-        let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await zkPool.updateVerificationKey(keyPoolLatest.verificationKey)
-            await zkHolder.updateVerificationKey(keyPoolHolderLatest.verificationKey)
-            await zkToken.approveAccountUpdate(zkHolder.self);
-        });
-        console.log("upgrade  proof", tx.toPretty());
-        await tx.prove();
-        let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
-        if (sentTx.status === 'pending') {
-            console.log("hash", sentTx.hash);
-        }
-
+        // new version
+        const zkHolder = new PoolTokenHolder(poolAddress, zkToken.deriveTokenId())
+        /*
+                let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
+                    await zkPool.updateVerificationKey(keyPoolLatest.verificationKey)
+                    await zkHolder.updateVerificationKey(keyPoolHolderLatest.verificationKey)
+                    await zkToken.approveAccountUpdate(zkHolder.self);
+                });
+                console.log("upgrade  proof", tx.toPretty());
+                await tx.prove();
+                let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
+                if (sentTx.status === 'pending') {
+                    console.log("hash", sentTx.hash);
+                }
+        */
     } catch (err) {
         console.log(err);
     }

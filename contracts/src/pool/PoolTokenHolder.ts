@@ -1,8 +1,11 @@
-import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
+import { MultisigProof, UpgradeInfo, verifyProof, SignatureRight } from './MultisigProof.js';
 
-
+/**
+ * Event emitted when an user withdraw liquidity
+ */
 export class WithdrawLiquidityEvent extends Struct({
     sender: PublicKey,
     amountLiquidityIn: UInt64,
@@ -19,6 +22,9 @@ export class WithdrawLiquidityEvent extends Struct({
     }
 }
 
+/**
+ * Event emitted when liquidity was withdrawn on the second pool token holder contract
+ */
 export class SubWithdrawLiquidityEvent extends Struct({
     sender: PublicKey,
     amountLiquidityIn: UInt64,
@@ -37,10 +43,27 @@ export class SubWithdrawLiquidityEvent extends Struct({
  * Token holder contract, manage swap and liquidity remove functions
  */
 export class PoolTokenHolder extends SmartContract implements IPool {
-    @state(PublicKey) token0 = State<PublicKey>();
-    @state(PublicKey) token1 = State<PublicKey>();
-    @state(PublicKey) poolFactory = State<PublicKey>();
+    /**
+      * Address of first token in the pool (ordered by address)
+      * PublicKey.empty() in case of native mina
+      */
+    @state(PublicKey)
+    token0 = State<PublicKey>()
+    /**
+     * Address of second token in the pool
+     * Can't be empty
+     */
+    @state(PublicKey)
+    token1 = State<PublicKey>()
+    /**
+     * Pool factory contract address
+     */
+    @state(PublicKey)
+    poolFactory = State<PublicKey>()
 
+    /**
+     * List of pool token holder events
+     */
     events = {
         withdrawLiquidity: WithdrawLiquidityEvent,
         swap: SwapEvent,
@@ -48,6 +71,9 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         subWithdrawLiquidity: SubWithdrawLiquidityEvent
     };
 
+    /**
+     * This method can't be called directly, deploy new pool token holder from pool factory
+     */
     async deploy() {
         await super.deploy();
         Bool(false).assertTrue("You can't directly deploy a token holder");
@@ -55,19 +81,34 @@ export class PoolTokenHolder extends SmartContract implements IPool {
 
     /**
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
+     * @param proof multisig proof
      * @param vk new verification key
      */
-    @method async updateVerificationKey(vk: VerificationKey) {
+    @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
-        const owner = await factory.getOwner();
-        // only protocol owner can update a pool
-        AccountUpdate.createSigned(owner);
+        const merkle = await factory.getApprovedSigner();
+
+        const deadlineSlot = proof.publicInput.deadlineSlot;
+        // we can update only before the deadline to prevent signature reuse
+        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot)
+
+        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadlineSlot });
+        await verifyProof(proof, merkle, upgradeInfo.hash(), SignatureRight.canUpdatePool())
+
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
 
-    // swap from mina to this token through the pool
+    /**
+     * Swap from mina to token
+     * @param frontend address who collect the frontend fees
+     * @param taxFeeFrontend fees applied by the frontend
+     * @param amountMinaIn amount of mina to swap
+     * @param amountTokenOutMin minimum token to received
+     * @param balanceInMax minimum balance of mina in the pool
+     * @param balanceOutMin maximum balance of token in the pool
+     */
     @method async swapFromMinaToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountMinaIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         const pool = new Pool(this.address);
@@ -78,8 +119,15 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         await pool.swapFromMinaToToken(sender, protocol, amountMinaIn, balanceInMax);
     }
 
-
-    // swap from token to an other token
+    /**
+     * Swap from token to another token
+     * @param frontend address who collect the frontend fees
+     * @param taxFeeFrontend fees applied by the frontend
+     * @param amountTokenIn amount of tokenIn to swap
+     * @param amountTokenOutMin minimum tokenOut to received
+     * @param balanceInMax minimum balance of tokenIn in the pool
+     * @param balanceOutMin maximum balance of tokenOut in the pool
+     */
     @method async swapFromTokenToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         const poolDataAddress = this.poolFactory.getAndRequireEquals();
@@ -89,7 +137,16 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         await this.swap(sender, protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }
 
-    // check if they are no exploit possible  
+    /**
+     * Withdraw liquidity from the mina/token pool
+     * The reserves min and supply max permit concurrent call, use slippage mechanism to calculate it
+     * @param liquidityAmount amount of liquidity to withdraw
+     * @param amountMinaMin minimum amount of mina to receive
+     * @param amountTokenMin minimum amount of token to receive
+     * @param reserveMinaMin reserve min of mina in the pool
+     * @param reserveTokenMin reserve min of token in the pool
+     * @param supplyMax maximum liquidity in the pool
+     */
     @method async withdrawLiquidity(liquidityAmount: UInt64, amountMinaMin: UInt64, amountTokenMin: UInt64, reserveMinaMin: UInt64, reserveTokenMin: UInt64, supplyMax: UInt64) {
         const sender = this.sender.getUnconstrained();
         const amountToken = this.withdraw(sender, liquidityAmount, amountTokenMin, reserveTokenMin, supplyMax);
@@ -98,7 +155,16 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountMina, amountToken1Out: amountToken, amountLiquidityIn: liquidityAmount }));
     }
 
-    // check if they are no exploit possible  
+    /**
+     * Withdraw liquidity from the token/token pool
+     * The reserves min and supply max permit concurrent call, use slippage mechanism to calculate it
+     * @param liquidityAmount amount of liquidity to withdraw
+     * @param amountMinaMin minimum amount of mina to receive
+     * @param amountTokenMin minimum amount of token to receive
+     * @param reserveMinaMin reserve min of mina in the pool
+     * @param reserveTokenMin reserve min of token in the pool
+     * @param supplyMax maximum liquidity in the pool
+     */
     @method async withdrawLiquidityToken(liquidityAmount: UInt64, amountToken0Min: UInt64, amountToken1Min: UInt64, reserveToken0Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
         const [token0, token1] = checkToken(this, false);
 
@@ -119,8 +185,8 @@ export class PoolTokenHolder extends SmartContract implements IPool {
     }
 
     /**
-    * Don't call this method directly, use withdrawLiquidityToken for token 0
-    */
+     * Don't call this method directly, use withdrawLiquidityToken for token 0
+     */
     @method.returns(UInt64) async subWithdrawLiquidity(sender: PublicKey, liquidityAmount: UInt64, amountToken1Min: UInt64, reserveToken1Min: UInt64, supplyMax: UInt64) {
         const methodSender = this.sender.getUnconstrained();
         methodSender.assertEquals(sender);
