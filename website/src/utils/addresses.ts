@@ -1,7 +1,7 @@
 import { ZKFACTORY_ADDRESS } from "@/components/Layout";
 import { fetchAccount, fetchEvents, Field, Mina, PublicKey } from "o1js";
 
-export const poolToka = "B62qjmz2oEe8ooqBmvj3a6fAbemfhk61rjxTYmUMP9A6LPdsBLmRAxK";
+export const poolToka = "B62qqiwjYMeDHfUJALebwDrXka1f3YNKTMLuA9rtH4JDnUmxr7EGktf";
 //export const poolWeth = "B62qphnhqrRW6DFFR39onHNKnBcoB9Gqi3M8Emytg26nwZWUYXR1itw";
 
 export class Addresses {

@@ -5,7 +5,6 @@ import type {
   ZkappWorkerReponse,
   WorkerFunctions,
 } from "./zkappWorker";
-import { faucet } from "o1js/dist/node/lib/mina/mina";
 
 export default class ZkappWorkerClient {
   // ---------------------------------------------------------------------------------------

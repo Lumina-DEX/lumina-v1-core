@@ -54,7 +54,7 @@ const Swap = ({ accountState }) => {
 
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
-    const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
+    const { getAmountOut } = await import("../../../contracts/build/src/index");
     const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
     const slippage = slippagePcent;
