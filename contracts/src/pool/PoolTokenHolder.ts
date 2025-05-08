@@ -88,13 +88,14 @@ export class PoolTokenHolder extends SmartContract implements IPool {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
         const merkle = await factory.getApprovedSigner();
+        proof.info.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
-        const deadlineSlot = proof.publicInput.deadlineSlot;
+        const deadlineSlot = proof.info.deadlineSlot;
         // we can update only before the deadline to prevent signature reuse
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot)
 
         const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadlineSlot });
-        await verifyProof(proof, merkle, upgradeInfo.hash(), SignatureRight.canUpdatePool())
+        proof.verifyUpdatePool(upgradeInfo);
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));

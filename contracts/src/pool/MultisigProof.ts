@@ -288,6 +288,87 @@ export class SignatureInfo extends Struct({
     }
 }
 
+
+/**
+ * Information needed to verify the proof is correct
+ */
+export class MultisigProof extends Struct({
+    info: MultisigInfo,
+    signatures: Provable.Array(SignatureInfo, 3)
+}) {
+    constructor(value: {
+        info: MultisigInfo,
+        signatures: SignatureInfo[]
+    }) {
+        super(value);
+    }
+
+    /**
+     * Check if the signature match the current user and data subbit
+     * @param data needed to verify the signature
+     */
+    verifyUpdateFactory(updateInfo: UpdateFactoryInfo) {
+        const right = SignatureRight.canUpdateFactory();
+        verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
+    }
+
+    /**
+   * Check if the signature match the current user and data subbit
+   * @param data needed to verify the signature
+   */
+    verifyUpdatePool(upgradeInfo: UpgradeInfo) {
+        const right = SignatureRight.canUpdatePool();
+        verifySignature(this.signatures, upgradeInfo.deadlineSlot, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
+    }
+
+    /**
+   * Check if the signature match the current user and data subbit
+   * @param data needed to verify the signature
+   */
+    verifyUpdateDelegator(updateInfo: UpdateAccountInfo) {
+        const right = SignatureRight.canUpdateDelegator();
+        verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
+    }
+
+    /**
+   * Check if the signature match the current user and data subbit
+   * @param data needed to verify the signature
+   */
+    verifyUpdateProtocol(updateInfo: UpdateAccountInfo) {
+        const right = SignatureRight.canUpdateProtocol();
+        verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
+    }
+}
+
+/**
+ * Information needed to verify the proof is correct
+ */
+export class MultisigProofSigner extends Struct({
+    info: MultisigInfo,
+    signatures: Provable.Array(SignatureInfo, 3),
+    newSignatures: Provable.Array(SignatureInfo, 3),
+}) {
+    constructor(value: {
+        info: MultisigInfo,
+        signatures: SignatureInfo[],
+        newSignatures: SignatureInfo[]
+    }) {
+        super(value);
+    }
+
+    /**
+   * Check if the signature match the current user and data subbit
+   * @param data needed to verify the signature
+   */
+    verifyUpdateSigner(upgradeInfo: UpdateSignerData) {
+        const right = SignatureRight.canUpdateSigner();
+        upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");
+        verifySignature(this.signatures, upgradeInfo.deadlineSlot, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
+        verifySignature(this.newSignatures, upgradeInfo.deadlineSlot, this.info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
+    }
+}
+
+
 /**
  * Check if the 3 signatures are valid
  */
@@ -315,7 +396,7 @@ export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt3
 /**
  * Check if the proof is valid
  */
-export function verifyProof(proof: MultisigProof, merkle: Field, messageHash: Field, right: SignatureRight) {
+export function verifyProof(proof: MultisigProofOld, merkle: Field, messageHash: Field, right: SignatureRight) {
     proof.publicInput.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
     proof.publicInput.messageHash.assertEquals(messageHash);
@@ -406,4 +487,4 @@ export const MultisigProgram = ZkProgram({
 
 
 export let MultisigProof_ = ZkProgram.Proof(MultisigProgram);
-export class MultisigProof extends MultisigProof_ { }
+export class MultisigProofOld extends MultisigProof_ { }

@@ -2,7 +2,7 @@ import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { MultisigInfo, MultisigProgram, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
+import { MultisigInfo, MultisigProgram, MultisigProof, MultisigProofOld, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
 
 let proofsEnabled = false;
 
@@ -244,8 +244,8 @@ describe('Pool data', () => {
     const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
     const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
     const array = [infoBob, infoAlice, infoDylan];
-    const multisig = await MultisigProgram.verifyUpdatePool(multi, info, array);
-    const proof = new MultisigProof(multisig.proof);
+    //const multisig = await MultisigProgram.verifyUpdatePool(multi, info, array);
+    const proof = new MultisigProof({ info: multi, signatures: array });
     return proof;
   }
 
@@ -266,13 +266,7 @@ describe('Pool data', () => {
     const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
     const array = [infoBob, infoAlice, infoDylan];
 
-    if (delegator) {
-      const multisig1 = await MultisigProgram.verifyUpdateDelegator(multi, info, array);
-      return new MultisigProof(multisig1.proof);
-    }
-
-    const multisig0 = await MultisigProgram.verifyUpdateProtocol(multi, info, array);
-    return new MultisigProof(multisig0.proof);
+    return new MultisigProof({ info: multi, signatures: array });
   }
 
   it('update pool holder', async () => {

@@ -1,7 +1,7 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
-import { MultisigProof, UpgradeInfo, verifyProof, SignatureRight } from './MultisigProof.js';
+import { MultisigProof, UpgradeInfo } from './MultisigProof.js';
 
 /**
  * Event emitted when a swap is validated
@@ -155,13 +155,14 @@ export class Pool extends TokenContract implements IPool {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
         const merkle = await factory.getApprovedSigner();
+        proof.info.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
-        const deadlineSlot = proof.publicInput.deadlineSlot;
+        const deadlineSlot = proof.info.deadlineSlot;
         // we can update only before the deadline to prevent signature reuse
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot)
 
         const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadlineSlot });
-        await verifyProof(proof, merkle, upgradeInfo.hash(), SignatureRight.canUpdatePool())
+        proof.verifyUpdatePool(upgradeInfo);
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
