@@ -31,6 +31,7 @@ const testPrivateKey = 'EKEEHJZhoyjfJEvLoLCrRZosz29hnfn8Nx6Wfx74hgQV4xbrkCTf';
 const testPublicKey = 'B62qrLNBqyoECio41DRkRio2DjPsVQUkcyDitM3F9t1ajK3vp2UApja';
 const frontend = PublicKey.fromBase58("B62qrUAGW6S4pSBcZko2LdbUAhtLd15zVs9KtQedScBvwuZVbcnej35");
 const protocol = PublicKey.fromBase58("B62qpBKidvBH2YEWCwwkzLMFoBWa2fZknj6K5YWdqF5wAiLgoTExh42");
+const frontendFee = 10;
 
 // ---------------------------------------------------------------------------------------
 
@@ -250,7 +251,7 @@ const functions = {
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, total);
-      await zkPoolHolder!.swapFromMinaToToken(frontend, UInt64.from(10), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+      await zkPoolHolder!.swapFromMinaToToken(frontend, UInt64.from(frontendFee), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
       await zkToken?.approveAccountUpdate(zkPoolHolder.self);
     });
     state.transaction = transaction;
@@ -281,7 +282,7 @@ const functions = {
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, newFront);
-      await zkPool!.swapFromTokenToMina(frontend, UInt64.from(10), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+      await zkPool!.swapFromTokenToMina(frontend, UInt64.from(frontendFee), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
     });
     state.transaction = transaction;
 

@@ -9,10 +9,11 @@ import { poolToka } from "@/utils/addresses";
 import TokenMenu from "./TokenMenu";
 import Balance from "./Balance";
 import Loading from "./Loading";
+import { getAmountOut } from "@/utils/utils";
 
 type Percent = number | string;
 
-
+const frontendFee = 10;
 
 // @ts-ignore
 const Swap = ({ accountState }) => {
@@ -54,7 +55,6 @@ const Swap = ({ accountState }) => {
 
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
-    const { getAmountOut } = await import("../../../contracts/build/src/index");
     const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
     const slippage = slippagePcent;
@@ -64,12 +64,12 @@ const Swap = ({ accountState }) => {
       let amt = parseFloat(fromAmt) * 10 ** 9;
       console.log("amtIn", amt);
       if (!toDai) {
-        calcul = getAmountOut(amt, amountToken, amountMina, slippage);
+        calcul = getAmountOut(amt, amountToken, amountMina, slippage,frontendFee);
         console.log("calcul from dai", calcul);
         let amtOut = calcul.amountOut / 10 ** 9;
         setToAmount(amtOut.toString());
       } else {
-        calcul = getAmountOut(amt, amountMina, amountToken, slippage);
+        calcul = getAmountOut(amt, amountMina, amountToken, slippage,frontendFee);
         console.log("calcul from mina", calcul);
         let amtOut = calcul.amountOut / 10 ** 9;
         setToAmount(amtOut.toString());
