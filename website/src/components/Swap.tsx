@@ -8,10 +8,12 @@ import CurrencyFormat from "react-currency-format";
 import { poolToka } from "@/utils/addresses";
 import TokenMenu from "./TokenMenu";
 import Balance from "./Balance";
+import Loading from "./Loading";
+import { getAmountOut } from "@/utils/utils";
 
 type Percent = number | string;
 
-
+const frontendFee = 10;
 
 // @ts-ignore
 const Swap = ({ accountState }) => {
@@ -37,7 +39,7 @@ const Swap = ({ accountState }) => {
 
   const [toAmount, setToAmount] = useState("0.0");
 
-  const [slippagePercent, setSlippagePercent] = useState<number>(1);
+  const [slippagePercent, setSlippagePercent] = useState<number>(15);
 
   const [data, setData] = useState({ amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 });
 
@@ -53,7 +55,6 @@ const Swap = ({ accountState }) => {
 
   const getSwapAmount = async (fromAmt, slippagePcent) => {
 
-    const { getAmountOut } = await import("../../../contracts/build/src/indexmina");
     const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     let calcul = { amountIn: 0, amountOut: 0, balanceOutMin: 0, balanceInMax: 0 };
     const slippage = slippagePcent;
@@ -63,12 +64,12 @@ const Swap = ({ accountState }) => {
       let amt = parseFloat(fromAmt) * 10 ** 9;
       console.log("amtIn", amt);
       if (!toDai) {
-        calcul = getAmountOut(amt, amountToken, amountMina, slippage);
+        calcul = getAmountOut(amt, amountToken, amountMina, slippage,frontendFee);
         console.log("calcul from dai", calcul);
         let amtOut = calcul.amountOut / 10 ** 9;
         setToAmount(amtOut.toString());
       } else {
-        calcul = getAmountOut(amt, amountMina, amountToken, slippage);
+        calcul = getAmountOut(amt, amountMina, amountToken, slippage,frontendFee);
         console.log("calcul from mina", calcul);
         let amtOut = calcul.amountOut / 10 ** 9;
         setToAmount(amtOut.toString());
@@ -93,6 +94,7 @@ const Swap = ({ accountState }) => {
           await zkState.zkappWorkerClient?.swapFromMina(pool, user, data.amountIn, data.amountOut, data.balanceOutMin, data.balanceInMax);
         }
         const json = await zkState.zkappWorkerClient?.getTransactionJSON();
+        setLoading(false);
         console.timeEnd("swap");
         await mina.sendTransaction({ transaction: json });
       }
@@ -113,11 +115,11 @@ const Swap = ({ accountState }) => {
             Swap
           </div>
           <div>
-            <span>Slippage (%) : </span><input type="number" defaultValue={slippagePercent} onChange={(event) => setSlippagePercent(event.target.valueAsNumber)}></input>
+            <span className="font-light">Slippage (%) : </span><input type="number" className="pl-3" defaultValue={slippagePercent} onChange={(event) => setSlippagePercent(event.target.valueAsNumber)}></input>
           </div>
           <div className="flex flex-row w-full">
             <CurrencyFormat
-              className="w-48 border-black text-default pr-3 text-xl text-right rounded focus:outline-none "
+              className="w-48 border-slate-50 pr-3 text-xl text-right rounded focus:outline-none "
               thousandSeparator={true}
               decimalScale={2}
               placeholder="0.0"
@@ -133,7 +135,7 @@ const Swap = ({ accountState }) => {
           </div>
           <div className="flex flex-row w-full">
             <CurrencyFormat
-              className="w-48 border-slate-50 text-default  pr-3 text-xl text-right text-xl rounded focus:outline-none "
+              className="w-48 border-slate-50  pr-3 text-xl text-right rounded focus:outline-none "
               thousandSeparator={true}
               decimalScale={2}
               placeholder="0.0"
@@ -148,8 +150,7 @@ const Swap = ({ accountState }) => {
           <button onClick={swap} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Swap
           </button>
-          {loading && <p>Creating transaction ...</p>}
-
+          {loading && <div className="flex flex-row items-center"><Loading></Loading> <span className="ml-3">Creating transaction ...</span></div>}
         </div>
       </div>
     </>

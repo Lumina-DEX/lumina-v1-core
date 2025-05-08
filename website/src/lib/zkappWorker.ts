@@ -2,7 +2,7 @@ import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UIn
 
 console.log('Load Web Worker.');
 
-import { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/indexmina";
+import { PoolFactory, Pool, MultisigProgram, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/index";
 import { fetchFiles, readCache } from "./cache";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -12,11 +12,12 @@ type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 const state = {
   TokenAdmin: null as null | typeof FungibleTokenAdmin,
   TokenStandard: null as null | typeof FungibleToken,
-  PoolMina: null as null | typeof PoolMina,
+  PoolMina: null as null | typeof Pool,
   PoolFactory: null as null | typeof PoolFactory,
   PoolMinaHolder: null as null | typeof PoolTokenHolder,
+  MultisigProgram: null as null | typeof MultisigProgram,
   Faucet: null as null | typeof Faucet,
-  zkapp: null as null | PoolMina,
+  zkapp: null as null | Pool,
   zkFactory: null as null | PoolFactory,
   zkHolder: null as null | PoolTokenHolder,
   zkToken: null as null | FungibleToken,
@@ -28,8 +29,9 @@ const state = {
 
 const testPrivateKey = 'EKEEHJZhoyjfJEvLoLCrRZosz29hnfn8Nx6Wfx74hgQV4xbrkCTf';
 const testPublicKey = 'B62qrLNBqyoECio41DRkRio2DjPsVQUkcyDitM3F9t1ajK3vp2UApja';
-const frontend = PublicKey.fromBase58("B62qoSZbMLJSP7dHLqe8spFPFSsUoENnMSHJN8i5bS1X4tdGpAZuwAC");
-const protocol = PublicKey.fromBase58("B62qk7R5wo6WTwYSpBHPtfikGvkuasJGEv4ZsSA2sigJdqJqYsWUzA1");
+const frontend = PublicKey.fromBase58("B62qrUAGW6S4pSBcZko2LdbUAhtLd15zVs9KtQedScBvwuZVbcnej35");
+const protocol = PublicKey.fromBase58("B62qpBKidvBH2YEWCwwkzLMFoBWa2fZknj6K5YWdqF5wAiLgoTExh42");
+const frontendFee = 10;
 
 // ---------------------------------------------------------------------------------------
 
@@ -63,9 +65,10 @@ const functions = {
   },
 
   loadContract: async (args: {}) => {
-    const { PoolFactory, PoolMina, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/indexmina");
+    const { MultisigProgram, PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/index");
     // @ts-ignore
-    state.PoolMina = PoolMina;
+    state.MultisigProgram = MultisigProgram;
+    state.PoolMina = Pool;
     state.PoolFactory = PoolFactory;
     state.PoolMinaHolder = PoolTokenHolder;
     state.TokenStandard = FungibleToken;
@@ -77,6 +80,7 @@ const functions = {
     const cacheFiles = await fetchFiles();
     const cache = readCache(cacheFiles);
 
+    await state.MultisigProgram!.compile({ cache });
     await state.TokenAdmin?.compile({ cache });
     await state.TokenStandard?.compile({ cache });
     await state.PoolFactory!.compile({ cache });
@@ -112,7 +116,7 @@ const functions = {
     const publicKey = PublicKey.fromBase58(args.pool);
     await fetchAccount({ publicKey })
     state.zkapp = new state.PoolMina!(publicKey);
-    const token = await state.zkapp.token.fetch();
+    const token = await state.zkapp.token1.fetch();
     await fetchAccount({ publicKey: token })
     state.zkToken = new state.TokenStandard!(token);
 
@@ -210,7 +214,7 @@ const functions = {
     const poolAddress = PublicKey.fromBase58(args.pool);
     const acc = await fetchAccount({ publicKey: poolAddress });
     const zkPool = new state.PoolMina(poolAddress);
-    const token = await zkPool.token.fetch();
+    const token = await zkPool.token1.fetch();
     const zkToken = new state.TokenStandard(token);
     const accToken = await fetchAccount({ publicKey: poolAddress, tokenId: zkToken.deriveTokenId() });
     const accLiquidity = await fetchAccount({ publicKey: poolAddress, tokenId: zkPool.deriveTokenId() });
@@ -222,7 +226,7 @@ const functions = {
   swapFromMinaTransaction: async (args: { pool: string, user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
     const poolAddress = PublicKey.fromBase58(args.pool);
     const zkPool = new state.PoolMina(poolAddress);
-    const token = await zkPool.token.fetch();
+    const token = await zkPool.token1.fetch();
     const zkToken = new state.TokenStandard(token);
     const zkPoolHolder = new state.PoolMinaHolder(poolAddress, zkToken.deriveTokenId());
 
@@ -247,7 +251,7 @@ const functions = {
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, total);
-      await zkPoolHolder!.swapFromMina(frontend, UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+      await zkPoolHolder!.swapFromMinaToToken(frontend, UInt64.from(frontendFee), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
       await zkToken?.approveAccountUpdate(zkPoolHolder.self);
     });
     state.transaction = transaction;
@@ -257,7 +261,7 @@ const functions = {
   swapFromTokenTransaction: async (args: { pool: string, user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
     const poolAddress = PublicKey.fromBase58(args.pool);
     const zkPool = new state.PoolMina(poolAddress);
-    const token = await zkPool.token.fetch();
+    const token = await zkPool.token1.fetch();
     const zkToken = new state.TokenStandard(token);
 
     const amtIn = Math.trunc(args.amt);
@@ -278,7 +282,7 @@ const functions = {
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
       AccountUpdate.fundNewAccount(publicKey, newFront);
-      await zkPool!.swapFromToken(frontend, UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
+      await zkPool!.swapFromTokenToMina(frontend, UInt64.from(frontendFee), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
     });
     state.transaction = transaction;
 
@@ -287,7 +291,7 @@ const functions = {
   addLiquidity: async (args: { pool: string, user: string, amtMina: number, amtToken: number, reserveMinaMax: number, reserveTokenMax: number, supplyMin: number }) => {
     const poolAddress = PublicKey.fromBase58(args.pool);
     const zkPool = new state.PoolMina(poolAddress);
-    const token = await zkPool.token.fetch();
+    const token = await zkPool.token1.fetch();
     const zkToken = new state.TokenStandard(token);
 
     const amtMinaIn = Math.trunc(args.amtMina);
@@ -327,7 +331,7 @@ const functions = {
   withdrawLiquidity: async (args: { pool: string, user: string, liquidityAmount: number, amountMinaMin: number, amountTokenMin: number, reserveMinaMin: number, reserveTokenMin: number, supplyMax: number }) => {
     const poolAddress = PublicKey.fromBase58(args.pool);
     const zkPool = new state.PoolMina(poolAddress);
-    const token = await zkPool.token.fetch();
+    const token = await zkPool.token1.fetch();
     const zkToken = new state.TokenStandard(token);
     const zkPoolHolder = new state.PoolMinaHolder(poolAddress, zkToken.deriveTokenId());
 
