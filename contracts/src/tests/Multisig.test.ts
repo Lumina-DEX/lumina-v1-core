@@ -204,8 +204,8 @@ describe('Pool data', () => {
 
         await deployPool();
 
-        const contractAddress = zkAppAddress;
-        const tokenId = zkApp.tokenId;
+        const contractAddress = zkPoolAddress;
+        const tokenId = zkPool.tokenId;
         const today = new Date();
         today.setDate(today.getDate() + 1);
         const tomorrow = today.getTime();
@@ -224,15 +224,12 @@ describe('Pool data', () => {
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updatePoolRight })
         const array = [infoBob, infoAlice, infoDylan];
 
-        return;
-
         const proof = new MultisigProof({ info: multi, signatures: array });
         const txn = await Mina.transaction(deployerAccount, async () => {
-            await zkApp.updateVerificationKey(proof, compileKey);
+            await zkPool.updateVerificationKey(proof, compileKey);
         });
         await txn.prove();
-        // need to wait 1 day to update
-        await expect(txn.sign([deployerKey]).send()).rejects.toThrow();
+        await txn.sign([deployerKey]).send();
     });
 
     /*
