@@ -15,7 +15,7 @@
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { MultisigInfo, MultisigProgram, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof.js';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -120,7 +120,6 @@ merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
 console.log('compile the contract...');
 
 const cache: Cache = Cache.FileSystem('./cache');
-await MultisigProgram.compile({ cache });
 const keyPoolLatest = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });

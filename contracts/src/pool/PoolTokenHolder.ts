@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
-import { MultisigProof, UpgradeInfo, verifyProof, SignatureRight } from './MultisigProof.js';
+import { MultisigProof, UpgradeInfo } from './MultisigProof.js';
 
 /**
  * Event emitted when an user withdraw liquidity

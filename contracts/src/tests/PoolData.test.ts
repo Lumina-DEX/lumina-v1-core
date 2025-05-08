@@ -2,7 +2,7 @@ import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { MultisigInfo, MultisigProgram, MultisigProof, MultisigProofOld, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
+import { MultisigInfo, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
 
 let proofsEnabled = false;
 
@@ -57,7 +57,6 @@ describe('Pool data', () => {
     compileKey = vkUpgradeTest;
 
     const cache = Cache.FileSystem('./cache');
-    const multisigProgram = await MultisigProgram.compile({ proofsEnabled });
     // const compileResult = await PoolUpgradeTest.compile({ cache, });
 
     // console.log("poolUpgradeTest", compileResult.verificationKey.data);
