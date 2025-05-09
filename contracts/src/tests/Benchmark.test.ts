@@ -1,10 +1,10 @@
-import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
 import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Benchmark', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -43,13 +43,15 @@ describe('Benchmark', () => {
     const analyze = await Pool.analyzeMethods();
     getGates(analyze);
 
+    const cache = Cache.FileSystem('./cache');
     if (proofsEnabled) {
+
       console.time('compile pool');
-      await FungibleTokenAdmin.compile();
-      await FungibleToken.compile();
-      await PoolFactory.compile();
-      await Pool.compile();
-      await PoolTokenHolder.compile();
+      await FungibleTokenAdmin.compile({ cache });
+      await FungibleToken.compile({ cache });
+      await PoolFactory.compile({ cache });
+      await Pool.compile({ cache });
+      await PoolTokenHolder.compile({ cache });
       console.timeEnd('compile pool');
     }
 
