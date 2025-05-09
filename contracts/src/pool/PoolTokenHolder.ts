@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
-import { MultisigProof, UpgradeInfo } from './MultisigProof.js';
+import { Multisig, UpgradeInfo } from './Multisig.js';
 
 /**
  * Event emitted when an user withdraw liquidity
@@ -84,7 +84,7 @@ export class PoolTokenHolder extends SmartContract implements IPool {
      * @param proof multisig proof
      * @param vk new verification key
      */
-    @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
+    @method async updateVerificationKey(proof: Multisig, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
         const merkle = await factory.getApprovedSigner();

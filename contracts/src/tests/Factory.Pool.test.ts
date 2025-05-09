@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, Field, MerkleMap, Mina, Poseidon, PrivateKey, Prov
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, PoolTokenHolder, Pool } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 

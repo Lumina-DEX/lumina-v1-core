@@ -1,5 +1,5 @@
-import { Field, MerkleMap, Cache, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64, VerificationKey, Bool, AccountUpdate, UInt8 } from 'o1js';
-import { MultisigInfo, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
+import { Field, MerkleMap, Cache, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, VerificationKey, Bool, AccountUpdate, UInt8 } from 'o1js';
+import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateSignerData, UpgradeInfo } from '../pool/Multisig';
 import { FungibleTokenAdmin, FungibleToken } from 'mina-fungible-token';
 import { PoolFactory, Pool, PoolTokenHolder } from '../indexpool';
 
@@ -224,7 +224,7 @@ describe('Pool data', () => {
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updatePoolRight })
         const array = [infoBob, infoAlice, infoDylan];
 
-        const proof = new MultisigProof({ info: multi, signatures: array });
+        const proof = new Multisig({ info: multi, signatures: array });
         const txn = await Mina.transaction(deployerAccount, async () => {
             await zkPool.updateVerificationKey(proof, compileKey);
         });

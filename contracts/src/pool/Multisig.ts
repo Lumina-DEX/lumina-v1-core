@@ -290,9 +290,9 @@ export class SignatureInfo extends Struct({
 
 
 /**
- * Information needed to verify the proof is correct
+ * Information needed to verify the signatures is correct
  */
-export class MultisigProof extends Struct({
+export class Multisig extends Struct({
     info: MultisigInfo,
     signatures: Provable.Array(SignatureInfo, 3)
 }) {
@@ -313,27 +313,27 @@ export class MultisigProof extends Struct({
     }
 
     /**
-   * Check if the signature match the current user and data subbit
-   * @param data needed to verify the signature
-   */
+     * Check if the signature match the current user and data subbit
+     * @param data needed to verify the signature
+     */
     verifyUpdatePool(upgradeInfo: UpgradeInfo) {
         const right = SignatureRight.canUpdatePool();
         verifySignature(this.signatures, upgradeInfo.deadlineSlot, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
     }
 
     /**
-   * Check if the signature match the current user and data subbit
-   * @param data needed to verify the signature
-   */
+     * Check if the signature match the current user and data subbit
+     * @param data needed to verify the signature
+     */
     verifyUpdateDelegator(updateInfo: UpdateAccountInfo) {
         const right = SignatureRight.canUpdateDelegator();
         verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
     }
 
     /**
-   * Check if the signature match the current user and data subbit
-   * @param data needed to verify the signature
-   */
+     * Check if the signature match the current user and data subbit
+     * @param data needed to verify the signature
+     */
     verifyUpdateProtocol(updateInfo: UpdateAccountInfo) {
         const right = SignatureRight.canUpdateProtocol();
         verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
@@ -357,9 +357,9 @@ export class MultisigProofSigner extends Struct({
     }
 
     /**
-   * Check if the signature match the current user and data subbit
-   * @param data needed to verify the signature
-   */
+     * Check if the signature match the current user and data subbit
+     * @param data needed to verify the signature
+     */
     verifyUpdateSigner(upgradeInfo: UpdateSignerData) {
         const right = SignatureRight.canUpdateSigner();
         upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");

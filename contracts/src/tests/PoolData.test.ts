@@ -2,7 +2,7 @@ import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { MultisigInfo, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
+import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -244,7 +244,7 @@ describe('Pool data', () => {
     const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
     const array = [infoBob, infoAlice, infoDylan];
     //const multisig = await MultisigProgram.verifyUpdatePool(multi, info, array);
-    const proof = new MultisigProof({ info: multi, signatures: array });
+    const proof = new Multisig({ info: multi, signatures: array });
     return proof;
   }
 
@@ -265,7 +265,7 @@ describe('Pool data', () => {
     const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
     const array = [infoBob, infoAlice, infoDylan];
 
-    return new MultisigProof({ info: multi, signatures: array });
+    return new Multisig({ info: multi, signatures: array });
   }
 
   it('update pool holder', async () => {

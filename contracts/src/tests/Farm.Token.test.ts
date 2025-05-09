@@ -6,7 +6,7 @@ import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
 import { claimerNumber, FarmMerkleWitness, FarmReward, minTimeUnlockFarmReward } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 

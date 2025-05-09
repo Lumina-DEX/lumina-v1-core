@@ -1,7 +1,7 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
-import { MultisigProof, UpgradeInfo } from './MultisigProof.js';
+import { Multisig, UpgradeInfo } from './Multisig.js';
 
 /**
  * Event emitted when a swap is validated
@@ -151,7 +151,7 @@ export class Pool extends TokenContract implements IPool {
      * @param proof multisig proof
      * @param vk new verification key
      */
-    @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
+    @method async updateVerificationKey(proof: Multisig, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
         const merkle = await factory.getApprovedSigner();

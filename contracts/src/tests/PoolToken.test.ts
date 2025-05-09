@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, Pr
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, getAmountLiquidityOutUint } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 

@@ -1,6 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-import { MultisigInfo, MultisigProof, MultisigProofSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature } from './MultisigProof.js';
+import { MultisigInfo, Multisig, MultisigProofSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature } from './Multisig.js';
 
 /**
  * Current verification key of pool contract
@@ -160,7 +160,7 @@ export class PoolFactory extends TokenContract {
      * @param proof multisig proof
      * @param vk new verification key
      */
-    @method async updateVerificationKey(proof: MultisigProof, vk: VerificationKey) {
+    @method async updateVerificationKey(proof: Multisig, vk: VerificationKey) {
         const deadlineSlot = proof.info.deadlineSlot;
         const approvedSigner = this.approvedSigner.getAndRequireEquals();
         proof.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
@@ -196,7 +196,7 @@ export class PoolFactory extends TokenContract {
      * @param proof multisig proof
      * @param newUser address of the new protocol collectord
      */
-    @method async setNewProtocol(proof: MultisigProof, newUser: PublicKey) {
+    @method async setNewProtocol(proof: Multisig, newUser: PublicKey) {
         const oldUser = this.protocol.getAndRequireEquals();
         const deadlineSlot = proof.info.deadlineSlot;
         const approvedSigner = this.approvedSigner.getAndRequireEquals();
@@ -215,7 +215,7 @@ export class PoolFactory extends TokenContract {
      * @param proof multisig proof
      * @param newUser address of the new delegator
      */
-    @method async setNewDelegator(proof: MultisigProof, newUser: PublicKey) {
+    @method async setNewDelegator(proof: Multisig, newUser: PublicKey) {
         const oldUser = this.delegator.getAndRequireEquals();
         const deadlineSlot = proof.info.deadlineSlot;
         const approvedSigner = this.approvedSigner.getAndRequireEquals();
