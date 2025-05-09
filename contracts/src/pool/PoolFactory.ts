@@ -1,6 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-import { MultisigInfo, Multisig, MultisigProofSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature } from './Multisig.js';
+import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature } from './Multisig.js';
 
 /**
  * Current verification key of pool contract
@@ -29,7 +29,7 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     delegator: PublicKey;
     approvedSigner: Field;
     signatures: SignatureInfo[];
-    signatureInfo: MultisigInfo;
+    multisigInfo: MultisigInfo;
 }
 
 /**
@@ -135,12 +135,12 @@ export class PoolFactory extends TokenContract {
         args.approvedSigner.equals(Field.empty()).assertFalse("Approved signer is empty");
         args.approvedSigner.equals(defaultRoot).assertFalse("Approved signer is empty");
 
-        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, args.signatureInfo.deadlineSlot);
+        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, args.multisigInfo.deadlineSlot);
 
-        const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.signatureInfo.deadlineSlot });
+        const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.multisigInfo.deadlineSlot });
         // we need 3 signatures to update signer, prevent to deadlock contract update
         const right = SignatureRight.canUpdateSigner();
-        verifySignature(args.signatures, args.signatureInfo.deadlineSlot, args.signatureInfo, args.signatureInfo.approvedUpgrader, updateSignerData.toFields(), right);
+        verifySignature(args.signatures, args.multisigInfo.deadlineSlot, args.multisigInfo, args.multisigInfo.approvedUpgrader, updateSignerData.toFields(), right);
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
@@ -157,17 +157,17 @@ export class PoolFactory extends TokenContract {
 
     /**
      * Upgrade to a new version
-     * @param proof multisig proof
+     * @param multisig multisig data
      * @param vk new verification key
      */
-    @method async updateVerificationKey(proof: Multisig, vk: VerificationKey) {
-        const deadlineSlot = proof.info.deadlineSlot;
+    @method async updateVerificationKey(multisig: Multisig, vk: VerificationKey) {
+        const deadlineSlot = multisig.info.deadlineSlot;
         const approvedSigner = this.approvedSigner.getAndRequireEquals();
-        proof.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
+        multisig.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot);
 
         const upgradeInfo = new UpdateFactoryInfo({ newVkHash: vk.hash, deadlineSlot });
-        proof.verifyUpdateFactory(upgradeInfo);
+        multisig.verifyUpdateFactory(upgradeInfo);
 
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
@@ -175,17 +175,17 @@ export class PoolFactory extends TokenContract {
 
     /**
      * Update the list of approved signers
-     * @param proof multisig proof
+     * @param multisig multisig data
      * @param newRoot merkle root of the new list
      */
-    @method async updateApprovedSigner(proof: MultisigProofSigner, newRoot: Field) {
+    @method async updateApprovedSigner(multisig: MultisigSigner, newRoot: Field) {
         const oldRoot = this.approvedSigner.getAndRequireEquals();
-        proof.info.approvedUpgrader.equals(oldRoot).assertTrue("Incorrect signer list");
-        const deadlineSlot = proof.info.deadlineSlot;
+        multisig.info.approvedUpgrader.equals(oldRoot).assertTrue("Incorrect signer list");
+        const deadlineSlot = multisig.info.deadlineSlot;
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot)
 
         const upgradeInfo = new UpdateSignerData({ oldRoot, newRoot, deadlineSlot });
-        proof.verifyUpdateSigner(upgradeInfo);
+        multisig.verifyUpdateSigner(upgradeInfo);
 
         this.approvedSigner.set(newRoot);
         this.emitEvent("updateSigner", new UpdateSignerEvent(newRoot));
@@ -193,18 +193,18 @@ export class PoolFactory extends TokenContract {
 
     /**
      * Update the protocol account address
-     * @param proof multisig proof
+     * @param multisig multisig data
      * @param newUser address of the new protocol collectord
      */
-    @method async setNewProtocol(proof: Multisig, newUser: PublicKey) {
+    @method async setNewProtocol(multisig: Multisig, newUser: PublicKey) {
         const oldUser = this.protocol.getAndRequireEquals();
-        const deadlineSlot = proof.info.deadlineSlot;
+        const deadlineSlot = multisig.info.deadlineSlot;
         const approvedSigner = this.approvedSigner.getAndRequireEquals();
-        proof.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
+        multisig.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot);
 
         const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot });
-        proof.verifyUpdateProtocol(upgradeInfo);
+        multisig.verifyUpdateProtocol(upgradeInfo);
 
         this.protocol.set(newUser);
         this.emitEvent("updateProtocol", new UpdateUserEvent(newUser));
@@ -212,18 +212,18 @@ export class PoolFactory extends TokenContract {
 
     /**
      * Update the delgator address
-     * @param proof multisig proof
+     * @param multisig multisig data
      * @param newUser address of the new delegator
      */
-    @method async setNewDelegator(proof: Multisig, newUser: PublicKey) {
+    @method async setNewDelegator(multisig: Multisig, newUser: PublicKey) {
         const oldUser = this.delegator.getAndRequireEquals();
-        const deadlineSlot = proof.info.deadlineSlot;
+        const deadlineSlot = multisig.info.deadlineSlot;
         const approvedSigner = this.approvedSigner.getAndRequireEquals();
-        proof.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
+        multisig.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot);
 
         const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot });
-        proof.verifyUpdateDelegator(upgradeInfo);
+        multisig.verifyUpdateDelegator(upgradeInfo);
 
         this.delegator.set(newUser);
         this.emitEvent("updateDelegator", new UpdateUserEvent(newUser));

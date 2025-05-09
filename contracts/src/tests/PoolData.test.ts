@@ -160,7 +160,7 @@ describe('Pool data', () => {
         delegator: dylanAccount,
         approvedSigner: root,
         signatures: array,
-        signatureInfo: multi
+        multisigInfo: multi
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

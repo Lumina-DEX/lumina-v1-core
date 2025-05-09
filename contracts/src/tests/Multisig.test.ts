@@ -175,7 +175,7 @@ describe('Pool data', () => {
                 delegator: dylanAccount,
                 approvedSigner: root,
                 signatures: signatures,
-                signatureInfo: multi
+                multisigInfo: multi
             });
         });
         await txn.prove();

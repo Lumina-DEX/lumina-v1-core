@@ -341,9 +341,9 @@ export class Multisig extends Struct({
 }
 
 /**
- * Information needed to verify the proof is correct
+ * Information needed to verify the multisig is correct to update the signer list
  */
-export class MultisigProofSigner extends Struct({
+export class MultisigSigner extends Struct({
     info: MultisigInfo,
     signatures: Provable.Array(SignatureInfo, 3),
     newSignatures: Provable.Array(SignatureInfo, 3),

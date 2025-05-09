@@ -349,7 +349,7 @@ async function deployFactory() {
                     protocol: protocolKey.toPublicKey(),
                     approvedSigner: root,
                     signatures: array,
-                    signatureInfo: multi
+                    multisigInfo: multi
                 });
             }
         );
