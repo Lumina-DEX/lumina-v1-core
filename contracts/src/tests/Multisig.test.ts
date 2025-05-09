@@ -1,4 +1,4 @@
-import { Field, MerkleMap, Cache, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, VerificationKey, Bool, AccountUpdate, UInt8 } from 'o1js';
+import { Field, MerkleMap, Cache, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, VerificationKey, Bool, AccountUpdate, UInt8, TokenId } from 'o1js';
 import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateSignerData, UpgradeInfo } from '../pool/Multisig';
 import { FungibleTokenAdmin, FungibleToken } from 'mina-fungible-token';
 import { PoolFactory, Pool, PoolTokenHolder } from '../indexpool';
@@ -232,7 +232,7 @@ describe('Pool data', () => {
         await txn.sign([deployerKey]).send();
     });
 
-    /*
+
     it('incorrect signer pool proof', async () => {
 
         merkle.set(Poseidon.hash(bobPublic.toFields()), updateDelegatorRight.hash());
@@ -240,14 +240,15 @@ describe('Pool data', () => {
         merkle.set(Poseidon.hash(dylanPublic.toFields()), updateDelegatorRight.hash());
         merkle.set(Poseidon.hash(senderPublic.toFields()), updateDelegatorRight.hash());
 
-        const pk = PrivateKey.random();
-        const contractAddress = pk.toPublicKey();
-        const tokenId = TokenId.derive(contractAddress);
+        await deployPool();
+
+        const contractAddress = zkPoolAddress;
+        const tokenId = zkPool.tokenId;
         const today = new Date();
         today.setDate(today.getDate() + 1);
         const tomorrow = today.getTime();
         const time = getSlotFromTimestamp(tomorrow);
-        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
+        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: vkUpgradeTest.hash, deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -261,7 +262,11 @@ describe('Pool data', () => {
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updatePoolRight })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updatePoolRight })
         const array = [infoBob, infoAlice, infoDylan];
-        await expect(MultisigProgram.verifyUpdatePool(multi, info, array)).rejects.toThrow("Invalid signer");
+
+        const proof = new Multisig({ info: multi, signatures: array });
+        await expect(Mina.transaction(deployerAccount, async () => {
+            await zkPool.updateVerificationKey(proof, compileKey);
+        })).rejects.toThrow("Invalid signer");
 
     });
 
@@ -272,14 +277,15 @@ describe('Pool data', () => {
         merkle.set(Poseidon.hash(dylanPublic.toFields()), updateDelegatorRight.hash());
         merkle.set(Poseidon.hash(senderPublic.toFields()), updateDelegatorRight.hash());
 
-        const pk = PrivateKey.random();
-        const contractAddress = pk.toPublicKey();
-        const tokenId = TokenId.derive(contractAddress);
+        await deployPool();
+
+        const contractAddress = zkPoolAddress;
+        const tokenId = zkPool.tokenId;
         const today = new Date();
         today.setDate(today.getDate() + 1);
         const tomorrow = today.getTime();
         const time = getSlotFromTimestamp(tomorrow);
-        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: Field(33), deadlineSlot: UInt32.from(time) });
+        const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: vkUpgradeTest.hash, deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -293,9 +299,15 @@ describe('Pool data', () => {
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updatePoolRight })
         const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: updateDelegatorRight })
         const array = [infoBob, infoAlice, infoDylan];
-        await expect(MultisigProgram.verifyUpdatePool(multi, info, array)).rejects.toThrow("User doesn't have the right to update a pool");
+
+        const proof = new Multisig({ info: multi, signatures: array });
+        await expect(Mina.transaction(deployerAccount, async () => {
+            await zkPool.updateVerificationKey(proof, compileKey);
+        })).rejects.toThrow("User doesn't have the right for this operation");
     });
 
+
+    /*
     it('incorrect message pool proof', async () => {
 
         merkle.set(Poseidon.hash(bobPublic.toFields()), updatePoolRight.hash());
@@ -518,9 +530,6 @@ describe('Pool data', () => {
         multisig.proof.publicOutput.updateSigner.assertTrue("Is not an update for the signer");
 
     });
-
-   
-
     */
 
     function getSlotFromTimestamp(date: number) {
