@@ -106,6 +106,9 @@ const ownerPublic = ownerKey.toPublicKey();
 const signer1Public = signer1Key.toPublicKey();
 const signer2Public = signer2Key.toPublicKey();
 const signer3Public = signer3Key.toPublicKey();
+const externalSigner1 = PublicKey.fromBase58("B62qkjzL662Z5QD16cB9j6Q5TH74y42ALsMhAiyrwWvWwWV1ypfcV65");
+const externalSigner2 = PublicKey.fromBase58("B62qpLxXFg4rmhce762uiJjNRnp5Bzc9PnCEAcraeaMkVWkPi7kgsWV");
+const externalSigner3 = PublicKey.fromBase58("B62qipa4xp6pQKqAm5qoviGoHyKaurHvLZiWf3djDNgrzdERm6AowSQ");
 const approvedSignerPublic = approvedSigner.toPublicKey();
 
 const merkle = new MerkleMap();
@@ -114,6 +117,9 @@ merkle.set(Poseidon.hash(signer1Public.toFields()), allRight.hash());
 merkle.set(Poseidon.hash(signer2Public.toFields()), allRight.hash());
 merkle.set(Poseidon.hash(signer3Public.toFields()), allRight.hash());
 merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
+merkle.set(Poseidon.hash(externalSigner1.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(externalSigner2.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(externalSigner3.toFields()), allRight.hash());
 
 
 // compile the contract to create prover keys

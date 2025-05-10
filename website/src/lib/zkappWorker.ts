@@ -2,7 +2,7 @@ import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UIn
 
 console.log('Load Web Worker.');
 
-import { PoolFactory, Pool, MultisigProgram, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/index";
+import { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/index";
 import { fetchFiles, readCache } from "./cache";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -15,7 +15,6 @@ const state = {
   PoolMina: null as null | typeof Pool,
   PoolFactory: null as null | typeof PoolFactory,
   PoolMinaHolder: null as null | typeof PoolTokenHolder,
-  MultisigProgram: null as null | typeof MultisigProgram,
   Faucet: null as null | typeof Faucet,
   zkapp: null as null | Pool,
   zkFactory: null as null | PoolFactory,
@@ -65,9 +64,8 @@ const functions = {
   },
 
   loadContract: async (args: {}) => {
-    const { MultisigProgram, PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/index");
+    const { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/index");
     // @ts-ignore
-    state.MultisigProgram = MultisigProgram;
     state.PoolMina = Pool;
     state.PoolFactory = PoolFactory;
     state.PoolMinaHolder = PoolTokenHolder;
@@ -80,7 +78,6 @@ const functions = {
     const cacheFiles = await fetchFiles();
     const cache = readCache(cacheFiles);
 
-    await state.MultisigProgram!.compile({ cache });
     await state.TokenAdmin?.compile({ cache });
     await state.TokenStandard?.compile({ cache });
     await state.PoolFactory!.compile({ cache });

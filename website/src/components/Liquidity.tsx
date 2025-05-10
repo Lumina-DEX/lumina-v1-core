@@ -44,7 +44,7 @@ const Liquidity = ({ accountState }) => {
 
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {
     console.log("getLiquidityAmount", fromAmt);
-    const { getAmountLiquidityOut, getFirstAmountLiquidityOut } = await import("../../../contracts/build/src/indexmina");
+    const { getAmountLiquidityOut, getFirstAmountLiquidityOut } = await import("../../../contracts/build/src/index");
     const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     console.log("reserve", reserves);
     let calcul = { amountAIn: 0, amountBIn: 0, balanceAMax: 0, balanceBMax: 0, supplyMin: 0, liquidity: 0 };
