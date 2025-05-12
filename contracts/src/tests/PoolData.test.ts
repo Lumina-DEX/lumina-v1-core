@@ -2,7 +2,7 @@ import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { MultisigInfo, MultisigProgram, MultisigProof, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/MultisigProof';
+import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -57,7 +57,6 @@ describe('Pool data', () => {
     compileKey = vkUpgradeTest;
 
     const cache = Cache.FileSystem('./cache');
-    const multisigProgram = await MultisigProgram.compile({ proofsEnabled });
     // const compileResult = await PoolUpgradeTest.compile({ cache, });
 
     // console.log("poolUpgradeTest", compileResult.verificationKey.data);
@@ -161,7 +160,7 @@ describe('Pool data', () => {
         delegator: dylanAccount,
         approvedSigner: root,
         signatures: array,
-        signatureInfo: multi
+        multisigInfo: multi
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,
@@ -244,8 +243,8 @@ describe('Pool data', () => {
     const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
     const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
     const array = [infoBob, infoAlice, infoDylan];
-    const multisig = await MultisigProgram.verifyUpdatePool(multi, info, array);
-    const proof = new MultisigProof(multisig.proof);
+    //const multisig = await MultisigProgram.verifyUpdatePool(multi, info, array);
+    const proof = new Multisig({ info: multi, signatures: array });
     return proof;
   }
 
@@ -266,13 +265,7 @@ describe('Pool data', () => {
     const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
     const array = [infoBob, infoAlice, infoDylan];
 
-    if (delegator) {
-      const multisig1 = await MultisigProgram.verifyUpdateDelegator(multi, info, array);
-      return new MultisigProof(multisig1.proof);
-    }
-
-    const multisig0 = await MultisigProgram.verifyUpdateProtocol(multi, info, array);
-    return new MultisigProof(multisig0.proof);
+    return new Multisig({ info: multi, signatures: array });
   }
 
   it('update pool holder', async () => {

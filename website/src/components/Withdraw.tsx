@@ -45,7 +45,7 @@ const Withdraw = ({ accountState }) => {
 
   const getLiquidityAmount = async (fromAmt, slippagePcent) => {
     console.log("getLiquidityAmount", fromAmt);
-    const { getAmountOutFromLiquidity } = await import("../../../contracts/build/src/indexmina");
+    const { getAmountOutFromLiquidity } = await import("../../../contracts/build/src/index");
     const reserves = await zkState?.zkappWorkerClient?.getReserves(pool);
     console.log("reserve", reserves);
     let calcul = { amountAOut: 0, amountBOut: 0, balanceAMin: 0, balanceBMin: 0, supplyMax: 0, liquidity: 0 };

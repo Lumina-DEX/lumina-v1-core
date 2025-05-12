@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, Pr
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool, getAmountLiquidityOutUint } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -128,7 +128,7 @@ describe('Pool Factory Mina', () => {
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.deploy({ symbol: "FAC", signatures: array, signatureInfo: multi, src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root });
+      await zkApp.deploy({ symbol: "FAC", signatures: array, multisigInfo: multi, src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,
       });
@@ -477,7 +477,7 @@ describe('Pool Factory Mina', () => {
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await newFac.deploy({ symbol: "FAC", signatures: array, signatureInfo: multi, src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root });
+      await newFac.deploy({ symbol: "FAC", signatures: array, multisigInfo: multi, src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root });
     });
     console.log("signature expired txn", txn.toPretty());
     await txn.prove();

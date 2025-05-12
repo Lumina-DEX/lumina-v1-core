@@ -2,14 +2,12 @@ import fs from 'fs/promises';
 import { Cache } from 'o1js';
 import { Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet, PoolFactory } from '../index.js';
 import path from 'path';
-import { MultisigProgram } from '../pool/MultisigProof.js';
 
 // node build/src/cache.js
 
 const cache = Cache.FileSystem('./cache');
 for (let index = 0; index < 6; index++) {
     // compile 3 time to get all files
-    await MultisigProgram.compile({ cache });
     await PoolFactory.compile({ cache });
     await Pool.compile({ cache });
     await FungibleToken.compile({ cache });

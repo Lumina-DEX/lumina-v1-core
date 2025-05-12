@@ -8,7 +8,7 @@ import { claimerNumber, FarmReward, FarmMerkleWitness, minTimeUnlockFarmReward }
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 import { generateRewardMerkle } from './Farm.Token.test';
 import { FarmUpgradeTest } from './FarmUpgradeTest';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -174,7 +174,7 @@ describe('Farming pool mina', () => {
         protocol: aliceAccount, delegator: dylanAccount,
         approvedSigner: root,
         signatures: array,
-        signatureInfo: multi
+        multisigInfo: multi
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

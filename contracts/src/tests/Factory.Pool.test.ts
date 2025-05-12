@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, Field, MerkleMap, Mina, Poseidon, PrivateKey, Prov
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, PoolTokenHolder, Pool } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/MultisigProof';
+import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -129,7 +129,7 @@ describe('Pool Factory Mina', () => {
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
       await zkApp.deploy({
-        symbol: "FAC", src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root, signatures: array, signatureInfo: multi
+        symbol: "FAC", src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root, signatures: array, multisigInfo: multi
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

@@ -1,11 +1,9 @@
 import { FungibleToken, FungibleTokenAdmin, PoolFactory, Pool, PoolTokenHolder } from '../index.js';
-import { MultisigProgram } from '../pool/MultisigProof.js';
 
 // node build/src/utils/verificationKey.js
 
 
 // get contract vk
-await MultisigProgram.compile();
 await PoolFactory.compile();
 const poolKey = await Pool.compile();
 await FungibleToken.compile();
