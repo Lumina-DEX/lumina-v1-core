@@ -5,7 +5,9 @@ import {
 	sleep,
 	deserializeFields,
 	fetchMinaAccount,
-	accountBalanceMina
+	accountBalanceMina,
+	FungibleToken,
+	FungibleTokenAdmin
 } from "zkcloudworker"
 import {
 	verify,
@@ -19,7 +21,9 @@ import {
 	UInt64,
 	fetchAccount
 } from "o1js"
-import { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin } from "contracts";
+import { Pool } from "./pool/Pool"
+import { PoolFactory } from "./pool/PoolFactory"
+import { PoolTokenHolder } from "./pool/PoolTokenHolder"
 
 export class PoolWorker extends zkCloudWorker {
 	static fungibleTokenAdminVerificationKey: VerificationKey | undefined = undefined

@@ -1,8 +1,8 @@
-import { Cloud, zkCloudWorker, initBlockchain, VerificationData, blockchain } from "zkcloudworker"
+import { Cloud, zkCloudWorker, initBlockchain, VerificationData, blockchain, FungibleToken, FungibleTokenAdmin } from "zkcloudworker"
 import { initializeBindings } from "o1js"
 import { PoolWorker } from "./src/PoolWorker"
 import packageJson from "./package.json"
-import { PoolFactory, FungibleToken, FungibleTokenAdmin } from "contracts";
+import { PoolFactory } from "./src/pool/PoolFactory"
 
 export async function zkcloudworker(cloud: Cloud): Promise<zkCloudWorker> {
 	console.log(
