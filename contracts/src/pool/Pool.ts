@@ -1,5 +1,5 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt32, UInt64, VerificationKey } from 'o1js';
-import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { FungibleToken, mulDiv, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
 import { Multisig, UpgradeInfo } from './Multisig.js';
 
@@ -153,9 +153,10 @@ export class Pool extends TokenContract implements IPool {
      */
     @method async updateVerificationKey(multisig: Multisig, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
-        const factory = new PoolFactory(factoryAddress);
-        const merkle = await factory.getApprovedSigner();
-        multisig.info.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
+        const factory = AccountUpdate.create(factoryAddress);
+        //factory.body.preconditions.account.state[0].isSome.assertTrue("Merkle tree not set");
+        factory.body.update.appState[0].value.equals(multisig.info.approvedUpgrader).assertTrue("Merkle tree are different");
+
 
         const deadlineSlot = multisig.info.deadlineSlot;
         // we can update only before the deadline to prevent signature reuse
@@ -173,8 +174,9 @@ export class Pool extends TokenContract implements IPool {
      */
     @method async setDelegator() {
         const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
-        const poolFactory = new PoolFactory(poolFactoryAddress);
-        const delegator = await poolFactory.getDelegator();
+        //const poolFactory = new PoolFactory(poolFactoryAddress);
+        //const delegator = await poolFactory.getDelegator();
+        const delegator = poolFactoryAddress;
         const currentDelegator = this.account.delegate.getAndRequireEquals();
         Provable.asProver(() => {
             currentDelegator.equals(delegator).assertFalse("Delegator already defined");
@@ -343,9 +345,9 @@ export class Pool extends TokenContract implements IPool {
         const frontendReceiver = Provable.if(frontend.equals(PublicKey.empty()), this.address, frontend);
         await this.send({ to: frontendReceiver, amount: feeFrontend });
         // send mina to protocol
-        const protocol = await this.getProtocolAddress();
-        const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
-        await this.send({ to: protocolReceiver, amount: feeProtocol });
+        // const protocol = await this.getProtocolAddress();
+        // const protocolReceiver = Provable.if(protocol.equals(PublicKey.empty()), this.address, protocol);
+        // await this.send({ to: protocolReceiver, amount: feeProtocol });
 
         this.emitEvent("swap", new SwapEvent({ sender, amountIn: amountTokenIn, amountOut }));
     }
@@ -507,8 +509,9 @@ export class Pool extends TokenContract implements IPool {
 
     private async getProtocolAddress(): Promise<PublicKey> {
         const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
-        const poolFactory = new PoolFactory(poolFactoryAddress);
-        return await poolFactory.getProtocol();
+        // const poolFactory = new PoolFactory(poolFactoryAddress);
+        //return await poolFactory.getProtocol();
+        return poolFactoryAddress;
     }
 
     /**
