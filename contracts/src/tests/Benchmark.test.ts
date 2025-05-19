@@ -209,6 +209,7 @@ describe('Benchmark', () => {
     const dif = optimalOut.sub(expectedOut);
     console.log("user lost", dif.toBigInt());
 
+    console.time('swap from mina');
     const txn2 = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 2);
       await tokenHolder.swapFromMinaToToken(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
@@ -217,6 +218,7 @@ describe('Benchmark', () => {
     console.log("swap from mina", txn2.toPretty());
     console.log("swap from mina au", txn2.transaction.accountUpdates.length);
     await txn2.prove();
+    console.timeEnd('swap from mina');
     await txn2.sign([senderKey]).send();
 
     /*const resIN = reserveIn.add(amountIn);
@@ -257,6 +259,7 @@ describe('Benchmark', () => {
 
     const userMinaBalBefore = Mina.getBalance(senderAccount);
 
+    console.time('swap from token');
     const txn2 = await Mina.transaction(senderAccount, async () => {
 
       await zkPool.swapFromTokenToMina(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
@@ -264,6 +267,7 @@ describe('Benchmark', () => {
     console.log("swap from token", txn2.toPretty());
     console.log("swap from token au", txn2.transaction.accountUpdates.length);
     await txn2.prove();
+    console.timeEnd('swap from token');
     await txn2.sign([senderKey]).send();
 
     /* const userMinaBalAfter = Mina.getBalance(senderAccount);
