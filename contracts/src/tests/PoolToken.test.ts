@@ -445,9 +445,18 @@ describe('Pool Factory Token', () => {
 
     const userMinaBalBefore = Mina.getBalance(senderAccount);
 
+    const protocol = await zkApp.getProtocol();
+
+    // incorrect protocol address
+    await expect(Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await tokenHolder.swapFromTokenToToken(bobAccount, senderAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await zkToken0.approveAccountUpdate(tokenHolder.self);
+    })).rejects.toThrow();
+
     const txn2 = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 1);
-      await tokenHolder.swapFromTokenToToken(senderAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await tokenHolder.swapFromTokenToToken(protocol, senderAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
       await zkToken0.approveAccountUpdate(tokenHolder.self);
     });
     console.log("swap from token", txn2.toPretty());

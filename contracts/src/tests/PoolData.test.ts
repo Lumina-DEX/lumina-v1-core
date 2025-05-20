@@ -342,8 +342,9 @@ describe('Pool data', () => {
     expect(poolAccount?.toBase58()).toEqual(zkPoolAddress.toBase58());
 
     let txn = await Mina.transaction(senderAccount, async () => {
-      await zkPool.setDelegator();
+      await zkPool.setDelegator2(zkApp);
     });
+    console.log("setDelegator", txn.toPretty());
     await txn.prove();
     await txn.sign([senderKey]).send();
 
@@ -352,8 +353,14 @@ describe('Pool data', () => {
 
     // already set
     await expect(Mina.transaction(senderAccount, async () => {
-      await zkPool.setDelegator();
+      await zkPool.setDelegator(delegator!);
     })).rejects.toThrow();
+
+    // incorrect delegator
+    await expect(Mina.transaction(senderAccount, async () => {
+      await zkPool.setDelegator(bobAccount);
+    })).rejects.toThrow();
+
     poolAccount = zkPool.account?.delegate?.get();
     expect(poolAccount?.toBase58()).toEqual(dylanAccount.toBase58());
 
@@ -367,7 +374,7 @@ describe('Pool data', () => {
     await txn.sign([senderKey, bobKey]).send();
 
     txn = await Mina.transaction(senderAccount, async () => {
-      await zkPool.setDelegator();
+      await zkPool.setDelegator(aliceAccount);
     });
     await txn.prove();
     console.log("set delegator", txn.toPretty());
