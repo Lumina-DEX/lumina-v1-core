@@ -342,7 +342,7 @@ describe('Pool data', () => {
     expect(poolAccount?.toBase58()).toEqual(zkPoolAddress.toBase58());
 
     let txn = await Mina.transaction(senderAccount, async () => {
-      await zkPool.setDelegator2(zkApp);
+      await zkPool.setDelegator(delegator!);
     });
     console.log("setDelegator", txn.toPretty());
     await txn.prove();
