@@ -175,6 +175,7 @@ export class Pool extends TokenContract implements IPool {
     @method async setDelegator(delegator: PublicKey) {
         const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
         const poolFactory = AccountUpdate.create(poolFactoryAddress);
+        // check the new delegator address match the one in the factory
         const fields = delegator.toFields();
         poolFactory.body.preconditions.account.state[3] = { isSome: Bool(true), value: fields[0] };
         poolFactory.body.preconditions.account.state[4] = { isSome: Bool(true), value: fields[1] };
@@ -193,6 +194,7 @@ export class Pool extends TokenContract implements IPool {
     @method async setProtocol(protocol: PublicKey) {
         const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
         const poolFactory = AccountUpdate.create(poolFactoryAddress);
+        // check the new protocol address match the one in the factory
         const fields = protocol.toFields();
         poolFactory.body.preconditions.account.state[1] = { isSome: Bool(true), value: fields[0] };
         poolFactory.body.preconditions.account.state[2] = { isSome: Bool(true), value: fields[1] };
