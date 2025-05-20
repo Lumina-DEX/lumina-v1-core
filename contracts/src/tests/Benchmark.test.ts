@@ -4,7 +4,7 @@ import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Posei
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
 import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Benchmark', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -197,7 +197,7 @@ describe('Benchmark', () => {
     console.time('swap from mina');
     const txn2 = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 2);
-      await tokenHolder.swapFromMinaToToken(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await tokenHolder.swapFromMinaToToken(bobAccount, UInt64.from(6), amountIn, UInt64.from(1), balanceMax, balanceMin);
       await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     console.log("swap from mina", txn2.toPretty());
@@ -234,8 +234,7 @@ describe('Benchmark', () => {
 
     console.time('swap from token');
     const txn2 = await Mina.transaction(senderAccount, async () => {
-
-      await zkPool.swapFromTokenToMina(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await zkPool.swapFromTokenToMina(bobAccount, UInt64.from(6), amountIn, UInt64.from(1), balanceMax, balanceMin);
     });
     console.log("swap from token", txn2.toPretty());
     await txn2.prove();
