@@ -1,5 +1,5 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
-import { FungibleToken, mulDiv, Pool, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
 import { Multisig, UpgradeInfo } from './Multisig.js';
 
@@ -86,10 +86,9 @@ export class PoolTokenHolder extends SmartContract implements IPool {
      */
     @method async updateVerificationKey(multisig: Multisig, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
-        const factory = AccountUpdate.create(factoryAddress);
-
-        // we check approved signer who is stored at the first state of factory contract
-        factory.body.preconditions.account.state[0] = { isSome: Bool(true), value: multisig.info.approvedUpgrader };
+        const factory = new PoolFactory(factoryAddress);
+        const merkle = await factory.getApprovedSigner();
+        multisig.info.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
         const deadlineSlot = multisig.info.deadlineSlot;
         // we can update only before the deadline to prevent signature reuse
@@ -123,7 +122,6 @@ export class PoolTokenHolder extends SmartContract implements IPool {
 
     /**
      * Swap from token to another token
-     * @param protocol address who collect the protocol fees
      * @param frontend address who collect the frontend fees
      * @param taxFeeFrontend fees applied by the frontend
      * @param amountTokenIn amount of tokenIn to swap
@@ -131,14 +129,11 @@ export class PoolTokenHolder extends SmartContract implements IPool {
      * @param balanceInMax minimum balance of tokenIn in the pool
      * @param balanceOutMin maximum balance of tokenOut in the pool
      */
-    @method async swapFromTokenToToken(protocol: PublicKey, frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
+    @method async swapFromTokenToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
-        const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
-        const poolFactory = AccountUpdate.create(poolFactoryAddress);
-        const fields = protocol.toFields();
-        poolFactory.body.preconditions.account.state[1] = { isSome: Bool(true), value: fields[0] };
-        poolFactory.body.preconditions.account.state[2] = { isSome: Bool(true), value: fields[1] };
-
+        const pool = new Pool(this.address);
+        // we check the protocol in the pool
+        const protocol = pool.protocol.get();
         const sender = this.sender.getUnconstrained();
         await this.swap(sender, protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }

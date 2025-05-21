@@ -1,5 +1,5 @@
 import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt32, UInt64, VerificationKey } from 'o1js';
-import { FungibleToken, mulDiv, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
 import { Multisig, UpgradeInfo } from './Multisig.js';
 
@@ -153,10 +153,9 @@ export class Pool extends TokenContract implements IPool {
      */
     @method async updateVerificationKey(multisig: Multisig, vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
-        const factory = AccountUpdate.create(factoryAddress);
-
-        // we check approved signer who is stored at the first state of factory contract
-        factory.body.preconditions.account.state[0] = { isSome: Bool(true), value: multisig.info.approvedUpgrader };
+        const factory = new PoolFactory(factoryAddress);
+        const merkle = await factory.getApprovedSigner();
+        multisig.info.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
 
         const deadlineSlot = multisig.info.deadlineSlot;
         // we can update only before the deadline to prevent signature reuse
@@ -172,14 +171,10 @@ export class Pool extends TokenContract implements IPool {
     /**
      * Update the delegator account address from pool factory
      */
-    @method async setDelegator(delegator: PublicKey) {
+    @method async setDelegator() {
         const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
-        const poolFactory = AccountUpdate.create(poolFactoryAddress);
-        // check the new delegator address match the one in the factory
-        const fields = delegator.toFields();
-        poolFactory.body.preconditions.account.state[3] = { isSome: Bool(true), value: fields[0] };
-        poolFactory.body.preconditions.account.state[4] = { isSome: Bool(true), value: fields[1] };
-
+        const poolFactory = new PoolFactory(poolFactoryAddress);
+        const delegator = await poolFactory.getDelegator();
         const currentDelegator = this.account.delegate.getAndRequireEquals();
         Provable.asProver(() => {
             currentDelegator.equals(delegator).assertFalse("Delegator already defined");
@@ -191,14 +186,8 @@ export class Pool extends TokenContract implements IPool {
     /**
      * Update the protocol account address from pool factory
      */
-    @method async setProtocol(protocol: PublicKey) {
-        const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
-        const poolFactory = AccountUpdate.create(poolFactoryAddress);
-        // check the new protocol address match the one in the factory
-        const fields = protocol.toFields();
-        poolFactory.body.preconditions.account.state[1] = { isSome: Bool(true), value: fields[0] };
-        poolFactory.body.preconditions.account.state[2] = { isSome: Bool(true), value: fields[1] };
-
+    @method async setProtocol() {
+        const protocol = await this.getProtocolAddress();
         const currentProtocol = this.protocol.getAndRequireEquals();
         Provable.asProver(() => {
             currentProtocol.equals(protocol).assertFalse("Protocol already defined");
@@ -514,6 +503,12 @@ export class Pool extends TokenContract implements IPool {
         let senderToken = AccountUpdate.createSigned(sender, tokenContract.deriveTokenId());
         senderToken.send({ to: tokenAccount, amount: amount });
         await tokenContract.approveAccountUpdates([senderToken, tokenAccount]);
+    }
+
+    private async getProtocolAddress(): Promise<PublicKey> {
+        const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
+        const poolFactory = new PoolFactory(poolFactoryAddress);
+        return await poolFactory.getProtocol();
     }
 
     /**

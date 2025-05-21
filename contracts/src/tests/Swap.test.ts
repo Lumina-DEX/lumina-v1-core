@@ -1,6 +1,6 @@
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
+import { Cache, fetchAccount, Mina, PublicKey, UInt64 } from 'o1js';
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
+import { FungibleToken, mulDiv, PoolTokenHolder, Pool } from '../index';
 
 
 
