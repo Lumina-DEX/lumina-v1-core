@@ -78,12 +78,12 @@ const functions = {
     const cacheFiles = await fetchFiles();
     const cache = readCache(cacheFiles);
 
-    await state.TokenAdmin?.compile({ cache });
+    //await state.TokenAdmin?.compile({ cache });
     await state.TokenStandard?.compile({ cache });
-    await state.PoolFactory!.compile({ cache });
+    //  await state.PoolFactory!.compile({ cache });
     await state.PoolMinaHolder!.compile({ cache });
     await state.PoolMina!.compile({ cache });
-    await state.Faucet!.compile({ cache });
+    //await state.Faucet!.compile({ cache });
 
     console.timeEnd("compile");
   },
@@ -313,10 +313,10 @@ const functions = {
     console.log("total fund liquidity", total);
     console.log("address", { poolAddress: poolAddress.toBase58(), token: token.toBase58() });
     const transaction = await Mina.transaction(publicKey, async () => {
-      AccountUpdate.fundNewAccount(publicKey, total);
       if (supply > 0) {
         await zkPool.supplyLiquidity(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn), UInt64.from(reserveMina), UInt64.from(reserveToken), UInt64.from(supply));
       } else {
+        AccountUpdate.fundNewAccount(publicKey, 1);
         await zkPool.supplyFirstLiquidities(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn));
       }
     });

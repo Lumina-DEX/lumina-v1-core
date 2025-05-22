@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
@@ -40,9 +40,6 @@ describe('Benchmark', () => {
     Local: any;
 
   beforeAll(async () => {
-    const analyze = await Pool.analyzeMethods();
-    getGates(analyze);
-
     const cache = Cache.FileSystem('./cache');
     if (proofsEnabled) {
 
@@ -53,15 +50,6 @@ describe('Benchmark', () => {
       await Pool.compile({ cache });
       await PoolTokenHolder.compile({ cache });
       console.timeEnd('compile pool');
-    }
-
-    function getGates(analyze: any) {
-      for (const key in analyze) {
-        if (Object.prototype.hasOwnProperty.call(analyze, key)) {
-          const element = analyze[key];
-          console.log(key, element?.gates.length)
-        }
-      }
     }
   });
 
@@ -156,8 +144,6 @@ describe('Benchmark', () => {
       await zkApp.createPool(zkPoolAddress, zkTokenAddress, bobAccount, signature, witness, allRight);
     });
 
-    //console.log("Pool creation", txn3.toPretty());
-    console.log("Pool creation au", txn3.transaction.accountUpdates.length);
     await txn3.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn3.sign([deployerKey, zkPoolPrivateKey]).send();
@@ -207,30 +193,17 @@ describe('Benchmark', () => {
     const optimalOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
 
     const dif = optimalOut.sub(expectedOut);
-    console.log("user lost", dif.toBigInt());
 
     console.time('swap from mina');
     const txn2 = await Mina.transaction(senderAccount, async () => {
       AccountUpdate.fundNewAccount(senderAccount, 2);
-      await tokenHolder.swapFromMinaToToken(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await tokenHolder.swapFromMinaToToken(bobAccount, UInt64.from(6), amountIn, UInt64.from(1), balanceMax, balanceMin);
       await zkToken.approveAccountUpdate(tokenHolder.self);
     });
     console.log("swap from mina", txn2.toPretty());
-    console.log("swap from mina au", txn2.transaction.accountUpdates.length);
     await txn2.prove();
     console.timeEnd('swap from mina');
     await txn2.sign([senderKey]).send();
-
-    /*const resIN = reserveIn.add(amountIn);
-    const resOut = reserveOut.sub(expectedOut);
-
-    const reserveIn2 = Mina.getBalance(zkPoolAddress);
-    const reserveOut2 = Mina.getBalance(zkPoolAddress, zkToken.deriveTokenId());
-    expect(reserveIn2.value).toEqual(resIN.value);
-    expect(reserveOut2.value).toEqual(resOut.value);
-
-    const balAfter = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
-    expect(balAfter.value).toEqual(balBefore.add(expectedOut).value);*/
   });
 
   it('swap from token', async () => {
@@ -261,29 +234,12 @@ describe('Benchmark', () => {
 
     console.time('swap from token');
     const txn2 = await Mina.transaction(senderAccount, async () => {
-
-      await zkPool.swapFromTokenToMina(bobAccount, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
+      await zkPool.swapFromTokenToMina(bobAccount, UInt64.from(6), amountIn, UInt64.from(1), balanceMax, balanceMin);
     });
     console.log("swap from token", txn2.toPretty());
-    console.log("swap from token au", txn2.transaction.accountUpdates.length);
     await txn2.prove();
     console.timeEnd('swap from token');
     await txn2.sign([senderKey]).send();
-
-    /* const userMinaBalAfter = Mina.getBalance(senderAccount);
- 
-     console.log('optimal out', optimalOut.toBigInt());
-     console.log('minimal out', minOut.toBigInt());
-     console.log('expected out', expectedOut.toBigInt());
-     console.log('received', userMinaBalAfter.sub(userMinaBalBefore).toBigInt());*/
-
-    // const resIN = reserveIn.add(amountIn);
-    // const resOut = reserveOut.sub(expectedOut);
-
-    // const reserveIn2 = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    // const reserveOut2 = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    // expect(reserveIn2.value).toEqual(resIN.value);
-    // expect(reserveOut2.value).toEqual(resOut.value);
 
     const balAfter = Mina.getBalance(senderAccount, zkToken.deriveTokenId());
     expect(balAfter.value).toEqual(balBefore.sub(amountIn).value);
@@ -311,7 +267,6 @@ describe('Benchmark', () => {
     const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
     let slotCalculated = UInt64.from(date);
     slotCalculated = (slotCalculated.sub(genesisTimestamp)).div(slotTime);
-    Provable.log("slotCalculated64", slotCalculated);
     return slotCalculated.toUInt32();
   }
 });

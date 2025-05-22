@@ -11,9 +11,9 @@ import useAccount from '@/states/useAccount';
 import useLoad from '@/states/useLoad';
 
 let transactionFee = 0.1;
-const ZKAPP_ADDRESS = 'B62qp71rC3GU4bzoB6DfhrydBwkZ94R91JmfLevffMxBipRNcTxeYvh';
+const ZKAPP_ADDRESS = 'B62qjWz1KNji4cf7ok2dur9iLPPrmy1DrpwhXP3iUbzCLjAWi6f2eHy';
 const ZKTOKEN_ADDRESS = 'B62qjDaZ2wDLkFpt7a7eJme6SAJDuc3R3A2j2DRw7VMmJAFahut7e8w';
-export const ZKFACTORY_ADDRESS = 'B62qrfxeWqZF16Bm87xyb9fyXDs5APqqKuPmbMqaEsNUWj8Ju8GSRxM'
+export const ZKFACTORY_ADDRESS = 'B62qp6x4PfXbqhL3rWgshwkfS2sHTzPDYWBmgTxBsBGSPihJaNEEUXv'
 const ZKFAUCET_ADDRESS = 'B62qnigaSA2ZdhmGuKfQikjYKxb6V71mLq3H8RZzvkH4htHBEtMRUAG';
 const WETH_ADDRESS = "B62qisgt5S7LwrBKEc8wvWNjW7SGTQjMZJTDL2N6FmZSVGrWiNkV21H";
 

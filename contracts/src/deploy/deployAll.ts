@@ -326,12 +326,11 @@ async function deployFactory() {
 
         const root = merkle.getRoot();
 
-        const today = new Date();
-        today.setDate(today.getDate() + 1);
-        const tomorrow = today.getTime();
+        const limit = new Date(2030, 1, 1);
+        const date = limit.getTime();
 
         //const time = today.getTime();
-        const timeSlot = getSlotFromTimestamp(tomorrow);
+        const timeSlot = getSlotFromTimestamp(date);
         const info = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: root, deadlineSlot: UInt32.from(timeSlot) });
 
         const signBob = Signature.create(signer1Key, info.toFields());
