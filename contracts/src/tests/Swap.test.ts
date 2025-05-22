@@ -115,3 +115,11 @@ if (proofsEnabled) {
 
   });
 }
+else {
+  describe('Benchmark', () => {
+    it('do nothing', async () => {
+      console.log("proof disabled, do nothing")
+    });
+
+  });
+}
