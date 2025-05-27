@@ -80,7 +80,7 @@ const functions = {
 
     //await state.TokenAdmin?.compile({ cache });
     await state.TokenStandard?.compile({ cache });
-    //  await state.PoolFactory!.compile({ cache });
+    await state.PoolFactory!.compile({ cache });
     await state.PoolMinaHolder!.compile({ cache });
     await state.PoolMina!.compile({ cache });
     //await state.Faucet!.compile({ cache });

@@ -6,7 +6,6 @@ import * as react from '../pages/reactCOIServiceWorker.js';
 import ZkappWorkerClient from "@/lib/zkappWorkerClient";
 import Swap from '@/components/Swap';
 import Account from '@/components/Account';
-import Tab from '@/components/Tab';
 import useAccount from '@/states/useAccount';
 import useLoad from '@/states/useLoad';
 

@@ -56,11 +56,14 @@ const Menu = () => {
                             <li >
                                 <Link className="text-xl" href="/pool">Pool</Link>
                             </li>
-                            <li >
+                            {/* <li >
                                 <Link className="" href="/faucet">Faucet</Link>
                             </li>
                             <li >
                                 <Link className="" href="/token">Token</Link>
+                            </li> */}
+                             <li >
+                                <Link className="" href="/multisig">Multisig</Link>
                             </li>
                         </ul>
                     </div>
@@ -73,11 +76,14 @@ const Menu = () => {
                     <li className={router.pathname == "/pool" ? "text-blue-500" : ""}>
                         <Link className="text-xl" href="/pool">Pool</Link>
                     </li>
-                    <li className={router.pathname == "/faucet" ? "text-blue-500" : ""}>
+                    {/* <li className={router.pathname == "/faucet" ? "text-blue-500" : ""}>
                         <Link className="" href="/faucet">Faucet</Link>
                     </li>
                     <li className={router.pathname == "/token" ? "text-blue-500" : ""}>
                         <Link className="" href="/token">Token</Link>
+                    </li> */}
+                    <li className={router.pathname == "/multisig" ? "text-blue-500" : ""}>
+                        <Link className="" href="/multisig">Multisig</Link>
                     </li>
                 </ul>
             </nav>
