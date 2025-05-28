@@ -390,6 +390,15 @@ const functions = {
     await fetchAccount({ publicKey: state.zkFactory.address });
     await fetchAccount({ publicKey });
 
+    const ownerPublic = PublicKey.fromBase58("B62qjabhmpW9yfLbvUz87BR1u462RRqFfXgoapz8X3Fw8uaXJqGG8WH");
+    const approvedSignerPublic = PublicKey.fromBase58("B62qpko6oWqKU4LwAaT7PSX3b6TYvroj6umbpyEXL5EEeBbiJTUMU5Z");
+    const signer1Public = PublicKey.fromBase58("B62qrgWEGhgXQ5PnpEaeJqs1MRx4Jiw2aqSTfyxAsEVDJzqNFm9PEQt");
+    const signer2Public = PublicKey.fromBase58("B62qkfpRcsJjByghq8FNkzBh3wmzLYFWJP2qP9x8gJ48ekfd6MVXngy");
+    const signer3Public = PublicKey.fromBase58("B62qic5sGvm6QvFzJ92588YgkKxzqi2kFeYydnkM8VDAvY9arDgY6m6");
+    const externalSigner1 = PublicKey.fromBase58("B62qkjzL662Z5QD16cB9j6Q5TH74y42ALsMhAiyrwWvWwWV1ypfcV65");
+    const externalSigner2 = PublicKey.fromBase58("B62qpLxXFg4rmhce762uiJjNRnp5Bzc9PnCEAcraeaMkVWkPi7kgsWV");
+    const externalSigner3 = PublicKey.fromBase58("B62qipa4xp6pQKqAm5qoviGoHyKaurHvLZiWf3djDNgrzdERm6AowSQ");
+
     const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
     const deployRight = SignatureRight.canDeployPool();
     const merkle = new MerkleMap();

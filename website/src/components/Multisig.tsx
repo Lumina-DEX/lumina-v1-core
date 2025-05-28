@@ -87,6 +87,28 @@ const Multisig = ({ accountState }) => {
             <span className="font-light">Signature: </span><textarea className="pl-3" value={signature} cols={25} disabled rows={5}></textarea>
           </div>
 
+          <div>
+            <span className="font-light">Signer1: </span>
+            <div className="flex flex-column">
+              <input type="text" className="pl-3" value={signers.signer1Address} disabled></input>
+              <input type="text" className="pl-3" defaultValue={signers.signer1Signature} onChange={(event) => setSigners({ ...signers, signer1Signature: event.target.value })}></input>
+            </div>
+          </div>
+            <div>
+            <span className="font-light">Signer2: </span>
+            <div className="flex flex-column">
+              <input type="text" className="pl-3" value={signers.signer2Address} disabled></input>
+              <input type="text" className="pl-3" defaultValue={signers.signer2Signature} onChange={(event) => setSigners({ ...signers, signer2Signature: event.target.value })}></input>
+            </div>
+          </div>
+              <div>
+            <span className="font-light">Signer3: </span>
+            <div className="flex flex-column">
+              <input type="text" className="pl-3" value={signers.signer3Address} disabled></input>
+              <input type="text" className="pl-3" defaultValue={signers.signer3Signature} onChange={(event) => setSigners({ ...signers, signer3Signature: event.target.value })}></input>
+            </div>
+          </div>
+
           <button onClick={sign} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Sign
           </button>

@@ -101,6 +101,10 @@ export default class ZkappWorkerClient {
     return await this._call("withdrawLiquidity", { pool, user, liquidityAmount, amountMinaMin, amountTokenMin, reserveMinaMin, reserveTokenMin, supplyMax });
   }
 
+  async setNewDelegator(user: string, oldUser: string, newUser: string, deadlineSlot: number, user1: string, signature1: string, user2: string, signature2: string, user3: string, signature3: string) {
+    return await this._call("setNewDelegator", { user, oldUser, newUser, deadlineSlot, user1, signature1, user2, signature2, user3, signature3 });
+  }
+
   async deployPoolInstance(tokenX: string, user: string) {
     return await this._call("deployPoolInstance", {
       tokenX, user
