@@ -1,9 +1,10 @@
-import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UInt32, UInt64, UInt8, fetchAccount } from "o1js";
+import { Account, AccountUpdate, Bool, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, fetchAccount } from "o1js";
 
 console.log('Load Web Worker.');
 
-import { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/index";
+import { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet, MultisigInfo } from "../../../contracts/src/index";
 import { fetchFiles, readCache } from "./cache";
+import { Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo } from "../../../contracts/build/src/index";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -163,6 +164,7 @@ const functions = {
       await zkToken.deploy({
         symbol: args.symbol,
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: true
       });
       await zkToken.initialize(
         tokenAdminPublic,
@@ -382,6 +384,49 @@ const functions = {
 
     await state.transaction!.prove();
     //await state.transaction!.sign([PrivateKey.fromBase58(testPrivateKey)]).send();
+  },
+  setNewDelegator: async (args: { user: string, oldUser: string, newUser: string, deadlineSlot: number, user1: string, signature1: string, user2: string, signature2: string, user3: string, signature3: string }) => {
+    const publicKey = PublicKey.fromBase58(args.user);
+    await fetchAccount({ publicKey: state.zkFactory.address });
+    await fetchAccount({ publicKey });
+
+    const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
+    const deployRight = SignatureRight.canDeployPool();
+    const merkle = new MerkleMap();
+    merkle.set(Poseidon.hash(ownerPublic.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(signer1Public.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(signer2Public.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(signer3Public.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
+    merkle.set(Poseidon.hash(externalSigner1.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(externalSigner2.toFields()), allRight.hash());
+    merkle.set(Poseidon.hash(externalSigner3.toFields()), allRight.hash());
+
+    const signer1 = PublicKey.fromBase58(args.user1);
+    const signer2 = PublicKey.fromBase58(args.user2);
+    const signer3 = PublicKey.fromBase58(args.user3);
+    const sign1 = Signature.fromBase58(args.signature1);
+    const sign2 = Signature.fromBase58(args.signature2);
+    const sign3 = Signature.fromBase58(args.signature3);
+    // we set allright by default, maybe it can be different
+    const newUser = PublicKey.fromBase58(args.newUser);
+    const deadlineSlot = UInt32.from(args.deadlineSlot);
+    const info = new UpdateAccountInfo({ oldUser: PublicKey.fromBase58(args.oldUser), newUser, deadlineSlot });
+    const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot })
+
+    const info1 = new SignatureInfo({ user: signer1, witness: merkle.getWitness(Poseidon.hash(signer1.toFields())), signature: sign1, right: allRight })
+    const info2 = new SignatureInfo({ user: signer2, witness: merkle.getWitness(Poseidon.hash(signer2.toFields())), signature: sign2, right: allRight })
+    const info3 = new SignatureInfo({ user: signer3, witness: merkle.getWitness(Poseidon.hash(signer3.toFields())), signature: sign3, right: allRight })
+    const array = [info1, info2, info3];
+
+    const proof = new Multisig({ info: multi, signatures: array });
+
+    const transaction = await Mina.transaction(publicKey, async () => {
+      await state.zkFactory!.setNewDelegator(proof, newUser);
+    });
+    state.transaction = transaction;
+
+    await state.transaction!.prove();
   },
   getTransactionJSON: async (args: {}) => {
     return state.transaction!.toJSON();
