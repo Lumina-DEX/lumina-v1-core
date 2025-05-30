@@ -2,9 +2,8 @@ import { Account, AccountUpdate, Bool, MerkleMap, Mina, Poseidon, PrivateKey, Pu
 
 console.log('Load Web Worker.');
 
-import { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet, MultisigInfo } from "../../../contracts/src/index";
+import { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet, MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo } from "../../../contracts/build/src/index";
 import { fetchFiles, readCache } from "./cache";
-import { Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo } from "../../../contracts/build/src/index";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -100,6 +99,10 @@ const functions = {
     const publicKey = PublicKey.fromBase58(args.publicKey58);
     const balance = Mina.getBalance(publicKey);
     return JSON.stringify(balance.toJSON());
+  },
+  getDelegator: async () => {
+    const delegator = await state.zkFactory?.getDelegator();
+    return delegator.toBase58();
   },
   getBalanceToken: async (args: { publicKey58: string, tokenAddress: string }) => {
     const publicKey = PublicKey.fromBase58(args.publicKey58);

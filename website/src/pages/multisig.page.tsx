@@ -13,7 +13,7 @@ const MultisigPage = () => {
 
     return (
         <>
-            <div className="flex flex-col min-w-[360px]  w-screen  max-w-[500px] h-[500px] rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
+            <div className="flex flex-col min-w-[360px]  w-screen  max-w-[800px] h-[600px] rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
                 <div className="p-2">
                     {tab === "multisig" && <div>
                         <Multisig accountState={accountState}></Multisig>

@@ -128,6 +128,11 @@ export default class ZkappWorkerClient {
     return result;
   }
 
+  async getDelegator(): Promise<string> {
+    const result = await this._call("getDelegator", {}) as string;
+    return result;
+  }
+
 
   async getKey() {
     const result = await this._call("getKey", {});
