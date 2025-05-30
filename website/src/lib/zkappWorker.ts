@@ -402,6 +402,7 @@ const functions = {
     //await state.transaction!.sign([PrivateKey.fromBase58(testPrivateKey)]).send();
   },
   setNewDelegator: async (args: { user: string, oldUser: string, newUser: string, deadlineSlot: number, user1: string, signature1: string, user2: string, signature2: string, user3: string, signature3: string }) => {
+    console.log("setNewDelegator args", args);
     const publicKey = PublicKey.fromBase58(args.user);
     await fetchAccount({ publicKey: state.zkFactory.address });
     await fetchAccount({ publicKey });

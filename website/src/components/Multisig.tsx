@@ -2,7 +2,7 @@
 import React, { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
-import { Bool, Mina, PublicKey, Sign, Signature, UInt64 } from "o1js";
+import { Bool, Mina, Provable, PublicKey, Sign, Signature, UInt64 } from "o1js";
 import Loading from "./Loading";
 import { SignatureRight, UpdateAccountInfo } from "../../../contracts/build/src/index";
 
@@ -70,6 +70,33 @@ const Multisig = ({ accountState }) => {
     }
   }
 
+  const updateDelegator = async () => {
+    setLoading(true);
+    try {
+      if (mina) {
+        const slot = getSlotFromTimestamp(multisigInfo.deadline.getTime());
+        Provable.log("slot", slot);
+        const info = new UpdateAccountInfo({ oldUser: PublicKey.fromBase58(multisigInfo.oldDelegator), newUser: PublicKey.fromBase58(multisigInfo.newDelegator), deadlineSlot: slot });
+        const fields = info.toFields();
+        console.time("create");
+        console.log("zkState", zkState)
+        const user: string = (await mina.requestAccounts())[0];
+        await zkState.zkappWorkerClient?.setNewDelegator(user, multisigInfo.oldDelegator, multisigInfo.newDelegator, Number(slot),
+          signers.signer1Address, signers.signer1Signature, signers.signer2Address, signers.signer2Signature, signers.signer3Address, signers.signer3Signature);
+        const json = await zkState.zkappWorkerClient?.getTransactionJSON();
+        console.timeEnd("create");
+        await mina.sendTransaction({ transaction: json });
+      }
+    }
+    catch (error) {
+      console.log('sign error', error);
+    }
+    finally {
+      setLoading(false);
+    }
+  }
+
+
   function getSlotFromTimestamp(date: number) {
     const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
     let slotCalculated = UInt64.from(date);
@@ -96,7 +123,7 @@ const Multisig = ({ accountState }) => {
           <div className="flex flex-row justify-between w-full ">
             <span className="font-light">Signature: </span>
             <input type="text" className="pl-3 w-4/5" value={signature}></input>
-          </div>          
+          </div>
           <button onClick={sign} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Sign
           </button>
@@ -122,7 +149,7 @@ const Multisig = ({ accountState }) => {
             </div>
           </div>
 
-          <button onClick={sign} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
+          <button onClick={updateDelegator} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Update delegator
           </button>
           {loading && <div className="flex flex-row items-center"><Loading></Loading> <span className="ml-3">Creating transaction ...</span></div>}
