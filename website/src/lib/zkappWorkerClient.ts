@@ -133,6 +133,10 @@ export default class ZkappWorkerClient {
     return result;
   }
 
+  async getNetworkConstants(): Promise<any> {
+    const result = await this._call("getNetworkConstants", {}) as string;
+    return JSON.parse(result);
+  }
 
   async getKey() {
     const result = await this._call("getKey", {});

@@ -238,6 +238,10 @@ const functions = {
     const liquidity = await accLiquidity.account.balance;
     return JSON.stringify({ amountToken, amountMina, liquidity });
   },
+  getNetworkConstants: async (args: {}) => {
+    const { genesisTimestamp, slotTime } = Mina.activeInstance.getNetworkConstants();
+    return JSON.stringify({ genesisTimestamp, slotTime });
+  },
   swapFromMinaTransaction: async (args: { pool: string, user: string, amt: number, minOut: number, balanceOutMin: number, balanceInMax: number }) => {
     const poolAddress = PublicKey.fromBase58(args.pool);
     const zkPool = new state.PoolMina(poolAddress);
