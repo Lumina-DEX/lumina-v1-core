@@ -139,9 +139,22 @@ const functions = {
     const tokenKey = PublicKey.fromBase58(args.tokenX);
     const userKey = PublicKey.fromBase58(args.user);
 
+    const deployRight = SignatureRight.canDeployPool();
+    const signerPk = PrivateKey.fromBase58("EKE9dyeMmvz6deCC2jD9rBk7d8bG6ZDqVno8wRe8tAbQDussfBYi");
+    const user1 = signerPk.toPublicKey();
+    const merkle = getMerkle();
+    const witness = merkle.getWitness(Poseidon.hash(signerPk.toPublicKey().toFields()))
+    const signature = Signature.create(signerPk, poolKey.toPublicKey().toFields())
+
     const transaction = await Mina.transaction(userKey, async () => {
       AccountUpdate.fundNewAccount(userKey, 4);
-      await state.zkFactory!.createPool(poolKey.toPublicKey(), tokenKey);
+      await state.zkFactory!.createPool(poolKey.toPublicKey(),
+        tokenKey,
+        user1,
+        signature,
+        witness,
+        deployRight);
+
     });
     state.transaction = transaction;
     await state.transaction!.prove();
@@ -393,26 +406,9 @@ const functions = {
     await fetchAccount({ publicKey: state.zkFactory.address });
     await fetchAccount({ publicKey });
 
-    const ownerPublic = PublicKey.fromBase58("B62qjabhmpW9yfLbvUz87BR1u462RRqFfXgoapz8X3Fw8uaXJqGG8WH");
-    const approvedSignerPublic = PublicKey.fromBase58("B62qpko6oWqKU4LwAaT7PSX3b6TYvroj6umbpyEXL5EEeBbiJTUMU5Z");
-    const signer1Public = PublicKey.fromBase58("B62qrgWEGhgXQ5PnpEaeJqs1MRx4Jiw2aqSTfyxAsEVDJzqNFm9PEQt");
-    const signer2Public = PublicKey.fromBase58("B62qkfpRcsJjByghq8FNkzBh3wmzLYFWJP2qP9x8gJ48ekfd6MVXngy");
-    const signer3Public = PublicKey.fromBase58("B62qic5sGvm6QvFzJ92588YgkKxzqi2kFeYydnkM8VDAvY9arDgY6m6");
-    const externalSigner1 = PublicKey.fromBase58("B62qkjzL662Z5QD16cB9j6Q5TH74y42ALsMhAiyrwWvWwWV1ypfcV65");
-    const externalSigner2 = PublicKey.fromBase58("B62qpLxXFg4rmhce762uiJjNRnp5Bzc9PnCEAcraeaMkVWkPi7kgsWV");
-    const externalSigner3 = PublicKey.fromBase58("B62qipa4xp6pQKqAm5qoviGoHyKaurHvLZiWf3djDNgrzdERm6AowSQ");
-
     const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
     const deployRight = SignatureRight.canDeployPool();
-    const merkle = new MerkleMap();
-    merkle.set(Poseidon.hash(ownerPublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(signer1Public.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(signer2Public.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(signer3Public.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
-    merkle.set(Poseidon.hash(externalSigner1.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(externalSigner2.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(externalSigner3.toFields()), allRight.hash());
+    const merkle = getMerkle();
 
     const signer1 = PublicKey.fromBase58(args.user1);
     const signer2 = PublicKey.fromBase58(args.user2);
@@ -447,6 +443,31 @@ const functions = {
     return state.key;
   },
 };
+
+export function getMerkle(): MerkleMap {
+  const ownerPublic = PublicKey.fromBase58("B62qjabhmpW9yfLbvUz87BR1u462RRqFfXgoapz8X3Fw8uaXJqGG8WH");
+  const approvedSignerPublic = PublicKey.fromBase58("B62qpko6oWqKU4LwAaT7PSX3b6TYvroj6umbpyEXL5EEeBbiJTUMU5Z");
+  const signer1Public = PublicKey.fromBase58("B62qrgWEGhgXQ5PnpEaeJqs1MRx4Jiw2aqSTfyxAsEVDJzqNFm9PEQt");
+  const signer2Public = PublicKey.fromBase58("B62qkfpRcsJjByghq8FNkzBh3wmzLYFWJP2qP9x8gJ48ekfd6MVXngy");
+  const signer3Public = PublicKey.fromBase58("B62qic5sGvm6QvFzJ92588YgkKxzqi2kFeYydnkM8VDAvY9arDgY6m6");
+  const externalSigner1 = PublicKey.fromBase58("B62qkjzL662Z5QD16cB9j6Q5TH74y42ALsMhAiyrwWvWwWV1ypfcV65");
+  const externalSigner2 = PublicKey.fromBase58("B62qpLxXFg4rmhce762uiJjNRnp5Bzc9PnCEAcraeaMkVWkPi7kgsWV");
+  const externalSigner3 = PublicKey.fromBase58("B62qipa4xp6pQKqAm5qoviGoHyKaurHvLZiWf3djDNgrzdERm6AowSQ");
+
+  const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
+  const deployRight = SignatureRight.canDeployPool();
+  const merkle = new MerkleMap();
+  merkle.set(Poseidon.hash(ownerPublic.toFields()), allRight.hash());
+  merkle.set(Poseidon.hash(signer1Public.toFields()), allRight.hash());
+  merkle.set(Poseidon.hash(signer2Public.toFields()), allRight.hash());
+  merkle.set(Poseidon.hash(signer3Public.toFields()), allRight.hash());
+  merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
+  merkle.set(Poseidon.hash(externalSigner1.toFields()), allRight.hash());
+  merkle.set(Poseidon.hash(externalSigner2.toFields()), allRight.hash());
+  merkle.set(Poseidon.hash(externalSigner3.toFields()), allRight.hash());
+
+  return merkle;
+}
 
 // ---------------------------------------------------------------------------------------
 
