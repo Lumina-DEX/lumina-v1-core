@@ -1,4 +1,4 @@
-import { Account, AccountUpdate, Bool, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, fetchAccount } from "o1js";
+import { Account, AccountUpdate, Bool, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, fetchAccount } from "o1js";
 
 console.log('Load Web Worker.');
 
@@ -102,6 +102,7 @@ const functions = {
   },
   getDelegator: async () => {
     const delegator = await state.zkFactory?.getDelegator();
+    Provable.log("delegator", delegator);
     return delegator.toBase58();
   },
   getBalanceToken: async (args: { publicKey58: string, tokenAddress: string }) => {

@@ -17,7 +17,7 @@ const Multisig = ({ accountState }) => {
       .then((delegator) => { setMultisigInfo({ ...multisigInfo, oldDelegator: delegator }) }).catch((err) => {
         console.error("Error fetching delegator:", err);
       });
-  });
+  },[]);
 
   const [signers, setSigners] = useState({
     signer1Address: "B62qipa4xp6pQKqAm5qoviGoHyKaurHvLZiWf3djDNgrzdERm6AowSQ",
@@ -118,11 +118,11 @@ const Multisig = ({ accountState }) => {
             <span className="font-light">New delegator: </span><input type="text" className="pl-3 w-4/5" defaultValue={multisigInfo.newDelegator} onChange={(event) => setMultisigInfo({ ...multisigInfo, oldDelegator: event.target.value })}></input>
           </div>
           <div className="flex flex-row justify-between w-full ">
-            <span className="font-light">Deadline: </span><input type="text" className="pl-3 w-4/5" value={multisigInfo.deadline.toUTCString()} disabled></input>
+            <span className="font-light">Deadline: </span><input type="text" className="pl-3 w-4/5" value={multisigInfo.deadline.toUTCString()} readOnly></input>
           </div>
           <div className="flex flex-row justify-between w-full ">
             <span className="font-light">Signature: </span>
-            <input type="text" className="pl-3 w-4/5" value={signature}></input>
+            <input type="text" className="pl-3 w-4/5" value={signature} readOnly></input>
           </div>
           <button onClick={sign} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Sign
@@ -130,22 +130,22 @@ const Multisig = ({ accountState }) => {
           <div className="flex flex-row justify-between items-center w-full ">
             <span className="font-light">Signer1: </span>
             <div className="flex flex-col  items-end  w-5/6">
-              <input type="text" className="pl-3 w-full" value={signers.signer1Address} disabled></input>
-              <input type="text" placeholder="signature" className="pl-3 w-full" defaultValue={signers.signer1Signature} onChange={(event) => setSigners({ ...signers, signer1Signature: event.target.value })}></input>
+              <input type="text" className="pl-3 w-full" value={signers.signer1Address} readOnly></input>
+              <input type="text" placeholder="signature" className="pl-3 w-full mt-1" defaultValue={signers.signer1Signature} onChange={(event) => setSigners({ ...signers, signer1Signature: event.target.value })}></input>
             </div>
           </div>
           <div className="flex flex-row items-center justify-between w-full ">
             <span className="font-light">Signer2: </span>
             <div className="flex flex-col items-end  w-5/6">
-              <input type="text" className="pl-3 w-full" value={signers.signer2Address} disabled></input>
-              <input type="text" placeholder="signature" className="pl-3 w-full" defaultValue={signers.signer2Signature} onChange={(event) => setSigners({ ...signers, signer2Signature: event.target.value })}></input>
+              <input type="text" className="pl-3 w-full" value={signers.signer2Address} readOnly></input>
+              <input type="text" placeholder="signature" className="pl-3 w-full mt-1" defaultValue={signers.signer2Signature} onChange={(event) => setSigners({ ...signers, signer2Signature: event.target.value })}></input>
             </div>
           </div>
           <div className="flex flex-row items-center justify-between  w-full ">
             <span className="font-light">Signer3: </span>
             <div className="flex flex-col items-end  w-5/6">
-              <input type="text" className="pl-3 w-full" value={signers.signer3Address} disabled></input>
-              <input type="text" placeholder="signature" className="pl-3 w-full" defaultValue={signers.signer3Signature} onChange={(event) => setSigners({ ...signers, signer3Signature: event.target.value })}></input>
+              <input type="text" className="pl-3 w-full" value={signers.signer3Address} readOnly></input>
+              <input type="text" placeholder="signature" className="pl-3 w-full mt-1" defaultValue={signers.signer3Signature} onChange={(event) => setSigners({ ...signers, signer3Signature: event.target.value })}></input>
             </div>
           </div>
 
