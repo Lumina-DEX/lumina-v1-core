@@ -109,7 +109,7 @@ const Multisig = ({ accountState }) => {
       <div className="flex flex-row justify-start w-full ">
         <div className="flex flex-col p-5 gap-5 w-full items-center">
           <div className="text-xl">
-            Multisig
+            Multisig (Update delegator)
           </div>
           <div className="flex flex-row justify-between w-full ">
             <span className="font-light">Current delegator: </span><input type="text" className="pl-3 w-4/5" defaultValue={multisigInfo.oldDelegator} onChange={(event) => setMultisigInfo({ ...multisigInfo, oldDelegator: event.target.value })}></input>
