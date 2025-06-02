@@ -4,7 +4,6 @@ import GradientBG from './GradientBG.js';
 import styles from '../styles/Home.module.css';
 import * as react from '../pages/reactCOIServiceWorker.js';
 import ZkappWorkerClient from "@/lib/zkappWorkerClient";
-import Swap from '@/components/Swap';
 import Account from '@/components/Account';
 import useAccount from '@/states/useAccount';
 import useLoad from '@/states/useLoad';

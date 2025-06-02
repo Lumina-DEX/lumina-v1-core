@@ -78,11 +78,11 @@ const functions = {
     const cacheFiles = await fetchFiles();
     const cache = readCache(cacheFiles);
 
-    //await state.TokenAdmin?.compile({ cache });
+    await state.TokenAdmin?.compile({ cache });
     await state.TokenStandard?.compile({ cache });
-    await state.PoolFactory!.compile({ cache });
-    await state.PoolMinaHolder!.compile({ cache });
-    await state.PoolMina!.compile({ cache });
+    //await state.PoolFactory!.compile({ cache });
+    //await state.PoolMinaHolder!.compile({ cache });
+    //await state.PoolMina!.compile({ cache });
     //await state.Faucet!.compile({ cache });
 
     console.timeEnd("compile");
