@@ -82,27 +82,50 @@ const Token = ({ accountState }) => {
     return text.substring(0, 4) + "..." + text.substring(text.length - 4, text.length);
   }
 
+  const setTokenKey = (key: string) => {
+    try {
+      const pk = PrivateKey.fromBase58(key);
+      setTokenInfo({ ...tokenInfo, tokenKey: key, tokenPublic: pk.toPublicKey().toBase58() })
+    } catch (error) {
+
+    }
+
+  }
+
+  const setAdminKey = (key: string) => {
+    try {
+      const pk = PrivateKey.fromBase58(key);
+      setTokenInfo({ ...tokenInfo, tokenAdminKey: key, tokenAdminPublic: pk.toPublicKey().toBase58() })
+    } catch (error) {
+
+    }
+  }
 
   return (
     <>
-      <div className="flex flex-row justify-center w-full ">
-        <div className="flex flex-col p-5 gap-5 items-center">
+      <div className="flex flex-row justify-center w-full p-5">
+        <div className="flex flex-col gap-5 items-center w-full">
           <div className="text-xl">
             Deploy your own fungible token
           </div>
           <div className="text-l text-blue-500">
             Keep your private keys preciously
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col w-full">
             <span>Token address : </span>
-            <span className="break-all text-xs">{tokenInfo.tokenPublic}</span>
+            <span className="break-all mb-2">{tokenInfo.tokenPublic}</span>
+
             <span>Token private key : </span>
-            <span className="break-all text-xs">{tokenInfo.tokenKey}</span>
+            <input type="text" placeholder="Token private key" className="w-full mt-1 mb-2" defaultValue={tokenInfo.tokenKey} onChange={(event) => setTokenKey(event.target.value)}></input>
+
             <span>Token admin address : </span>
-            <span className="break-all text-xs">{tokenInfo.tokenAdminPublic}</span>
+            <span className="break-all  mb-2">{tokenInfo.tokenAdminPublic}</span>
+
             <span>Token admin private key : </span>
-            <span className="break-all text-xs">{tokenInfo.tokenAdminKey}</span>
-            <div> <span>Symbol : </span> <input className="w-80" type="text" placeholder="Ex : PEPE, 6 characters maximums" onChange={(event) => setSymbol(event.target.value)}></input>
+            <input type="text" placeholder="Admin private key" className="w-full mt-1 mb-2" defaultValue={tokenInfo.tokenAdminKey} onChange={(event) => setAdminKey(event.target.value)}></input>
+
+            <div className="mb-3">
+              <span>Symbol : </span> <input className="w-80 ml-3" type="text" placeholder="Ex : PEPE, 6 characters maximums" onChange={(event) => setSymbol(event.target.value)}></input>
             </div>
             <div className="flex flex-row justify-between">
               <button onClick={download} className="w-12 bg-cyan-500 text-lg text-white p-1 rounded">

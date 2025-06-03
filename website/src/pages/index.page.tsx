@@ -17,7 +17,7 @@ const TokenPage = () => {
 
     return (
         <>
-            <div className="flex flex-col min-w-[360px] w-screen max-w-[500px]  h-[600px]  rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
+            <div className="flex flex-col min-w-[360px] w-screen max-w-[600px]  h-[650px]  rounded" style={{ backgroundColor: "rgb(255, 245, 240)" }}>
                 <div className="flex flex-row justify-around items-stretch w-full p-2" style={{ borderBottom: "white 1px solid" }} >
                     <TabButton name="deploy" tab={tab} setTab={setTab} />
                     <TabButton name="mint" tab={tab} setTab={setTab} />

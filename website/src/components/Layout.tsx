@@ -66,8 +66,6 @@ export default function Layout({ children }) {
 
         const zkappPublicKey = PublicKey.fromBase58(ZKAPP_ADDRESS);
 
-        await zkappWorkerClient.initZkappInstance(ZKAPP_ADDRESS, ZKFAUCET_ADDRESS, ZKFACTORY_ADDRESS);
-
         setDisplayText('');
 
         // setState({
