@@ -23,7 +23,7 @@ const state = {
   zkFaucet: null as null | Faucet,
   transaction: null as null | Transaction,
   key: null as null | string,
-  isZeko: false,
+  isZeko: false
 };
 
 const testPrivateKey = 'EKEEHJZhoyjfJEvLoLCrRZosz29hnfn8Nx6Wfx74hgQV4xbrkCTf';
@@ -148,7 +148,7 @@ const functions = {
     const signature = Signature.create(signerPk, poolKey.toPublicKey().toFields())
 
     const transaction = await Mina.transaction(userKey, async () => {
-      AccountUpdate.fundNewAccount(userKey, 4);
+      fundNewAccount(userKey, 4);
       await state.zkFactory!.createPool(poolKey.toPublicKey(),
         tokenKey,
         user1,
@@ -174,7 +174,7 @@ const functions = {
     let zkTokenAdmin = new state.TokenAdmin(tokenAdminPublic);
 
     const transaction = await Mina.transaction(userKey, async () => {
-      AccountUpdate.fundNewAccount(userKey, 3);
+      fundNewAccount(userKey, 3);
       await zkTokenAdmin.deploy({
         adminPublicKey: userKey,
       });
@@ -205,7 +205,7 @@ const functions = {
     let newAcc = acc.account ? 0 : 1;
 
     const transaction = await Mina.transaction(userKey, async () => {
-      AccountUpdate.fundNewAccount(userKey, newAcc);
+      fundNewAccount(userKey, newAcc);
       await zkToken.mint(receiver, amount);
     });
     state.transaction = transaction;
@@ -270,7 +270,7 @@ const functions = {
     let total = newAcc + newFront;
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      AccountUpdate.fundNewAccount(publicKey, total);
+      fundNewAccount(publicKey, total);
       await zkPoolHolder!.swapFromMinaToToken(frontend, UInt64.from(frontendFee), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
       await zkToken?.approveAccountUpdate(zkPoolHolder.self);
     });
@@ -301,7 +301,7 @@ const functions = {
     let newFront = accFront.account ? 0 : 1;
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      AccountUpdate.fundNewAccount(publicKey, newFront);
+      fundNewAccount(publicKey, newFront);
       await zkPool!.swapFromTokenToMina(frontend, UInt64.from(frontendFee), UInt64.from(amtIn), UInt64.from(amtOut), UInt64.from(balanceIn), UInt64.from(balanceOut));
     });
     state.transaction = transaction;
@@ -339,7 +339,7 @@ const functions = {
       if (supply > 0) {
         await zkPool.supplyLiquidity(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn), UInt64.from(reserveMina), UInt64.from(reserveToken), UInt64.from(supply));
       } else {
-        AccountUpdate.fundNewAccount(publicKey, 1);
+        fundNewAccount(publicKey, 1);
         await zkPool.supplyFirstLiquidities(UInt64.from(amtMinaIn), UInt64.from(amtTokenIn));
       }
     });
@@ -397,7 +397,7 @@ const functions = {
     const token = await state.zkFaucet?.token.fetch();
     console.log("token", token?.toBase58());
     const transaction = await Mina.transaction(publicKey, async () => {
-      AccountUpdate.fundNewAccount(publicKey, total);
+      fundNewAccount(publicKey, total);
       await state.zkFaucet!.claim();
       await state.zkToken?.approveAccountUpdate(state.zkFaucet.self);
     });
@@ -516,3 +516,19 @@ if (typeof window !== "undefined") {
 }
 
 console.log('Web Worker Successfully Initialized.');
+function fundNewAccount(feePayer: PublicKey, numberOfAccounts: number = 1) {
+  try {
+    const isZeko = state.isZeko
+    const accountUpdate = AccountUpdate.createSigned(feePayer)
+    accountUpdate.label = "AccountUpdate.fundNewAccount()"
+    const fee = (isZeko
+      ? UInt64.from(10 ** 8)
+      : Mina.activeInstance.getNetworkConstants().accountCreationFee).mul(numberOfAccounts)
+    accountUpdate.balance.subInPlace(fee)
+    return accountUpdate
+  } catch (error) {
+    console.error("fund new account", error)
+    return AccountUpdate.fundNewAccount(feePayer, numberOfAccounts)
+  }
+}
+

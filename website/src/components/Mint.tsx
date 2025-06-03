@@ -56,11 +56,11 @@ const Mint = ({ accountState }) => {
   return (
     <>
       <div className="flex flex-row justify-center w-full ">
-        <div className="flex flex-col p-5 gap-5 items-center">
+        <div className="flex flex-col p-5 gap-5 items-center w-full">
           <div className="text-xl">
             Mint your tokens
           </div>
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 w-full">
             <div>
               <span>Token address : </span> <input type="text" className="w-full" defaultValue={token} onChange={(event) => setToken(event.target.value)}></input>
             </div>

@@ -38,6 +38,7 @@ const Token = ({ accountState }) => {
         console.timeEnd("create");
         await mina.sendTransaction({ transaction: json });
       } else {
+        alert("No symbol, set a symbol name")
         console.error("No symbol, set a symbol name");
       }
     } catch (error) {
@@ -61,6 +62,18 @@ const Token = ({ accountState }) => {
       tokenPublic: tokenPublic.toBase58()
     });
   }
+
+  const download = () => {
+    const token = { ...tokenInfo, symbol }
+    const fileData = JSON.stringify(token);
+    const blob = new Blob([fileData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `token-${symbol}.txt`;
+    link.href = url;
+    link.click();
+  }
+
 
   const trimText = (text: string) => {
     if (!text) {
@@ -89,10 +102,18 @@ const Token = ({ accountState }) => {
             <span className="break-all text-xs">{tokenInfo.tokenAdminPublic}</span>
             <span>Token admin private key : </span>
             <span className="break-all text-xs">{tokenInfo.tokenAdminKey}</span>
-            <div> <span>Symbol : </span> <input type="text" defaultValue={symbol} onChange={(event) => setSymbol(event.target.value)}></input>
-            </div>  <button onClick={generateInfo} className="w-12 bg-cyan-500 text-lg text-white p-1 rounded">
-              &#8635;
-            </button>
+            <div> <span>Symbol : </span> <input className="w-80" type="text" placeholder="Ex : PEPE, 6 characters maximums" onChange={(event) => setSymbol(event.target.value)}></input>
+            </div>
+            <div className="flex flex-row justify-between">
+              <button onClick={download} className="w-12 bg-cyan-500 text-lg text-white p-1 rounded">
+                &#11015;
+              </button>
+
+              <button onClick={generateInfo} className="w-12 bg-cyan-500 text-lg text-white p-1 rounded">
+                &#8635;
+              </button>
+            </div>
+
           </div>
           <button onClick={createToken} className="w-full bg-cyan-500 text-lg text-white p-1 rounded">
             Create Token
