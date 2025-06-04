@@ -1,12 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
-import { useSearchParams } from "next/navigation";
 import { PrivateKey, PublicKey } from "o1js";
 // @ts-ignore
-import CurrencyFormat from "react-currency-format";
-import { poolToka } from "@/utils/addresses";
-import TokenMenu from "./TokenMenu";
 import Loading from "./Loading";
 
 // @ts-ignore
