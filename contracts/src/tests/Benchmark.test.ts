@@ -4,7 +4,7 @@ import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Posei
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
 import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Benchmark', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -43,19 +43,25 @@ describe('Benchmark', () => {
     const cache = Cache.FileSystem('./cache');
     if (proofsEnabled) {
 
-      console.time('compile pool');
+      console.time('compile contracts');
+      console.time('compile fta');
       await FungibleTokenAdmin.compile({ cache });
+      console.timeEnd('compile fta')
+      console.time('compile ft')
       await FungibleToken.compile({ cache });
+      console.timeEnd('compile ft')
+      console.time('compile pf')
       await PoolFactory.compile({ cache });
+      console.timeEnd('compile pf')
+      console.time('compile pool')
       await Pool.compile({ cache });
+      console.timeEnd('compile pool')
+      console.time('compile pth')
       await PoolTokenHolder.compile({ cache });
-      console.timeEnd('compile pool');
+      console.timeEnd('compile pth')
+      console.timeEnd('compile contracts');
     }
-  });
 
-
-
-  beforeEach(async () => {
     Local = await Mina.LocalBlockchain({ proofsEnabled });
     Mina.setActiveInstance(Local);
     [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
@@ -151,7 +157,16 @@ describe('Benchmark', () => {
     // mint token to user
     await mintToken(senderAccount);
 
+    let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
+    const txn4 = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkPool.supplyFirstLiquidities(amt, amtToken);
+    });
+    await txn4.prove();
+    await txn4.sign([senderKey]).send();
   });
+
 
   async function getReserves(poolAddress: PublicKey) {
     const acc = await fetchAccount({ publicKey: poolAddress });
@@ -170,14 +185,6 @@ describe('Benchmark', () => {
 
 
   it('swap from mina', async () => {
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
-    });
-    await txn.prove();
-    await txn.sign([senderKey]).send();
 
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
@@ -207,15 +214,6 @@ describe('Benchmark', () => {
   });
 
   it('swap from token', async () => {
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
-    });
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
     const reserveIn = Mina.getBalance(zkPoolAddress, zkToken.deriveTokenId());
     const reserveOut = Mina.getBalance(zkPoolAddress);
     let amountIn = UInt64.from(1.3 * 10 ** 9);

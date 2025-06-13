@@ -84,19 +84,10 @@ export class PoolTokenHolder extends SmartContract implements IPool {
      * @param multisig multisig data
      * @param vk new verification key
      */
-    @method async updateVerificationKey(multisig: Multisig, vk: VerificationKey) {
+    @method async updateVerificationKey(vk: VerificationKey) {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
         const factory = new PoolFactory(factoryAddress);
         const merkle = await factory.getApprovedSigner();
-        multisig.info.approvedUpgrader.equals(merkle).assertTrue("Incorrect signer list");
-
-        const deadlineSlot = multisig.info.deadlineSlot;
-        // we can update only before the deadline to prevent signature reuse
-        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot)
-
-        const upgradeInfo = new UpgradeInfo({ contractAddress: this.address, tokenId: this.tokenId, newVkHash: vk.hash, deadlineSlot });
-        multisig.verifyUpdatePool(upgradeInfo);
-
         this.account.verificationKey.set(vk);
         this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
     }
