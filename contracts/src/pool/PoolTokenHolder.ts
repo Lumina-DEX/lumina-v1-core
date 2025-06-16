@@ -122,8 +122,8 @@ export class PoolTokenHolder extends SmartContract implements IPool {
     @method async swapFromTokenToToken(frontend: PublicKey, taxFeeFrontend: UInt64, amountTokenIn: UInt64, amountTokenOutMin: UInt64, balanceInMax: UInt64, balanceOutMin: UInt64
     ) {
         const pool = new Pool(this.address);
-        // we check the protocol in the pool
-        const protocol = pool.protocol.get();
+        // we need to create a proof to be ensure is the correct protocol address
+        const protocol = await pool.getProtocol();
         const sender = this.sender.getUnconstrained();
         await this.swap(sender, protocol, frontend, taxFeeFrontend, amountTokenIn, amountTokenOutMin, balanceInMax, balanceOutMin, false);
     }

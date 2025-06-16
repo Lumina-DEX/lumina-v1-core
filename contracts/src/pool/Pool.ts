@@ -398,6 +398,15 @@ export class Pool extends TokenContract implements IPool {
         this.emitEvent("burnLiquidity", new BurnLiqudityEvent({ sender, amountMinaOut: UInt64.zero, amountLiquidity: liquidityAmount }));
     }
 
+    /**
+     * Get protocol address
+     * @returns address of the protocol
+     */
+    @method.returns(PublicKey) async getProtocol() {
+        const protocol = this.protocol.getAndRequireEquals();
+        return protocol;
+    }
+
     private async burnLiquidity(sender: PublicKey, liquidityAmount: UInt64, supplyMax: UInt64, isMinaPool: boolean) {
         liquidityAmount.assertGreaterThan(UInt64.zero, "Liquidity amount can't be zero");
         supplyMax.assertGreaterThan(UInt64.zero, "Supply max can't be zero");
