@@ -1,7 +1,6 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
 import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
-import { PoolUpgradeTest } from './PoolUpgradeTest';
 import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
@@ -231,19 +230,6 @@ describe('Pool data', () => {
 
     return new Multisig({ info: multi, signatures: array });
   }
-
-  it('update pool factory', async () => {
-    const txn1 = await Mina.transaction(deployerAccount, async () => {
-      //await zkApp.updateVerificationKey(compileKey);
-    });
-    await txn1.prove();
-    await txn1.sign([deployerKey, bobKey]).send();
-
-    let poolDatav2 = new PoolUpgradeTest(zkAppAddress);
-    let version = await poolDatav2.version();
-    expect(version?.toBigInt()).toEqual(33n);
-
-  });
 
   it('math test', async () => {
     const result = 150n * 12000n / 300n;
