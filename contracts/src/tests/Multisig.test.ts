@@ -236,6 +236,10 @@ describe('Pool data', () => {
         await txn.prove();
         await txn.sign([deployerKey]).send();
 
+        const newPool2 = new PoolUpgradeTest(zkTokenAddress);
+        const version2 = await newPool2.version();
+        expect(version2.value).toEqual(UInt64.from(66).value);
+
         const txn2 = await Mina.transaction(deployerAccount, async () => {
             await zkPool.updateVerificationKey();
         });
