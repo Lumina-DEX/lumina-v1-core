@@ -1,8 +1,8 @@
 import { FungibleToken, FungibleTokenAdmin } from 'mina-fungible-token';
-import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, TokenId, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
+import { AccountUpdate, Bool, Cache, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolFactory, PoolTokenHolder, Pool, mulDiv } from '../index';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData, UpgradeInfo } from '../pool/Multisig';
+import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -211,42 +211,6 @@ describe('Pool data', () => {
 
   });
 
-  it('update pool', async () => {
-    const proof = await getProof(zkPoolAddress, zkPool.tokenId, compileKey);
-    Provable.log("Tokenid", zkPool.tokenId);
-    const txn1 = await Mina.transaction(deployerAccount, async () => {
-      await zkPool.updateVerificationKey(proof, compileKey);
-    });
-    await txn1.prove();
-    await txn1.sign([deployerKey, bobKey]).send();
-
-    let poolDatav2 = new PoolUpgradeTest(zkPoolAddress);
-    let version = await poolDatav2.version();
-    expect(version?.toBigInt()).toEqual(33n);
-
-  });
-
-  async function getProof(contractAddress: PublicKey, tokenId: Field, key: VerificationKey) {
-    const today = new Date();
-    today.setDate(today.getDate() + 1);
-    const tomorrow = today.getTime();
-    const time = getSlotFromTimestamp(tomorrow);
-    const info = new UpgradeInfo({ contractAddress, tokenId, newVkHash: key.hash, deadlineSlot: UInt32.from(time) });
-
-
-    const signBob = Signature.create(bobKey, info.toFields());
-    const signAlice = Signature.create(aliceKey, info.toFields());
-    const signDylan = Signature.create(dylanAccount.key, info.toFields());
-
-    const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
-    const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
-    const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
-    const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
-    const array = [infoBob, infoAlice, infoDylan];
-    //const multisig = await MultisigProgram.verifyUpdatePool(multi, info, array);
-    const proof = new Multisig({ info: multi, signatures: array });
-    return proof;
-  }
 
   async function getProofAccount(oldUser: PublicKey, newUser: PublicKey, delegator: boolean) {
     const today = new Date();
@@ -267,21 +231,6 @@ describe('Pool data', () => {
 
     return new Multisig({ info: multi, signatures: array });
   }
-
-  it('update pool holder', async () => {
-    const proof = await getProof(zkPoolAddress, TokenId.derive(zkTokenAddress), compileKey);
-    const txn1 = await Mina.transaction(deployerAccount, async () => {
-      await tokenHolder.updateVerificationKey(proof, compileKey);
-      await zkPool.approve(tokenHolder.self);
-    });
-    await txn1.prove();
-    await txn1.sign([deployerKey, bobKey]).send();
-
-    let poolDatav2 = new PoolUpgradeTest(zkPoolAddress, zkToken.deriveTokenId());
-    let version = await poolDatav2.version();
-    expect(version?.toBigInt()).toEqual(33n);
-
-  });
 
   it('update pool factory', async () => {
     const txn1 = await Mina.transaction(deployerAccount, async () => {

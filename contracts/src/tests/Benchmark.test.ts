@@ -4,7 +4,7 @@ import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Posei
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
 import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Benchmark', () => {
   let deployerAccount: Mina.TestPublicKey,

@@ -316,15 +316,6 @@ export class Multisig extends Struct({
      * Check if the signature match the current user and data subbit
      * @param data needed to verify the signature
      */
-    verifyUpdatePool(upgradeInfo: UpgradeInfo) {
-        const right = SignatureRight.canUpdatePool();
-        verifySignature(this.signatures, upgradeInfo.deadlineSlot, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
-    }
-
-    /**
-     * Check if the signature match the current user and data subbit
-     * @param data needed to verify the signature
-     */
     verifyUpdateDelegator(updateInfo: UpdateAccountInfo) {
         const right = SignatureRight.canUpdateDelegator();
         verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
