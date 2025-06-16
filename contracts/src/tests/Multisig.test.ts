@@ -244,7 +244,7 @@ describe('Pool data', () => {
 
         const newPool = new PoolUpgradeTest(zkTokenAddress);
         const version = await newPool.version();
-        expect(version.value).toEqual(UInt64.from(66));
+        expect(version.value).toEqual(UInt64.from(66).value);
     });
 
 
