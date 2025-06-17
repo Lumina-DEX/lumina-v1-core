@@ -5,11 +5,11 @@ import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, SignatureRight, 
 /**
  * Current verification key of pool contract
  */
-export const contractData = "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";
+export const contractData = "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";
 /**
  * Current hash of verification key of pool contract
  */
-export const contractHash = Field(7480901441026468595703278519003423509807923435933557767337375565636818933806n);
+export const contractHash = Field(14683275592134597905598913692071723180668330872714522715930724490204414370433n);
 /**
  * Current verification key of pool token holder contract
  */
@@ -112,6 +112,11 @@ export class PoolFactory extends TokenContract {
      */
     @state(PublicKey)
     delegator = State<PublicKey>()
+    /**
+     * List of signer approved to deploy a new pool
+     */
+    @state(Field)
+    poolVerificationKey = State<Field>()
 
     /**
      * List of pool factory events
@@ -229,6 +234,10 @@ export class PoolFactory extends TokenContract {
         this.emitEvent("updateDelegator", new UpdateUserEvent(newUser));
     }
 
+    @method async setNewPoolVK(newVK: Field) {
+        this.poolVerificationKey.set(newVK);
+    }
+
     /**
      * Get protocol address
      * @returns address of the protocol
@@ -253,6 +262,15 @@ export class PoolFactory extends TokenContract {
      */
     @method.returns(Field) async getApprovedSigner() {
         const approvedSigner = this.approvedSigner.getAndRequireEquals();
+        return approvedSigner;
+    }
+
+    /**
+    * Get approved signer 
+    * @returns root of approved signer
+    */
+    @method.returns(Field) async getPoolRoot() {
+        const approvedSigner = this.poolVerificationKey.getAndRequireEquals();
         return approvedSigner;
     }
 

@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, method, Permissions, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt64 } from 'o1js';
+import { AccountUpdate, AccountUpdateForest, assert, Bool, Int64, MerkleMapWitness, method, Permissions, Poseidon, Provable, PublicKey, state, State, Struct, TokenContract, TokenId, Types, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken, mulDiv, PoolFactory, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
 
@@ -147,14 +147,22 @@ export class Pool extends TokenContract implements IPool {
 
     /**
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
+     * @param multisig multisig data
+     * @param vk new verification key
      */
-    @method async updateVerificationKey() {
-        const factoryAddress = this.poolFactory.getAndRequireEquals();
-        const factory = new PoolFactory(factoryAddress);
-        const vk = await factory.getPoolVK();
+    @method
+    async updateVerificationKey(witness: MerkleMapWitness, vk: VerificationKey) {
+        const factoryAddress = this.poolFactory.getAndRequireEquals()
+        const factory = new PoolFactory(factoryAddress)
+        const merkle = await factory.getPoolRoot()
 
-        this.account.verificationKey.set(vk);
-        this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash));
+        const contractKey = Poseidon.hash(this.address.toFields().concat(this.tokenId.toFields()));
+        const [root, key] = witness.computeRootAndKey(vk.hash);
+        root.assertEquals(merkle, "Merkle root does not match pool factory");
+        key.assertEquals(contractKey, "Verification key hash does not match contract address and token id");
+
+        this.account.verificationKey.set(vk)
+        this.emitEvent("upgrade", new UpdateVerificationKeyEvent(vk.hash))
     }
 
     /**
