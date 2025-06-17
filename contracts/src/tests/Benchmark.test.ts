@@ -1,10 +1,10 @@
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, CanonicalForeignField, fetchAccount, Field, ForeignCurve, MerkleMap, Mina, Poseidon, PrivateKey, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool, Secp256k1, Bytes32, Ecdsa, fieldToBytes } from '../index';
 import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Benchmark', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -37,6 +37,8 @@ describe('Benchmark', () => {
     zkTokenPrivateKey: PrivateKey,
     zkToken: FungibleToken,
     tokenHolder: PoolTokenHolder,
+    signerKey: CanonicalForeignField,
+    signerPublic: ForeignCurve,
     Local: any;
 
   beforeAll(async () => {
@@ -69,6 +71,8 @@ describe('Benchmark', () => {
     senderKey = senderAccount.key;
     bobKey = bobAccount.key;
     aliceKey = aliceAccount.key;
+    signerKey = Secp256k1.Scalar.random();
+    signerPublic = Secp256k1.generator.scale(signerKey);
 
     senderPublic = senderKey.toPublicKey();
     bobPublic = bobKey.toPublicKey();
@@ -102,6 +106,9 @@ describe('Benchmark', () => {
     merkle.set(Poseidon.hash(alicePublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(senderPublic.toFields()), allRight.hash());
     merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
+    const signerToFields = signerPublic.x.toFields().concat(signerPublic.y.toFields());
+    merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
+    merkle.set(Poseidon.hash(signerToFields), deployRight.hash());
 
     const root = merkle.getRoot();
 
@@ -143,11 +150,15 @@ describe('Benchmark', () => {
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
     await txn.sign([deployerKey, zkAppPrivateKey, zkTokenAdminPrivateKey, zkTokenPrivateKey]).send();
 
-    const signature = Signature.create(bobKey, zkPoolAddress.toFields());
-    const witness = merkle.getWitness(Poseidon.hash(bobPublic.toFields()));
+    const rawMessage = Poseidon.hash(zkPoolAddress.toFields());
+    // warm up Poseidon
+    const signerHash = Poseidon.hash(signerToFields);
+    const message = Bytes32.from(fieldToBytes(rawMessage));
+    const signature = Ecdsa.sign(message.toBytes(), signerKey.toBigInt());
+    const witness = merkle.getWitness(signerHash);
     const txn3 = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.createPool(zkPoolAddress, zkTokenAddress, bobAccount, signature, witness, allRight);
+      await zkApp.createPool(zkPoolAddress, zkTokenAddress, signerPublic, signature, witness, deployRight);
     });
 
     await txn3.prove();
@@ -166,7 +177,6 @@ describe('Benchmark', () => {
     await txn4.prove();
     await txn4.sign([senderKey]).send();
   });
-
 
   async function getReserves(poolAddress: PublicKey) {
     const acc = await fetchAccount({ publicKey: poolAddress });
