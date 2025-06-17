@@ -3,6 +3,7 @@ import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateSignerData
 import { FungibleTokenAdmin, FungibleToken } from 'mina-fungible-token';
 import { PoolFactory, Pool, PoolTokenHolder } from '../indexpool';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
+import { PoolIntermediary } from './PoolIntermediary';
 
 const proofsEnabled = false;
 
@@ -238,10 +239,12 @@ describe('Pool data', () => {
 
         const newPool2 = new PoolUpgradeTest(zkTokenAddress);
         const version2 = await newPool2.version();
+
+        const newZkPool = new PoolIntermediary(zkPoolAddress);
         expect(version2.value).toEqual(UInt64.from(66).value);
 
         const txn2 = await Mina.transaction(deployerAccount, async () => {
-            await zkPool.updateVerificationKey();
+            await newZkPool.updateVerificationKey();
         });
         await txn2.prove();
         await txn2.sign([deployerKey]).send();
