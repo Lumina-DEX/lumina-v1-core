@@ -1,5 +1,5 @@
 import { AccountUpdate, AccountUpdateForest, Permissions, assert, Bool, Int64, method, Provable, PublicKey, state, State, TokenContract, TokenId, Types, UInt64 } from 'o1js';
-import { AddLiquidityEvent, BalanceEvent, BurnLiqudityEvent, FungibleToken, mulDiv, Pool, PoolFactory, PoolFactoryBase, ReceiveMinaEvent, SwapEvent, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { AddLiquidityEvent, BalanceEvent, BurnLiqudityEvent, FungibleToken, mulDiv, Pool, PoolFactoryBase, ReceiveMinaEvent, SwapEvent, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { IPool, checkToken } from '../pool/IPoolState.js';
 import { PoolFactoryUpgradeTest } from './PoolFactoryUpgradeTest.js';
 

@@ -1,4 +1,4 @@
-import { FungibleToken, FungibleTokenAdmin, PoolFactory, Pool, PoolTokenHolder } from '../index.js';
+import { FungibleToken, FungibleTokenAdmin, PoolFactory, PoolTokenHolder } from '../index.js';
 import { PoolFactoryUpgradeTest } from '../tests/PoolFactoryUpgradeTest.js';
 import { PoolHolderUpgradeTest } from '../tests/PoolHolderUpgradeTest.js';
 import { PoolUpgradeTest } from '../tests/PoolUpgradeTest.js';

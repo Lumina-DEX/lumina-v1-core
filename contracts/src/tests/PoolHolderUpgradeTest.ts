@@ -1,5 +1,5 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, TokenId, UInt64 } from 'o1js';
-import { FungibleToken, mulDiv, Pool, PoolFactory, PoolFactoryBase, PoolTokenHolder, SubWithdrawLiquidityEvent, SwapEvent, UpdateVerificationKeyEvent, WithdrawLiquidityEvent } from '../indexpool.js';
+import { FungibleToken, mulDiv, Pool, PoolFactoryBase, PoolTokenHolder, SubWithdrawLiquidityEvent, SwapEvent, UpdateVerificationKeyEvent, WithdrawLiquidityEvent } from '../indexpool.js';
 import { IPool, checkToken } from '../pool/IPoolState.js';
 import { PoolFactoryUpgradeTest } from './PoolFactoryUpgradeTest.js';
 

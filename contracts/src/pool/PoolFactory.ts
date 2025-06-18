@@ -147,7 +147,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, args.multisigInfo.deadlineSlot);
 
         const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.multisigInfo.deadlineSlot });
-        // we need 3 signatures to update signer, prevent to deadlock contract update
+        // we need 2 signatures to update signer, prevent to deadlock contract update
         const right = SignatureRight.canUpdateSigner();
         verifySignature(args.signatures, args.multisigInfo.deadlineSlot, args.multisigInfo, args.multisigInfo.approvedUpgrader, updateSignerData.toFields(), right);
 
