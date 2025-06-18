@@ -8,7 +8,6 @@ import { PoolUpgradeTest } from '../tests/PoolUpgradeTest.js';
 
 // get contract vk
 await PoolFactory.compile();
-const poolKey = await Pool.compile();
 await FungibleToken.compile();
 await FungibleTokenAdmin.compile();
 const poolTokenHolderKey = await PoolTokenHolder.compile();

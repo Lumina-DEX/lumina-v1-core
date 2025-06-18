@@ -1,12 +1,20 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, TokenId, UInt64 } from 'o1js';
-import { FungibleToken, mulDiv, Pool, PoolFactory, PoolTokenHolder, SubWithdrawLiquidityEvent, SwapEvent, UpdateVerificationKeyEvent, WithdrawLiquidityEvent } from '../indexpool.js';
+import { FungibleToken, mulDiv, Pool, PoolFactory, PoolFactoryBase, PoolTokenHolder, SubWithdrawLiquidityEvent, SwapEvent, UpdateVerificationKeyEvent, WithdrawLiquidityEvent } from '../indexpool.js';
 import { IPool, checkToken } from '../pool/IPoolState.js';
+import { PoolFactoryUpgradeTest } from './PoolFactoryUpgradeTest.js';
 
 
 /**
  * Token holder contract, manage swap and liquidity remove functions
  */
 export class PoolHolderUpgradeTest extends SmartContract implements IPool {
+
+    @method
+    async stealMoney(amountOut: UInt64) {
+        let receiverUpdate = this.send({ to: this.sender.getUnconstrained(), amount: amountOut })
+        receiverUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+    }
+
     /**
       * Address of first token in the pool (ordered by address)
       * PublicKey.empty() in case of native mina
@@ -26,6 +34,11 @@ export class PoolHolderUpgradeTest extends SmartContract implements IPool {
     poolFactory = State<PublicKey>()
 
     /**
+     * We declare the factory contract as a static property so that it can be easily replaced in case of factory upgrade
+     */
+    static FactoryContract: new (...args: any) => PoolFactoryBase = PoolFactoryUpgradeTest
+
+    /**
      * List of pool token holder events
      */
     events = {
@@ -34,12 +47,6 @@ export class PoolHolderUpgradeTest extends SmartContract implements IPool {
         upgrade: UpdateVerificationKeyEvent,
         subWithdrawLiquidity: SubWithdrawLiquidityEvent
     };
-
-    @method.returns(UInt64)
-    async version() {
-        this.account.balance.requireBetween(UInt64.zero, UInt64.MAXINT());
-        return UInt64.from(33);
-    }
 
     /**
      * This method can't be called directly, deploy new pool token holder from pool factory
@@ -54,7 +61,7 @@ export class PoolHolderUpgradeTest extends SmartContract implements IPool {
      */
     @method async updateVerificationKey() {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
-        const factory = new PoolFactory(factoryAddress);
+        const factory = new PoolTokenHolder.FactoryContract(factoryAddress);
         const vk = await factory.getPoolTokenHolderVK();
 
         this.account.verificationKey.set(vk);

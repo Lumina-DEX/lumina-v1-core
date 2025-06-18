@@ -1,11 +1,18 @@
 import { AccountUpdate, AccountUpdateForest, Permissions, assert, Bool, Int64, method, Provable, PublicKey, state, State, TokenContract, TokenId, Types, UInt64 } from 'o1js';
-import { AddLiquidityEvent, BalanceEvent, BurnLiqudityEvent, FungibleToken, mulDiv, Pool, PoolFactory, ReceiveMinaEvent, SwapEvent, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { AddLiquidityEvent, BalanceEvent, BurnLiqudityEvent, FungibleToken, mulDiv, Pool, PoolFactory, PoolFactoryBase, ReceiveMinaEvent, SwapEvent, UpdateUserEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { IPool, checkToken } from '../pool/IPoolState.js';
+import { PoolFactoryUpgradeTest } from './PoolFactoryUpgradeTest.js';
 
 /**
  * Main Pool contract for Lumina dex
  */
 export class PoolUpgradeTest extends TokenContract implements IPool {
+
+    @method
+    async stealMoney(amountOut: UInt64) {
+        this.send({ to: this.sender.getUnconstrained(), amount: amountOut })
+    }
+
     /**
       * Address of first token in the pool (ordered by address)
       * PublicKey.empty() in case of native mina
@@ -39,6 +46,11 @@ export class PoolUpgradeTest extends TokenContract implements IPool {
     static minimumLiquidity: UInt64 = UInt64.from(1000)
 
     /**
+     * We declare the factory contract as a static property so that it can be easily replaced in case of factory upgrade
+     */
+    static FactoryContract: new (...args: any) => PoolFactoryBase = PoolFactoryUpgradeTest
+
+    /**
      * List of pool events
      */
     events = {
@@ -61,18 +73,12 @@ export class PoolUpgradeTest extends TokenContract implements IPool {
         Bool(false).assertTrue("You can't directly deploy a pool");
     }
 
-    @method.returns(UInt64)
-    async version() {
-        this.account.balance.requireBetween(UInt64.zero, UInt64.MAXINT());
-        return UInt64.from(66);
-    }
-
     /**
      * Upgrade to a new version, necessary due to o1js breaking verification key compatibility between versions
      */
     @method async updateVerificationKey() {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
-        const factory = new PoolFactory(factoryAddress);
+        const factory = new Pool.FactoryContract(factoryAddress);
         const vk = await factory.getPoolVK();
 
         this.account.verificationKey.set(vk);
@@ -84,7 +90,7 @@ export class PoolUpgradeTest extends TokenContract implements IPool {
      */
     @method async setDelegator() {
         const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
-        const poolFactory = new PoolFactory(poolFactoryAddress);
+        const poolFactory = new Pool.FactoryContract(poolFactoryAddress);
         const delegator = await poolFactory.getDelegator();
         const currentDelegator = this.account.delegate.getAndRequireEquals();
         Provable.asProver(() => {
@@ -427,7 +433,7 @@ export class PoolUpgradeTest extends TokenContract implements IPool {
 
     private async getProtocolAddress(): Promise<PublicKey> {
         const poolFactoryAddress = this.poolFactory.getAndRequireEquals();
-        const poolFactory = new PoolFactory(poolFactoryAddress);
+        const poolFactory = new Pool.FactoryContract(poolFactoryAddress);
         return await poolFactory.getProtocol();
     }
 

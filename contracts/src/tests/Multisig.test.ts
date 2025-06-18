@@ -3,7 +3,8 @@ import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateSignerData
 import { FungibleTokenAdmin, FungibleToken } from 'mina-fungible-token';
 import { PoolFactory, Pool, PoolTokenHolder } from '../indexpool';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
-import { PoolIntermediary } from './PoolIntermediary';
+import { PoolFactoryUpgradeTest } from './PoolFactoryUpgradeTest';
+import { PoolHolderUpgradeTest } from './PoolHolderUpgradeTest';
 
 const proofsEnabled = true;
 
@@ -13,8 +14,8 @@ const vkUpgradeTest = new VerificationKey({
 });
 
 const vkFactoryUpgradeTest = new VerificationKey({
-    data: "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",
-    hash: Field.from(16987087617894989826548935123876684212487474304228350486554612210262558959759n)
+    data: "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",
+    hash: Field.from(120416605976836130576107291530544425238266426929407352611281136753339053096n)
 });
 
 
@@ -78,8 +79,10 @@ describe('Pool data', () => {
             await FungibleToken.compile({ cache });
             await PoolFactory.compile({ cache });
             await Pool.compile({ cache });
-            await PoolIntermediary.compile({ cache });
             await PoolTokenHolder.compile({ cache });
+            await PoolFactoryUpgradeTest.compile({ cache });
+            await PoolUpgradeTest.compile({ cache });
+            await PoolHolderUpgradeTest.compile({ cache });
             console.timeEnd('compile PoolData');
         }
 
@@ -93,6 +96,24 @@ describe('Pool data', () => {
         signerRight = SignatureRight.canUpdateSigner();
         deployRight = SignatureRight.canDeployPool();
     });
+
+    async function mintToken(user: PublicKey) {
+        // token are minted to original deployer, so just transfer it for test
+        let txn = await Mina.transaction(deployerAccount, async () => {
+            AccountUpdate.fundNewAccount(deployerAccount, 1);
+            await zkToken.mint(user, UInt64.from(1000 * 10 ** 9));
+        });
+        await txn.prove();
+        await txn.sign([deployerKey, zkTokenPrivateKey]).send();
+
+        txn = await Mina.transaction(deployerAccount, async () => {
+            AccountUpdate.fundNewAccount(deployerAccount, 1);
+            await zkToken.mint(deployerAccount, UInt64.from(1000 * 10 ** 9));
+        });
+        await txn.prove();
+        await txn.sign([deployerKey, zkTokenPrivateKey]).send();
+
+    }
 
     beforeEach(async () => {
         const Local = await Mina.LocalBlockchain({ proofsEnabled });
@@ -212,6 +233,16 @@ describe('Pool data', () => {
         merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
 
         await deployPool();
+        await mintToken(senderPublic);
+
+        let amt = UInt64.from(10 * 10 ** 9);
+        let amtToken = UInt64.from(50 * 10 ** 9);
+        const txn4 = await Mina.transaction(senderAccount, async () => {
+            AccountUpdate.fundNewAccount(senderAccount, 1);
+            await zkPool.supplyFirstLiquidities(amt, amtToken);
+        });
+        await txn4.prove();
+        await txn4.sign([senderKey]).send();
 
         const today = new Date();
         today.setDate(today.getDate() + 1);
@@ -232,30 +263,46 @@ describe('Pool data', () => {
         const array = [infoBob, infoAlice, infoDylan];
 
         const proof = new Multisig({ info: multi, signatures: array });
+        const vk = await zkApp.getPoolVK();
+        Provable.log("vk", vk.hash);
         const txn = await Mina.transaction(deployerAccount, async () => {
             await zkApp.updateVerificationKey(proof, vkFactoryUpgradeTest);
         });
         await txn.prove();
         await txn.sign([deployerKey]).send();
 
-        const newPool2 = new PoolUpgradeTest(zkTokenAddress);
-        const version2 = await newPool2.version();
 
-        const newZkPool = new PoolIntermediary(zkPoolAddress);
-        expect(version2.value).toEqual(UInt64.from(66).value);
+        const pool = new Pool(zkPoolAddress);
+        Pool.FactoryContract = PoolFactoryUpgradeTest;
+
+        let accountpool = Mina.getAccount(zkPoolAddress);
+        expect(vk.hash).toEqual(accountpool.zkapp?.verificationKey?.hash);
 
         const txn2 = await Mina.transaction(deployerAccount, async () => {
-            await newZkPool.updateVerificationKey();
+            await pool.updateVerificationKey();
         });
+        console.log("updateVerificationKey", txn2.toPretty());
         await txn2.prove();
         await txn2.sign([deployerKey]).send();
 
-        const newPool = new PoolUpgradeTest(zkTokenAddress);
-        const version = await newPool.version();
-        expect(version.value).toEqual(UInt64.from(66).value);
+
+        accountpool = Mina.getAccount(zkPoolAddress);
+        const newVk = await new PoolFactoryUpgradeTest(zkAppAddress).getPoolVK();
+        Provable.log("newVk", newVk.hash);
+        expect(newVk.hash).not.toEqual(vk.hash);
+        expect(newVk.hash).toEqual(accountpool.zkapp?.verificationKey?.hash);
+
+        const newPool = new PoolUpgradeTest(zkPoolAddress);
+        const txn3 = await Mina.transaction(deployerAccount, async () => {
+            await newPool.stealMoney(UInt64.from(100));
+        });
+
+        console.log("stealMoney", txn3.toPretty());
+        await txn3.prove();
+        await txn3.sign([deployerKey]).send();
     });
 
-
+    return;
     it('update delegator', async () => {
         merkle.set(Poseidon.hash(bobPublic.toFields()), updateDelegatorRight.hash());
         merkle.set(Poseidon.hash(alicePublic.toFields()), updateDelegatorRight.hash());

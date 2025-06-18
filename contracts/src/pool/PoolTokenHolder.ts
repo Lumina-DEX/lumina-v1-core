@@ -1,5 +1,5 @@
 import { AccountUpdate, Bool, method, Provable, PublicKey, SmartContract, state, State, Struct, TokenId, UInt64 } from 'o1js';
-import { FungibleToken, mulDiv, Pool, PoolFactory, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
+import { FungibleToken, mulDiv, Pool, PoolFactory, PoolFactoryBase, SwapEvent, UpdateVerificationKeyEvent } from '../indexpool.js';
 import { checkToken, IPool } from './IPoolState.js';
 
 /**
@@ -61,6 +61,11 @@ export class PoolTokenHolder extends SmartContract implements IPool {
     poolFactory = State<PublicKey>()
 
     /**
+     * We declare the factory contract as a static property so that it can be easily replaced in case of factory upgrade
+     */
+    static FactoryContract: new (...args: any) => PoolFactoryBase = PoolFactory
+
+    /**
      * List of pool token holder events
      */
     events = {
@@ -83,7 +88,7 @@ export class PoolTokenHolder extends SmartContract implements IPool {
      */
     @method async updateVerificationKey() {
         const factoryAddress = this.poolFactory.getAndRequireEquals();
-        const factory = new PoolFactory(factoryAddress);
+        const factory = new PoolTokenHolder.FactoryContract(factoryAddress);
         const vk = await factory.getPoolTokenHolderVK();
 
         this.account.verificationKey.set(vk);

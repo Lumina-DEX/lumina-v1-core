@@ -1,4 +1,4 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, SmartContract, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
 import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature } from './Multisig.js';
 
@@ -19,6 +19,14 @@ export const contractHolderData = "AAAquFdEgAiP0gVQOFC1AYSsV9ylHwU1kj9trP0Iz00FP
  */
 export const contractHolderHash = Field(22771138667686628231131034289639045721554421786882605107145835018273998249550n);
 
+export type PoolFactoryBase = SmartContract & {
+    getPoolVK(): Promise<VerificationKey>
+    getPoolTokenHolderVK(): Promise<VerificationKey>
+    getProtocol(): Promise<PublicKey>
+    getDelegator(): Promise<PublicKey>
+    getApprovedSigner(): Promise<Field>
+}
+
 /**
  * Interface of current data needed to deploy the pool factory
  */
@@ -31,6 +39,7 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     signatures: SignatureInfo[];
     multisigInfo: MultisigInfo;
 }
+
 
 /**
  * Event emitted when a new pool is created
@@ -95,7 +104,7 @@ export class UpdateSignerEvent extends Struct({
 /**
  * Factory who create pools
  */
-export class PoolFactory extends TokenContract {
+export class PoolFactory extends TokenContract implements PoolFactoryBase {
 
     /**
      * List of signer approved to deploy a new pool
