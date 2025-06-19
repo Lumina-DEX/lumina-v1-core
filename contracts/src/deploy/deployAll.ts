@@ -51,7 +51,7 @@ let zkEthKey = PrivateKey.fromBase58(process.env.POOL_ETH_MINA!);
 
 // use it to deploy pool on testnet
 // B62qpko6oWqKU4LwAaT7PSX3b6TYvroj6umbpyEXL5EEeBbiJTUMU5Z
-let approvedSigner = PrivateKey.fromBase58("EKE9dyeMmvz6deCC2jD9rBk7d8bG6ZDqVno8wRe8tAbQDussfBYi");
+let approvedSigner = PrivateKey.fromBase58(process.env.APPROVED_SIGNER!);
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
@@ -335,13 +335,11 @@ async function deployFactory() {
 
         const signBob = Signature.create(signer1Key, info.toFields());
         const signAlice = Signature.create(signer2Key, info.toFields());
-        const signDylan = Signature.create(signer3Key, info.toFields());
 
         const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(timeSlot) })
         const infoBob = new SignatureInfo({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
         const infoAlice = new SignatureInfo({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
-        const infoDylan = new SignatureInfo({ user: signer3Public, witness: merkle.getWitness(Poseidon.hash(signer3Public.toFields())), signature: signDylan, right: allRight })
-        const array = [infoBob, infoAlice, infoDylan];
+        const array = [infoBob, infoAlice];
 
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
