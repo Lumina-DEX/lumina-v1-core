@@ -500,8 +500,13 @@ async function addSecondLiquidity() {
         let amtMina = UInt64.from(20 * 10 ** 9);
         const reserve = await getReserves(zkPoolTokenAMinaAddress);
         const out = getAmountLiquidityOutUint(amtMina, reserve.amountMina, reserve.amountToken, reserve.liquidity, UInt64.one);
+        const poolTokenAMina = new Pool(zkPoolTokenAMinaAddress);
+        fetchAccount({ publicKey: feepayerAddress, tokenId: poolTokenAMina.deriveTokenId() });
+        fetchAccount({ publicKey: feepayerAddress, tokenId: poolTokenAMina.deriveTokenId() });
+        fetchAccount({ publicKey: feepayerAddress, tokenId: zkTokenA.deriveTokenId() });
+        fetchAccount({ publicKey: feepayerAddress });
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            fundNewAccount(feepayerAddress, 1);
+            //fundNewAccount(feepayerAddress, 1);
             await zkPoolTokenAMina.supplyLiquidity(out.amountAIn, out.amountBIn, out.balanceAMax, out.balanceBMax, out.supplyMin);
         });
         console.log("tx liquidity", tx.toPretty());
