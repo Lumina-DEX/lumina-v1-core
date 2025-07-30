@@ -43,19 +43,25 @@ describe('Benchmark', () => {
     const cache = Cache.FileSystem('./cache');
     if (proofsEnabled) {
 
-      console.time('compile pool');
+      console.time('compile contracts');
+      console.time('compile fta');
       await FungibleTokenAdmin.compile({ cache });
+      console.timeEnd('compile fta')
+      console.time('compile ft')
       await FungibleToken.compile({ cache });
+      console.timeEnd('compile ft')
+      console.time('compile pf')
       await PoolFactory.compile({ cache });
+      console.timeEnd('compile pf')
+      console.time('compile pool')
       await Pool.compile({ cache });
+      console.timeEnd('compile pool')
+      console.time('compile pth')
       await PoolTokenHolder.compile({ cache });
-      console.timeEnd('compile pool');
+      console.timeEnd('compile pth')
+      console.timeEnd('compile contracts');
     }
-  });
 
-
-
-  beforeEach(async () => {
     Local = await Mina.LocalBlockchain({ proofsEnabled });
     Mina.setActiveInstance(Local);
     [deployerAccount, senderAccount, bobAccount, aliceAccount, dylanAccount] = Local.testAccounts;
@@ -108,13 +114,11 @@ describe('Benchmark', () => {
 
     const signBob = Signature.create(bobKey, info.toFields());
     const signAlice = Signature.create(aliceKey, info.toFields());
-    const signDylan = Signature.create(senderAccount.key, info.toFields());
 
     const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
     const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
     const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
-    const infoDylan = new SignatureInfo({ user: senderPublic, witness: merkle.getWitness(Poseidon.hash(senderPublic.toFields())), signature: signDylan, right: allRight })
-    const array = [infoBob, infoAlice, infoDylan];
+    const array = [infoBob, infoAlice];
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
@@ -151,7 +155,16 @@ describe('Benchmark', () => {
     // mint token to user
     await mintToken(senderAccount);
 
+    let amt = UInt64.from(10 * 10 ** 9);
+    let amtToken = UInt64.from(50 * 10 ** 9);
+    const txn4 = await Mina.transaction(senderAccount, async () => {
+      AccountUpdate.fundNewAccount(senderAccount, 1);
+      await zkPool.supplyFirstLiquidities(amt, amtToken);
+    });
+    await txn4.prove();
+    await txn4.sign([senderKey]).send();
   });
+
 
   async function getReserves(poolAddress: PublicKey) {
     const acc = await fetchAccount({ publicKey: poolAddress });
@@ -170,14 +183,6 @@ describe('Benchmark', () => {
 
 
   it('swap from mina', async () => {
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
-    });
-    await txn.prove();
-    await txn.sign([senderKey]).send();
 
     let amountIn = UInt64.from(1.3 * 10 ** 9);
 
@@ -200,22 +205,13 @@ describe('Benchmark', () => {
       await tokenHolder.swapFromMinaToToken(bobAccount, UInt64.from(6), amountIn, UInt64.from(1), balanceMax, balanceMin);
       await zkToken.approveAccountUpdate(tokenHolder.self);
     });
-    console.log("swap from mina", txn2.toPretty());
+    //console.log("swap from mina", txn2.toPretty());
     await txn2.prove();
     console.timeEnd('swap from mina');
     await txn2.sign([senderKey]).send();
   });
 
   it('swap from token', async () => {
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    const txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquidities(amt, amtToken);
-    });
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
     const reserveIn = Mina.getBalance(zkPoolAddress, zkToken.deriveTokenId());
     const reserveOut = Mina.getBalance(zkPoolAddress);
     let amountIn = UInt64.from(1.3 * 10 ** 9);
@@ -236,7 +232,7 @@ describe('Benchmark', () => {
     const txn2 = await Mina.transaction(senderAccount, async () => {
       await zkPool.swapFromTokenToMina(bobAccount, UInt64.from(6), amountIn, UInt64.from(1), balanceMax, balanceMin);
     });
-    console.log("swap from token", txn2.toPretty());
+    //console.log("swap from token", txn2.toPretty());
     await txn2.prove();
     console.timeEnd('swap from token');
     await txn2.sign([senderKey]).send();

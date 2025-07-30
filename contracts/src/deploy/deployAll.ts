@@ -51,17 +51,19 @@ let zkEthKey = PrivateKey.fromBase58(process.env.POOL_ETH_MINA!);
 
 // use it to deploy pool on testnet
 // B62qpko6oWqKU4LwAaT7PSX3b6TYvroj6umbpyEXL5EEeBbiJTUMU5Z
-let approvedSigner = PrivateKey.fromBase58("EKE9dyeMmvz6deCC2jD9rBk7d8bG6ZDqVno8wRe8tAbQDussfBYi");
+let approvedSigner = PrivateKey.fromBase58(process.env.APPROVED_SIGNER!);
+
+const networkUrl = process.env.GRAPHQL!;
 
 // set up Mina instance and contract we interact with
 const Network = Mina.Network({
     // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
     // This is to ensure the backward compatibility.
     networkId: "testnet",
-    mina: process.env.GRAPHQL!,
+    mina: networkUrl,
     archive: process.env.ARCHIVE!,
 });
-console.log("network", process.env.GRAPHQL);
+console.log("network", networkUrl);
 // const Network = Mina.Network(config.url);
 const fee = Number(process.env.FEE) * 1e9; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
@@ -228,7 +230,7 @@ async function deployTokenA() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 3);
+                fundNewAccount(feepayerAddress, 3);
                 await zkTokenAdmin.deploy({
                     adminPublicKey: feepayerAddress,
                 });
@@ -264,7 +266,7 @@ async function deployTokenB() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 2);
+                fundNewAccount(feepayerAddress, 2);
                 await zkTokenB.deploy({
                     symbol: "TokenB",
                     src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
@@ -297,7 +299,7 @@ async function deployPool() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 4);
+                fundNewAccount(feepayerAddress, 4);
                 await zkFactory.createPool(zkPoolTokenAMinaAddress, zkTokenAAddress, approvedSignerPublic, signature, witness, deployRight);
             }
         );
@@ -335,18 +337,16 @@ async function deployFactory() {
 
         const signBob = Signature.create(signer1Key, info.toFields());
         const signAlice = Signature.create(signer2Key, info.toFields());
-        const signDylan = Signature.create(signer3Key, info.toFields());
 
         const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(timeSlot) })
         const infoBob = new SignatureInfo({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
         const infoAlice = new SignatureInfo({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
-        const infoDylan = new SignatureInfo({ user: signer3Public, witness: merkle.getWitness(Poseidon.hash(signer3Public.toFields())), signature: signDylan, right: allRight })
-        const array = [infoBob, infoAlice, infoDylan];
+        const array = [infoBob, infoAlice];
 
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 1);
+                fundNewAccount(feepayerAddress, 1);
                 await zkFactory.deploy({
                     symbol: "FAC",
                     src: "https://luminadex.com/",
@@ -390,7 +390,7 @@ async function deployPoolEth() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 4);
+                fundNewAccount(feepayerAddress, 4);
                 await zkFactory.createPool(zkEthAddress, wethAddress, approvedSigner.toPublicKey(), signature, witness, allRight);
             }
         );
@@ -414,7 +414,7 @@ async function deployPoolToken() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 5);
+                fundNewAccount(feepayerAddress, 5);
                 await zkFactory.createPoolToken(zkPoolTokenATokenBAddress, zkTokenAAddress, zkTokenBAddress, approvedSigner.toPublicKey(), signature, witness, allRight);
             }
         );
@@ -437,7 +437,7 @@ async function deployFaucet() {
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                AccountUpdate.fundNewAccount(feepayerAddress, 1);
+                fundNewAccount(feepayerAddress, 1);
                 // 100 token by claim
                 await zkFaucet.deploy({
                     token: zkTokenAAddress,
@@ -478,7 +478,7 @@ async function addLiquidity() {
 
         const token = await zkPoolTokenAMina.token1.fetch();
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, 1);
+            fundNewAccount(feepayerAddress, 1);
             await zkPoolTokenAMina.supplyFirstLiquidities(amtMina, amt);
         });
         console.log("tx liquidity", tx.toPretty());
@@ -500,8 +500,13 @@ async function addSecondLiquidity() {
         let amtMina = UInt64.from(20 * 10 ** 9);
         const reserve = await getReserves(zkPoolTokenAMinaAddress);
         const out = getAmountLiquidityOutUint(amtMina, reserve.amountMina, reserve.amountToken, reserve.liquidity, UInt64.one);
+        const poolTokenAMina = new Pool(zkPoolTokenAMinaAddress);
+        fetchAccount({ publicKey: feepayerAddress, tokenId: poolTokenAMina.deriveTokenId() });
+        fetchAccount({ publicKey: feepayerAddress, tokenId: poolTokenAMina.deriveTokenId() });
+        fetchAccount({ publicKey: feepayerAddress, tokenId: zkTokenA.deriveTokenId() });
+        fetchAccount({ publicKey: feepayerAddress });
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, 1);
+            //fundNewAccount(feepayerAddress, 1);
             await zkPoolTokenAMina.supplyLiquidity(out.amountAIn, out.amountBIn, out.balanceAMax, out.balanceBMax, out.supplyMin);
         });
         console.log("tx liquidity", tx.toPretty());
@@ -587,7 +592,7 @@ async function createTokenAccount() {
             fees += 1;
         }
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, fees);
+            fundNewAccount(feepayerAddress, fees);
             const updateProtocol = AccountUpdate.create(protocol, zkTokenA.deriveTokenId());
             await zkTokenA.approveAccountUpdate(updateProtocol);
             const updateFee = AccountUpdate.create(feeCollector, zkTokenA.deriveTokenId());
@@ -669,7 +674,7 @@ async function mintTokenA() {
     try {
         console.log("mintToken A");
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, 1);
+            fundNewAccount(feepayerAddress, 1);
             await zkTokenA.mint(feepayerAddress, UInt64.from(100_000 * 10 ** 9));
         });
         await tx.prove();
@@ -687,7 +692,7 @@ async function mintTokenB() {
     try {
         console.log("mintToken B");
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            AccountUpdate.fundNewAccount(feepayerAddress, 1);
+            fundNewAccount(feepayerAddress, 1);
             await zkTokenB.mint(feepayerAddress, UInt64.from(100_000 * 10 ** 9));
         });
         await tx.prove();
@@ -730,6 +735,22 @@ async function getEvent() {
         await displayEvents(dexTokenHolder);
     } catch (err) {
         console.log(err);
+    }
+}
+
+function fundNewAccount(feePayer: PublicKey, numberOfAccounts = 1) {
+    try {
+        const isZeko = networkUrl.includes("zeko");
+        const accountUpdate = AccountUpdate.createSigned(feePayer)
+        accountUpdate.label = "AccountUpdate.fundNewAccount()"
+        const fee = (isZeko
+            ? UInt64.from(10 ** 8)
+            : Mina.activeInstance.getNetworkConstants().accountCreationFee).mul(numberOfAccounts)
+        accountUpdate.balance.subInPlace(fee)
+        return accountUpdate
+    } catch (error) {
+        console.error("fund new account", error)
+        return AccountUpdate.fundNewAccount(feePayer, numberOfAccounts)
     }
 }
 
