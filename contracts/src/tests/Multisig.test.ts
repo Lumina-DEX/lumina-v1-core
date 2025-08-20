@@ -330,7 +330,7 @@ describe('Pool data', () => {
         today.setDate(today.getDate() + 1);
         const tomorrow = today.getTime();
         const time = getSlotFromTimestamp(tomorrow);
-        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, deadlineSlot: UInt32.from(time) });
+        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, right: SignatureRight.canUpdateDelegator(), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -369,7 +369,7 @@ describe('Pool data', () => {
         today.setDate(today.getDate() + 1);
         const tomorrow = today.getTime();
         const time = getSlotFromTimestamp(tomorrow);
-        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, deadlineSlot: UInt32.from(time) });
+        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, right: SignatureRight.canUpdateProtocol(), deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());

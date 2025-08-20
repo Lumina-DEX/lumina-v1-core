@@ -212,7 +212,8 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         multisig.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot);
 
-        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot });
+        const right = SignatureRight.canUpdateProtocol();
+        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, right, deadlineSlot });
         multisig.verifyUpdateProtocol(upgradeInfo);
 
         this.protocol.set(newUser);
@@ -231,7 +232,8 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         multisig.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot);
 
-        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot });
+        const right = SignatureRight.canUpdateDelegator();
+        const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, right, deadlineSlot });
         multisig.verifyUpdateDelegator(upgradeInfo);
 
         this.delegator.set(newUser);
