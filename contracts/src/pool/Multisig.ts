@@ -165,12 +165,15 @@ export class UpdateAccountInfo extends Struct({
     oldUser: PublicKey,
     // new account address
     newUser: PublicKey,
+    // signature right to use
+    right: SignatureRight,
     // deadline to use this signature
     deadlineSlot: UInt32
 }) {
     constructor(value: {
         oldUser: PublicKey,
         newUser: PublicKey,
+        right: SignatureRight,
         deadlineSlot: UInt32
     }) {
         super(value);
@@ -183,7 +186,8 @@ export class UpdateAccountInfo extends Struct({
     toFields(): Field[] {
         return this.oldUser.toFields().concat(
             this.newUser.toFields().concat(
-                this.deadlineSlot.toFields()));
+                this.right.toFields().concat(
+                    this.deadlineSlot.toFields())));
     }
 
     hash(): Field {

@@ -215,7 +215,7 @@ describe('Pool data', () => {
     today.setDate(today.getDate() + 1);
     const tomorrow = today.getTime();
     const time = getSlotFromTimestamp(tomorrow);
-    const info = new UpdateAccountInfo({ oldUser, newUser, deadlineSlot: UInt32.from(time) });
+    const info = new UpdateAccountInfo({ oldUser, newUser, right: delegator ? SignatureRight.canUpdateDelegator() : SignatureRight.canUpdateProtocol(), deadlineSlot: UInt32.from(time) });
 
     const signBob = Signature.create(bobKey, info.toFields());
     const signAlice = Signature.create(aliceKey, info.toFields());
