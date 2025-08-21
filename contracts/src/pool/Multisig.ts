@@ -28,13 +28,7 @@ export class SignatureRight extends Struct({
     }
 
     toFields(): Field[] {
-        return this.deployPool.toFields().concat(
-            this.uppdatePool.toFields().concat(
-                this.updateSigner.toFields().concat(
-                    this.updateProtocol.toFields().concat(
-                        this.updateDelegator.toFields().concat(
-                            this.updateFactory.toFields()
-                        )))));
+        return SignatureRight.toFields(this);
     }
 
     static canUpdatePool(): SignatureRight {
@@ -110,8 +104,7 @@ export class UpdateFactoryInfo extends Struct({
      * @returns array of field of all parameters
      */
     toFields(): Field[] {
-        return this.newVkHash.toFields().concat(
-            this.deadlineSlot.toFields());
+        return UpdateFactoryInfo.toFields(this);
     }
 
     hash(): Field {
@@ -146,10 +139,7 @@ export class UpgradeInfo extends Struct({
      * @returns array of field of all parameters
      */
     toFields(): Field[] {
-        return this.contractAddress.toFields().concat(
-            this.tokenId.toFields().concat(
-                this.newVkHash.toFields().concat(
-                    this.deadlineSlot.toFields())));
+        return UpgradeInfo.toFields(this);
     }
 
     hash(): Field {
@@ -184,10 +174,7 @@ export class UpdateAccountInfo extends Struct({
      * @returns array of field of all parameters
      */
     toFields(): Field[] {
-        return this.oldUser.toFields().concat(
-            this.newUser.toFields().concat(
-                this.right.toFields().concat(
-                    this.deadlineSlot.toFields())));
+        return UpdateAccountInfo.toFields(this);
     }
 
     hash(): Field {
@@ -219,9 +206,7 @@ export class UpdateSignerData extends Struct({
      * @returns array of field of all parameters
      */
     toFields(): Field[] {
-        return this.oldRoot.toFields().concat(
-            this.newRoot.toFields().concat(
-                this.deadlineSlot.toFields()));
+        return UpdateSignerData.toFields(this);
     }
 
     hash(): Field {
@@ -249,7 +234,7 @@ export class MultisigInfo extends Struct({
    * @returns array of field of all parameters
    */
     toFields(): Field[] {
-        return this.messageHash.toFields();
+        return MultisigInfo.toFields(this);
     }
 }
 
