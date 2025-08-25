@@ -1,5 +1,5 @@
 import { Field, MerkleMap, Cache, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, VerificationKey, Bool, AccountUpdate, UInt8 } from 'o1js';
-import { MultisigInfo, Multisig, SignatureInfo, SignatureRight, UpdateSignerData, UpdateAccountInfo, UpdateFactoryInfo, MultisigSigner } from '../pool/Multisig';
+import { MultisigInfo, Multisig, SignatureInfo, UpdateSignerData, UpdateAccountInfo, UpdateFactoryInfo, MultisigSigner, allRight, updateSigner, updateSignerRight, updateFactoryRight, updateDelegatorRight, updateProtocol, updateProtocolRight } from '../pool/Multisig';
 import { FungibleTokenAdmin, FungibleToken } from 'mina-fungible-token';
 import { PoolFactory, Pool, PoolTokenHolder } from '../indexpool';
 import { PoolUpgradeTest } from './PoolUpgradeTest';
@@ -38,15 +38,6 @@ describe('Pool data', () => {
         deployer2Public: PublicKey,
         deployer3Public: PublicKey,
         aliceKey: PrivateKey,
-        allRight: SignatureRight,
-        signerRight: SignatureRight,
-        deployRight: SignatureRight,
-        updatePoolRight: SignatureRight,
-        updateDelegatorRight: SignatureRight,
-        updateSignerRight: SignatureRight,
-        updateProtocolRight: SignatureRight,
-        updateFactoryRight: SignatureRight,
-        deployerRight: SignatureRight,
         merkle: MerkleMap,
         compileKey: VerificationKey,
         zkAppAddress: PublicKey,
@@ -85,16 +76,6 @@ describe('Pool data', () => {
             await PoolHolderUpgradeTest.compile({ cache });
             console.timeEnd('compile PoolData');
         }
-
-        allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
-        deployerRight = new SignatureRight(Bool(true), Bool(false), Bool(true), Bool(false), Bool(false), Bool(false));
-        updatePoolRight = SignatureRight.canUpdatePool();
-        updateDelegatorRight = SignatureRight.canUpdateDelegator();
-        updateSignerRight = SignatureRight.canUpdateSigner();
-        updateProtocolRight = SignatureRight.canUpdateProtocol();
-        updateFactoryRight = SignatureRight.canUpdateFactory();
-        signerRight = SignatureRight.canUpdateSigner();
-        deployRight = SignatureRight.canDeployPool();
     });
 
     async function mintToken(user: PublicKey) {
@@ -133,9 +114,9 @@ describe('Pool data', () => {
         deployer3Public = deployer3.key.toPublicKey();
 
         merkle = new MerkleMap();
-        merkle.set(Poseidon.hash(deployerPublic.toFields()), allRight.hash());
-        merkle.set(Poseidon.hash(deployer2Public.toFields()), updateSignerRight.hash());
-        merkle.set(Poseidon.hash(deployer3Public.toFields()), updateSignerRight.hash())
+        merkle.set(Poseidon.hash(deployerPublic.toFields()), Poseidon.hash(allRight.toFields()));
+        merkle.set(Poseidon.hash(deployer2Public.toFields()), Poseidon.hash(updateSignerRight.toFields()));
+        merkle.set(Poseidon.hash(deployer3Public.toFields()), Poseidon.hash(updateSignerRight.toFields()))
 
 
         zkAppPrivateKey = PrivateKey.random();
@@ -224,11 +205,11 @@ describe('Pool data', () => {
 
     it('update pool proof', async () => {
 
-        const right = updateFactoryRight;
-        merkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(dylanPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
+        const right = Poseidon.hash(updateFactoryRight.toFields());
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right);
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right);
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right);
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right);
 
         await deployPool();
         await mintToken(senderPublic);
@@ -254,8 +235,8 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
 
         const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
-        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
-        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
+        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updateFactoryRight })
+        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updateFactoryRight })
         const array = [infoBob, infoAlice];
 
         const proof = new Multisig({ info: multi, signatures: array });
@@ -315,10 +296,11 @@ describe('Pool data', () => {
     });
 
     it('update delegator', async () => {
-        merkle.set(Poseidon.hash(bobPublic.toFields()), updateDelegatorRight.hash());
-        merkle.set(Poseidon.hash(alicePublic.toFields()), updateDelegatorRight.hash());
-        merkle.set(Poseidon.hash(dylanPublic.toFields()), updateDelegatorRight.hash());
-        merkle.set(Poseidon.hash(senderPublic.toFields()), updateDelegatorRight.hash());
+        const right = Poseidon.hash(updateDelegatorRight.toFields());
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right);
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right);
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right);
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right);
 
         await deployPool();
 
@@ -330,7 +312,7 @@ describe('Pool data', () => {
         today.setDate(today.getDate() + 1);
         const tomorrow = today.getTime();
         const time = getSlotFromTimestamp(tomorrow);
-        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, right: SignatureRight.canUpdateDelegator(), deadlineSlot: UInt32.from(time) });
+        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, right: updateDelegatorRight, deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -353,11 +335,11 @@ describe('Pool data', () => {
     });
 
     it('update protocol', async () => {
-        const right = updateProtocolRight;
-        merkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(dylanPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
+        const right = Poseidon.hash(updateProtocolRight.toFields());
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right);
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right);
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right);
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right);
 
         await deployPool();
 
@@ -369,7 +351,7 @@ describe('Pool data', () => {
         today.setDate(today.getDate() + 1);
         const tomorrow = today.getTime();
         const time = getSlotFromTimestamp(tomorrow);
-        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, right: SignatureRight.canUpdateProtocol(), deadlineSlot: UInt32.from(time) });
+        const info = new UpdateAccountInfo({ oldUser: oldAccount!, newUser: newAccount, right: updateProtocolRight, deadlineSlot: UInt32.from(time) });
 
 
         Provable.log("info validate", info.toFields());
@@ -378,8 +360,8 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
 
         const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
-        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
-        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
+        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updateProtocolRight })
+        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updateProtocolRight })
         const array = [infoBob, infoAlice,];
 
         const proof = new Multisig({ info: multi, signatures: array });
@@ -391,11 +373,11 @@ describe('Pool data', () => {
     });
 
     it('update factory', async () => {
-        const right = updateFactoryRight;
-        merkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(dylanPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
+        const right = Poseidon.hash(updateFactoryRight.toFields());
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right);
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right);
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right);
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right);
 
         await deployPool();
 
@@ -411,8 +393,8 @@ describe('Pool data', () => {
         const signAlice = Signature.create(aliceKey, info.toFields());
 
         const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
-        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
-        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
+        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updateFactoryRight })
+        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updateFactoryRight })
         const array = [infoBob, infoAlice];
 
         const proof = new Multisig({ info: multi, signatures: array });
@@ -425,18 +407,18 @@ describe('Pool data', () => {
     });
 
     it('update signer', async () => {
-        const right = updateSignerRight;
-        merkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(dylanPublic.toFields()), right.hash());
-        merkle.set(Poseidon.hash(senderPublic.toFields()), right.hash());
+        const right = Poseidon.hash(updateSignerRight.toFields());
+        merkle.set(Poseidon.hash(bobPublic.toFields()), right);
+        merkle.set(Poseidon.hash(alicePublic.toFields()), right);
+        merkle.set(Poseidon.hash(dylanPublic.toFields()), right);
+        merkle.set(Poseidon.hash(senderPublic.toFields()), right);
 
         await deployPool();
 
         const newMerkle = new MerkleMap();
-        newMerkle.set(Poseidon.hash(bobPublic.toFields()), right.hash());
-        newMerkle.set(Poseidon.hash(alicePublic.toFields()), right.hash());
-        newMerkle.set(Poseidon.hash(deployerAccount.toFields()), right.hash());
+        newMerkle.set(Poseidon.hash(bobPublic.toFields()), right);
+        newMerkle.set(Poseidon.hash(alicePublic.toFields()), right);
+        newMerkle.set(Poseidon.hash(deployerAccount.toFields()), right);
 
         const today = new Date();
         today.setDate(today.getDate() + 1);
@@ -456,12 +438,12 @@ describe('Pool data', () => {
 
 
         const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
-        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right })
-        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right })
+        const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updateSignerRight })
+        const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updateSignerRight })
         const array = [infoBob, infoAlice];
 
-        const newinfoBob = new SignatureInfo({ user: bobPublic, witness: newMerkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: newsignBob, right })
-        const newinfoDeployer = new SignatureInfo({ user: deployerPublic, witness: newMerkle.getWitness(Poseidon.hash(deployerPublic.toFields())), signature: newsignDeployer, right })
+        const newinfoBob = new SignatureInfo({ user: bobPublic, witness: newMerkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: newsignBob, right: updateSignerRight })
+        const newinfoDeployer = new SignatureInfo({ user: deployerPublic, witness: newMerkle.getWitness(Poseidon.hash(deployerPublic.toFields())), signature: newsignDeployer, right: updateSignerRight })
         const newarray = [newinfoBob, newinfoDeployer];
 
         const proof = new MultisigSigner({ info: multi, signatures: array, newSignatures: newarray });

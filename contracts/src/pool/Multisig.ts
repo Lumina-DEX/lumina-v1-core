@@ -1,4 +1,4 @@
-import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt32 } from 'o1js';
+import { Bool, Field, Gadgets, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt32 } from 'o1js';
 
 
 export const updateSigner = "UpdateSigner";
@@ -7,84 +7,17 @@ export const updateDelegator = "UpdateDelegator";
 export const updateProtocol = "UpdateProtocol";
 export const updatePool = "UpdatePool";
 
-/**
- * Signature right to update pool information 
- */
-export class SignatureRight extends Struct({
-    deployPool: Bool,
-    uppdatePool: Bool,
-    updateSigner: Bool,
-    updateProtocol: Bool,
-    updateDelegator: Bool,
-    updateFactory: Bool
-}) {
-    constructor(deployPool: Bool,
-        uppdatePool: Bool,
-        updateSigner: Bool,
-        updateProtocol: Bool,
-        updateDelegator: Bool,
-        updateFactory: Bool) {
-        super({
-            deployPool,
-            uppdatePool,
-            updateSigner,
-            updateProtocol,
-            updateDelegator,
-            updateFactory
-        });
-    }
+export const deployPoolRight = Field(1);
+export const updatePoolRight = Field(2);
+export const updateSignerRight = Field(4);
+export const updateProtocolRight = Field(8);
+export const updateDelegatorRight = Field(16);
+export const updateFactoryRight = Field(32);
+export const allRight = Field(63); // 1+2+4+8+16+32
 
-    toFields(): Field[] {
-        return SignatureRight.toFields(this);
-    }
-
-    static canUpdatePool(): SignatureRight {
-        return new SignatureRight(Bool(false), Bool(true), Bool(false), Bool(false), Bool(false), Bool(false))
-    }
-
-    static canUpdateDelegator(): SignatureRight {
-        return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(false), Bool(true), Bool(false))
-    }
-
-    static canUpdateProtocol(): SignatureRight {
-        return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(true), Bool(false), Bool(false))
-    }
-
-    static canUpdateSigner(): SignatureRight {
-        return new SignatureRight(Bool(false), Bool(false), Bool(true), Bool(false), Bool(false), Bool(false))
-    }
-
-    static canUpdateFactory(): SignatureRight {
-        return new SignatureRight(Bool(false), Bool(false), Bool(false), Bool(false), Bool(false), Bool(true))
-    }
-
-    static canDeployPool(): SignatureRight {
-        return new SignatureRight(Bool(true), Bool(false), Bool(false), Bool(false), Bool(false), Bool(false))
-    }
-
-    /**
-     * Check if the user right match the necessary right
-     * @param right user right
-     */
-    hasRight(right: SignatureRight) {
-        const newRight = new SignatureRight(
-            right.deployPool.and(this.deployPool),
-            right.uppdatePool.and(this.uppdatePool),
-            right.updateSigner.and(this.updateSigner),
-            right.updateProtocol.and(this.updateProtocol),
-            right.updateDelegator.and(this.updateDelegator),
-            right.updateFactory.and(this.updateFactory))
-        return newRight.hash().equals(right.hash());
-    }
-
-    /**
-     * hash store in the signer merkle map
-     */
-    hash(): Field {
-        return Poseidon.hash(this.toFields());
-    }
+export function hasRight(userRight: Field, right: Field): Bool {
+    return Gadgets.and(userRight, right, 32).equals(right);
 }
-
 
 /**
  * Information needed to update the factory verification key
@@ -163,14 +96,14 @@ export class UpdateAccountInfo extends Struct({
     // new account address
     newUser: PublicKey,
     // signature right to use
-    right: SignatureRight,
+    right: Field,
     // deadline to use this signature
     deadlineSlot: UInt32
 }) {
     constructor(value: {
         oldUser: PublicKey,
         newUser: PublicKey,
-        right: SignatureRight,
+        right: Field,
         deadlineSlot: UInt32
     }) {
         super(value);
@@ -186,9 +119,9 @@ export class UpdateAccountInfo extends Struct({
 
     hash(): Field {
         let prefix = "";
-        if (this.right.updateDelegator.toBoolean()) {
+        if (hasRight(this.right, updateDelegatorRight).toBoolean()) {
             prefix = updateDelegator;
-        } else if (this.right.updateProtocol.toBoolean()) {
+        } else if (hasRight(this.right, updateProtocolRight).toBoolean()) {
             prefix = updateProtocol
         }
         else {
@@ -265,14 +198,14 @@ export class SignatureInfo extends Struct({
     // signature created by this user
     signature: Signature,
     // right
-    right: SignatureRight
+    right: Field
 
 }) {
     constructor(value: {
         user: PublicKey,
         witness: MerkleMapWitness,
         signature: Signature,
-        right: SignatureRight
+        right: Field
     }) {
         super(value);
     }
@@ -285,7 +218,7 @@ export class SignatureInfo extends Struct({
      */
     validate(merkle: Field, data: Field[]): Bool {
         const hashUser = Poseidon.hash(this.user.toFields());
-        const value = this.right.hash();
+        const value = Poseidon.hash(this.right.toFields());
         const [root, key] = this.witness.computeRootAndKey(value);
         root.assertEquals(merkle, "Invalid signer");
         key.assertEquals(hashUser, "Invalid key");
@@ -313,7 +246,7 @@ export class Multisig extends Struct({
      * @param data needed to verify the signature
      */
     verifyUpdateFactory(updateInfo: UpdateFactoryInfo) {
-        const right = SignatureRight.canUpdateFactory();
+        const right = updateFactoryRight;
         verifySignature(this.signatures, updateInfo.deadlineSlot, updateFactory, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
     }
 
@@ -322,7 +255,7 @@ export class Multisig extends Struct({
      * @param data needed to verify the signature
      */
     verifyUpdateDelegator(updateInfo: UpdateAccountInfo) {
-        const right = SignatureRight.canUpdateDelegator();
+        const right = updateDelegatorRight;
         verifySignature(this.signatures, updateInfo.deadlineSlot, updateDelegator, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
     }
 
@@ -331,7 +264,7 @@ export class Multisig extends Struct({
      * @param data needed to verify the signature
      */
     verifyUpdateProtocol(updateInfo: UpdateAccountInfo) {
-        const right = SignatureRight.canUpdateProtocol();
+        const right = updateProtocolRight;
         verifySignature(this.signatures, updateInfo.deadlineSlot, updateProtocol, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
     }
 }
@@ -357,7 +290,7 @@ export class MultisigSigner extends Struct({
      * @param data needed to verify the signature
      */
     verifyUpdateSigner(upgradeInfo: UpdateSignerData) {
-        const right = SignatureRight.canUpdateSigner();
+        const right = updateSignerRight;
         upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");
         verifySignature(this.signatures, upgradeInfo.deadlineSlot, updateSigner, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
         verifySignature(this.newSignatures, upgradeInfo.deadlineSlot, updateSigner, this.info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
@@ -368,7 +301,7 @@ export class MultisigSigner extends Struct({
 /**
  * Check if the 2 signatures are valid
  */
-export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt32, prefix: string, info: MultisigInfo, root: Field, data: Field[], right: SignatureRight) {
+export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt32, prefix: string, info: MultisigInfo, root: Field, data: Field[], right: Field) {
     info.deadlineSlot.equals(deadlineSlot).assertTrue("Deadline doesn't match")
     // check the signature come from 2 different users
     signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
@@ -377,7 +310,7 @@ export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt3
     for (let index = 0; index < signatures.length; index++) {
         const element = signatures[index];
         // check if he can upgrade a pool
-        element.right.hasRight(right).assertTrue("User doesn't have the right for this operation");
+        hasRight(element.right, right).assertTrue("User doesn't have the right for this operation");
         // verfify the signature validity for all users
         const valid = element.validate(root, data);
         // hash valid

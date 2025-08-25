@@ -1,6 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, SmartContract, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner } from './Multisig.js';
+import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner, updateSignerRight, updateProtocol, updateProtocolRight, updateDelegatorRight, hasRight, deployPoolRight } from './Multisig.js';
 
 /**
  * Current verification key of pool contract
@@ -148,7 +148,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
 
         const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.multisigInfo.deadlineSlot });
         // we need 2 signatures to update signer, prevent to deadlock contract update
-        const right = SignatureRight.canUpdateSigner();
+        const right = updateSignerRight;
         verifySignature(args.signatures, args.multisigInfo.deadlineSlot, updateSigner, args.multisigInfo, args.multisigInfo.approvedUpgrader, updateSignerData.toFields(), right);
 
         this.account.zkappUri.set(args.src);
@@ -212,7 +212,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         multisig.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot);
 
-        const right = SignatureRight.canUpdateProtocol();
+        const right = updateProtocolRight;
         const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, right, deadlineSlot });
         multisig.verifyUpdateProtocol(upgradeInfo);
 
@@ -232,7 +232,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         multisig.info.approvedUpgrader.equals(approvedSigner).assertTrue("Incorrect signer list");
         this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, deadlineSlot);
 
-        const right = SignatureRight.canUpdateDelegator();
+        const right = updateDelegatorRight;
         const upgradeInfo = new UpdateAccountInfo({ oldUser, newUser, right, deadlineSlot });
         multisig.verifyUpdateDelegator(upgradeInfo);
 
@@ -310,7 +310,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
      * @param right right of the signer
      */
     @method
-    async createPool(newAccount: PublicKey, token: PublicKey, signer: PublicKey, signature: Signature, path: MerkleMapWitness, right: SignatureRight) {
+    async createPool(newAccount: PublicKey, token: PublicKey, signer: PublicKey, signature: Signature, path: MerkleMapWitness, right: Field) {
         token.isEmpty().assertFalse("Token is empty");
         await this.createAccounts(newAccount, token, PublicKey.empty(), token, signer, signature, path, right, false);
     }
@@ -326,7 +326,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
      * @param right right of the signer
      */
     @method
-    async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, path: MerkleMapWitness, right: SignatureRight) {
+    async createPoolToken(newAccount: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, path: MerkleMapWitness, right: Field) {
         token0.x.assertLessThan(token1.x, "Token 0 need to be lesser than token 1");
         // create an address with the 2 public key as pool id
         const fields = token0.toFields().concat(token1.toFields());
@@ -336,7 +336,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         await this.createAccounts(newAccount, publicKey, token0, token1, signer, signature, path, right, true);
     }
 
-    private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, path: MerkleMapWitness, right: SignatureRight, isTokenPool: boolean) {
+    private async createAccounts(newAccount: PublicKey, token: PublicKey, token0: PublicKey, token1: PublicKey, signer: PublicKey, signature: Signature, path: MerkleMapWitness, right: Field, isTokenPool: boolean) {
         let tokenAccount = AccountUpdate.create(token, this.deriveTokenId());
         // if the balance is not zero, so a pool already exist for this token
         tokenAccount.account.balance.requireEquals(UInt64.zero);
@@ -345,8 +345,8 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         signer.equals(PublicKey.empty()).assertFalse("Empty signer");
         const signerHash = Poseidon.hash(signer.toFields());
         const approvedSignerRoot = this.approvedSigner.getAndRequireEquals();
-        right.deployPool.assertTrue("Insufficient right to deploy a pool");
-        const [root, key] = path.computeRootAndKey(right.hash());
+        hasRight(right, deployPoolRight).assertTrue("Insufficient right to deploy a pool");
+        const [root, key] = path.computeRootAndKey(Poseidon.hash(right.toFields()));
         root.assertEquals(approvedSignerRoot, "Invalid signer merkle root");
         key.assertEquals(signerHash, "Invalid signer")
         signature.verify(signer, newAccount.toFields()).assertTrue("Invalid signature");
