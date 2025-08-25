@@ -1,5 +1,12 @@
 import { Bool, Field, MerkleMapWitness, Poseidon, Provable, PublicKey, Signature, Struct, UInt32 } from 'o1js';
 
+
+export const updateSigner = "UpdateSigner";
+export const updateFactory = "UpdateFactory";
+export const updateDelegator = "UpdateDelegator";
+export const updateProtocol = "UpdateProtocol";
+export const updatePool = "UpdatePool";
+
 /**
  * Signature right to update pool information 
  */
@@ -108,7 +115,7 @@ export class UpdateFactoryInfo extends Struct({
     }
 
     hash(): Field {
-        return Poseidon.hash(this.toFields());
+        return Poseidon.hashWithPrefix(updateFactory, this.toFields());
     }
 }
 
@@ -143,7 +150,7 @@ export class UpgradeInfo extends Struct({
     }
 
     hash(): Field {
-        return Poseidon.hash(this.toFields());
+        return Poseidon.hashWithPrefix(updatePool, this.toFields());
     }
 }
 
@@ -178,7 +185,16 @@ export class UpdateAccountInfo extends Struct({
     }
 
     hash(): Field {
-        return Poseidon.hash(this.toFields());
+        let prefix = "";
+        if (this.right.updateDelegator.toBoolean()) {
+            prefix = updateDelegator;
+        } else if (this.right.updateProtocol.toBoolean()) {
+            prefix = updateProtocol
+        }
+        else {
+            throw new Error("Invalid right to update account");
+        }
+        return Poseidon.hashWithPrefix(prefix, this.toFields());
     }
 }
 
@@ -210,7 +226,7 @@ export class UpdateSignerData extends Struct({
     }
 
     hash(): Field {
-        return Poseidon.hash(this.toFields());
+        return Poseidon.hashWithPrefix(updateSigner, this.toFields());
     }
 }
 export class MultisigInfo extends Struct({
@@ -298,7 +314,7 @@ export class Multisig extends Struct({
      */
     verifyUpdateFactory(updateInfo: UpdateFactoryInfo) {
         const right = SignatureRight.canUpdateFactory();
-        verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
+        verifySignature(this.signatures, updateInfo.deadlineSlot, updateFactory, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
     }
 
     /**
@@ -307,7 +323,7 @@ export class Multisig extends Struct({
      */
     verifyUpdateDelegator(updateInfo: UpdateAccountInfo) {
         const right = SignatureRight.canUpdateDelegator();
-        verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
+        verifySignature(this.signatures, updateInfo.deadlineSlot, updateDelegator, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
     }
 
     /**
@@ -316,7 +332,7 @@ export class Multisig extends Struct({
      */
     verifyUpdateProtocol(updateInfo: UpdateAccountInfo) {
         const right = SignatureRight.canUpdateProtocol();
-        verifySignature(this.signatures, updateInfo.deadlineSlot, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
+        verifySignature(this.signatures, updateInfo.deadlineSlot, updateProtocol, this.info, this.info.approvedUpgrader, updateInfo.toFields(), right);
     }
 }
 
@@ -343,8 +359,8 @@ export class MultisigSigner extends Struct({
     verifyUpdateSigner(upgradeInfo: UpdateSignerData) {
         const right = SignatureRight.canUpdateSigner();
         upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");
-        verifySignature(this.signatures, upgradeInfo.deadlineSlot, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
-        verifySignature(this.newSignatures, upgradeInfo.deadlineSlot, this.info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
+        verifySignature(this.signatures, upgradeInfo.deadlineSlot, updateSigner, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
+        verifySignature(this.newSignatures, upgradeInfo.deadlineSlot, updateSigner, this.info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
     }
 }
 
@@ -352,12 +368,12 @@ export class MultisigSigner extends Struct({
 /**
  * Check if the 2 signatures are valid
  */
-export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt32, info: MultisigInfo, root: Field, data: Field[], right: SignatureRight) {
+export function verifySignature(signatures: SignatureInfo[], deadlineSlot: UInt32, prefix: string, info: MultisigInfo, root: Field, data: Field[], right: SignatureRight) {
     info.deadlineSlot.equals(deadlineSlot).assertTrue("Deadline doesn't match")
     // check the signature come from 2 different users
     signatures[0].user.equals(signatures[1].user).assertFalse("Can't include same signer");
 
-    const hash = Poseidon.hash(data);
+    const hash = Poseidon.hashWithPrefix(prefix, data);
     for (let index = 0; index < signatures.length; index++) {
         const element = signatures[index];
         // check if he can upgrade a pool

@@ -1,6 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, SmartContract, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature } from './Multisig.js';
+import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, SignatureRight, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner } from './Multisig.js';
 
 /**
  * Current verification key of pool contract
@@ -149,7 +149,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.multisigInfo.deadlineSlot });
         // we need 2 signatures to update signer, prevent to deadlock contract update
         const right = SignatureRight.canUpdateSigner();
-        verifySignature(args.signatures, args.multisigInfo.deadlineSlot, args.multisigInfo, args.multisigInfo.approvedUpgrader, updateSignerData.toFields(), right);
+        verifySignature(args.signatures, args.multisigInfo.deadlineSlot, updateSigner, args.multisigInfo, args.multisigInfo.approvedUpgrader, updateSignerData.toFields(), right);
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);
