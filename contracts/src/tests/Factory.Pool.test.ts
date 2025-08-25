@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, Field, MerkleMap, Mina, Poseidon, PrivateKey, Prov
 
 
 import { FungibleTokenAdmin, FungibleToken, PoolFactory, PoolTokenHolder, Pool } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
+import { deployPoolRight, MultisigInfo, SignatureInfo, allRight, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -22,8 +22,6 @@ describe('Pool Factory Mina', () => {
     dylanPublic: PublicKey,
     senderPublic: PublicKey,
     deployerPublic: PublicKey,
-    allRight: SignatureRight,
-    deployRight: SignatureRight,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: PoolFactory,
@@ -79,9 +77,6 @@ describe('Pool Factory Mina', () => {
     dylanPublic = dylanAccount.key.toPublicKey();
     deployerPublic = deployerKey.toPublicKey();
 
-    allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
-    deployRight = SignatureRight.canDeployPool();
-
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new PoolFactory(zkAppAddress);
@@ -100,11 +95,13 @@ describe('Pool Factory Mina', () => {
 
     tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken.deriveTokenId());
 
+    const allRightHash = Poseidon.hash(allRight.toFields());
+
     merkle = new MerkleMap();
-    merkle.set(Poseidon.hash(bobPublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(alicePublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(senderPublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
+    merkle.set(Poseidon.hash(bobPublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(alicePublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(senderPublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(deployerPublic.toFields()), Poseidon.hash(deployPoolRight.toFields()));
 
     const root = merkle.getRoot();
 

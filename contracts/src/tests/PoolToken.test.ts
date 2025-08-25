@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, Pr
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, getAmountLiquidityOutUint } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
+import { allRight, deployPoolRight, MultisigInfo, SignatureInfo, UpdateSignerData, updateSignerRight } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -22,9 +22,6 @@ describe('Pool Factory Token', () => {
     deployerPublic: PublicKey,
     bobPublic: PublicKey,
     alicePublic: PublicKey,
-    allRight: SignatureRight,
-    signerRight: SignatureRight,
-    deployRight: SignatureRight,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: PoolFactory,
@@ -113,14 +110,14 @@ describe('Pool Factory Token', () => {
     tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken0.deriveTokenId());
 
     merkle = new MerkleMap();
-    allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
-    deployRight = SignatureRight.canDeployPool();
-    signerRight = SignatureRight.canUpdateSigner();
-    merkle.set(Poseidon.hash(bobPublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(alicePublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(senderPublic.toFields()), signerRight.hash())
-    merkle.set(Poseidon.hash(dylanPublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
+    const allRightHash = Poseidon.hash(allRight.toFields());
+
+    merkle = new MerkleMap();
+    merkle.set(Poseidon.hash(bobPublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(alicePublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(senderPublic.toFields()), Poseidon.hash(updateSignerRight.toFields()));
+    merkle.set(Poseidon.hash(deployerPublic.toFields()), Poseidon.hash(deployPoolRight.toFields()));
+    merkle.set(Poseidon.hash(dylanPublic.toFields()), allRightHash);
 
     const root = merkle.getRoot();
 
