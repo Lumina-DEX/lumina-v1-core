@@ -1,5 +1,5 @@
 import { Field, MerkleMap, Cache, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, VerificationKey, Bool, AccountUpdate, UInt8 } from 'o1js';
-import { MultisigInfo, Multisig, SignatureInfo, UpdateSignerData, UpdateAccountInfo, UpdateFactoryInfo, MultisigSigner, allRight, updateSigner, updateSignerRight, updateFactoryRight, updateDelegatorRight, updateProtocol, updateProtocolRight } from '../pool/Multisig';
+import { MultisigInfo, Multisig, SignatureInfo, UpdateSignerData, UpdateAccountInfo, UpdateFactoryInfo, MultisigSigner, allRight, updateSignerRight, updateFactoryRight, updateDelegatorRight, updateProtocolRight } from '../pool/Multisig';
 import { FungibleTokenAdmin, FungibleToken } from 'mina-fungible-token';
 import { PoolFactory, Pool, PoolTokenHolder } from '../indexpool';
 import { PoolUpgradeTest } from './PoolUpgradeTest';

@@ -1,6 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, SmartContract, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner, updateSignerRight, updateProtocol, updateProtocolRight, updateDelegatorRight, hasRight, deployPoolRight } from './Multisig.js';
+import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner, updateSignerRight, updateProtocolRight, updateDelegatorRight, hasRight, deployPoolRight } from './Multisig.js';
 
 /**
  * Current verification key of pool contract
