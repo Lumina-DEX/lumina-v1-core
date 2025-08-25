@@ -140,6 +140,9 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
      */
     async deploy(args: PoolDeployProps) {
         await super.deploy(args);
+
+        this.account.isNew.requireEquals(new Bool(true));
+
         const defaultRoot = new MerkleMap().getRoot();
         args.approvedSigner.equals(Field.empty()).assertFalse("Approved signer is empty");
         args.approvedSigner.equals(defaultRoot).assertFalse("Approved signer is empty");
