@@ -15,7 +15,7 @@
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig.js';
+import { allRight, deployPoolRight, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -96,8 +96,7 @@ console.log("zkFaucet", zkFaucetAddress.toBase58());
 console.log("pool ETH/Mina", zkEthAddress.toBase58());
 console.log("approved signer", signerAddress.toBase58());
 
-const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
-const deployRight = SignatureRight.canDeployPool();
+const allRightHash = Poseidon.hash(allRight.toFields());
 
 const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
 const signer1Key = PrivateKey.fromBase58(process.env.SIGNER1!);
@@ -114,14 +113,14 @@ const externalSigner3 = PublicKey.fromBase58("B62qipa4xp6pQKqAm5qoviGoHyKaurHvLZ
 const approvedSignerPublic = approvedSigner.toPublicKey();
 
 const merkle = new MerkleMap();
-merkle.set(Poseidon.hash(ownerPublic.toFields()), allRight.hash());
-merkle.set(Poseidon.hash(signer1Public.toFields()), allRight.hash());
-merkle.set(Poseidon.hash(signer2Public.toFields()), allRight.hash());
-merkle.set(Poseidon.hash(signer3Public.toFields()), allRight.hash());
-merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), deployRight.hash());
-merkle.set(Poseidon.hash(externalSigner1.toFields()), allRight.hash());
-merkle.set(Poseidon.hash(externalSigner2.toFields()), allRight.hash());
-merkle.set(Poseidon.hash(externalSigner3.toFields()), allRight.hash());
+merkle.set(Poseidon.hash(ownerPublic.toFields()), allRightHash);
+merkle.set(Poseidon.hash(signer1Public.toFields()), allRightHash);
+merkle.set(Poseidon.hash(signer2Public.toFields()), allRightHash);
+merkle.set(Poseidon.hash(signer3Public.toFields()), allRightHash);
+merkle.set(Poseidon.hash(approvedSignerPublic.toFields()), Poseidon.hash(deployPoolRight.toFields()));
+merkle.set(Poseidon.hash(externalSigner1.toFields()), allRightHash);
+merkle.set(Poseidon.hash(externalSigner2.toFields()), allRightHash);
+merkle.set(Poseidon.hash(externalSigner3.toFields()), allRightHash);
 
 
 // compile the contract to create prover keys
@@ -300,7 +299,7 @@ async function deployPool() {
             { sender: feepayerAddress, fee },
             async () => {
                 fundNewAccount(feepayerAddress, 4);
-                await zkFactory.createPool(zkPoolTokenAMinaAddress, zkTokenAAddress, approvedSignerPublic, signature, witness, deployRight);
+                await zkFactory.createPool(zkPoolTokenAMinaAddress, zkTokenAAddress, approvedSignerPublic, signature, witness, deployPoolRight);
             }
         );
         await tx.prove();
