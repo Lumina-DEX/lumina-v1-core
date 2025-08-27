@@ -5,15 +5,13 @@ export const updateSigner = "UpdateSigner";
 export const updateFactory = "UpdateFactory";
 export const updateDelegator = "UpdateDelegator";
 export const updateProtocol = "UpdateProtocol";
-export const updatePool = "UpdatePool";
 
 export const deployPoolRight = Field(1);
-export const updatePoolRight = Field(2);
-export const updateSignerRight = Field(4);
-export const updateProtocolRight = Field(8);
-export const updateDelegatorRight = Field(16);
-export const updateFactoryRight = Field(32);
-export const allRight = Field(63); // 1+2+4+8+16+32
+export const updateSignerRight = Field(2);
+export const updateProtocolRight = Field(4);
+export const updateDelegatorRight = Field(8);
+export const updateFactoryRight = Field(16);
+export const allRight = Field(31); // 1+2+4+8+16
 
 export function hasRight(userRight: Field, right: Field): Bool {
     return Gadgets.and(userRight, right, 32).equals(right);
@@ -207,7 +205,7 @@ export class Multisig extends Struct({
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateFactory(updateInfo: UpdateFactoryInfo) {
@@ -216,7 +214,7 @@ export class Multisig extends Struct({
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateDelegator(updateInfo: UpdateAccountInfo) {
@@ -225,7 +223,7 @@ export class Multisig extends Struct({
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateProtocol(updateInfo: UpdateAccountInfo) {
@@ -251,7 +249,7 @@ export class MultisigSigner extends Struct({
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateSigner(upgradeInfo: UpdateSignerData) {

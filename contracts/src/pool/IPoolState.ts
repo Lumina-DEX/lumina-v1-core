@@ -13,7 +13,7 @@ export interface IPool {
  * Check if token is in order and don't be empty
  * @param pool pool data
  * @param isMinaPool is mina/token pool
- * @returns true if correct
+ * @returns Public Key for token 0 and token 1
  */
 export function checkToken(pool: IPool, isMinaPool: boolean): [PublicKey, PublicKey] {
     const token0 = pool.token0.getAndRequireEquals();
