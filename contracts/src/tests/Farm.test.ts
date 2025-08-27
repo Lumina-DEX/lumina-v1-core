@@ -8,7 +8,7 @@ import { claimerNumber, FarmReward, FarmMerkleWitness, minTimeUnlockFarmReward }
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 import { generateRewardMerkle } from './Farm.Token.test';
 import { FarmUpgradeTest } from './FarmUpgradeTest';
-import { allRight, deployPoolRight, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
+import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -170,8 +170,7 @@ describe('Farming pool mina', () => {
         symbol: "FAC", src: "https://luminadex.com/",
         protocol: aliceAccount, delegator: dylanAccount,
         approvedSigner: root,
-        signatures: array,
-        multisigInfo: multi
+        multisig: new Multisig({ info: multi, signatures: array })
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

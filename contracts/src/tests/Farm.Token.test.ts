@@ -6,7 +6,7 @@ import { Farm, FarmingEvent } from '../farming/Farm';
 import { FarmTokenHolder } from '../farming/FarmTokenHolder';
 import { claimerNumber, FarmMerkleWitness, FarmReward, minTimeUnlockFarmReward } from '../farming/FarmReward';
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
-import { allRight, deployPoolRight, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
+import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -163,8 +163,7 @@ describe('Farming pool token', () => {
         symbol: "FAC", src: "https://luminadex.com/",
         protocol: aliceAccount, delegator: dylanAccount,
         approvedSigner: root,
-        signatures: array,
-        multisigInfo: multi
+        multisig: new Multisig({ info: multi, signatures: array })
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

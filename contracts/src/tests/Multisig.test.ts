@@ -182,8 +182,7 @@ describe('Pool data', () => {
                 protocol: aliceAccount,
                 delegator: dylanAccount,
                 approvedSigner: root,
-                signatures: signatures,
-                multisigInfo: multi
+                multisig: new Multisig({ info: multi, signatures })
             });
         });
         await txn.prove();
