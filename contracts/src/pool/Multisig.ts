@@ -53,41 +53,6 @@ export class UpdateFactoryInfo extends Struct({
 }
 
 /**
- * Information needed to update the pool verification key
- */
-export class UpgradeInfo extends Struct({
-    // contract to upgrade
-    contractAddress: PublicKey,
-    // subaccount to upgrade
-    tokenId: Field,
-    // new verification key hash to submit
-    newVkHash: Field,
-    // deadline to use this signature
-    deadlineSlot: UInt32
-}) {
-    constructor(value: {
-        contractAddress: PublicKey,
-        tokenId: Field,
-        newVkHash: Field,
-        deadlineSlot: UInt32
-    }) {
-        super(value);
-    }
-
-    /**
-     * Data use to create the signature
-     * @returns array of field of all parameters
-     */
-    toFields(): Field[] {
-        return UpgradeInfo.toFields(this);
-    }
-
-    hash(): Field {
-        return Poseidon.hashWithPrefix(updatePool, this.toFields());
-    }
-}
-
-/**
  * Information needed to update the delegator/protocol
  */
 export class UpdateAccountInfo extends Struct({
@@ -291,6 +256,7 @@ export class MultisigSigner extends Struct({
      */
     verifyUpdateSigner(upgradeInfo: UpdateSignerData) {
         const right = updateSignerRight;
+        upgradeInfo.oldRoot.equals(this.info.approvedUpgrader).assertTrue("Merkle root doesn't match");
         upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");
         verifySignature(this.signatures, upgradeInfo.deadlineSlot, updateSigner, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
         verifySignature(this.newSignatures, upgradeInfo.deadlineSlot, updateSigner, this.info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);
