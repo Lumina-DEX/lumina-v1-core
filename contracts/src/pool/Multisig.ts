@@ -201,6 +201,9 @@ export class Multisig extends Struct({
         info: MultisigInfo,
         signatures: SignatureInfo[]
     }) {
+        if (value.signatures.length !== 2) {
+            throw new Error("Need 2 signatures");
+        }
         super(value);
     }
 
@@ -245,6 +248,12 @@ export class MultisigSigner extends Struct({
         signatures: SignatureInfo[],
         newSignatures: SignatureInfo[]
     }) {
+        if (value.signatures.length !== 2) {
+            throw new Error("Need 2 signatures");
+        }
+        if (value.newSignatures.length !== 2) {
+            throw new Error("Need 2 new signatures");
+        }
         super(value);
     }
 
