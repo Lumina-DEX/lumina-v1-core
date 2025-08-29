@@ -1,6 +1,6 @@
 import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, SmartContract, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
-import { MultisigInfo, Multisig, MultisigSigner, SignatureInfo, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner, updateSignerRight, updateProtocolRight, updateDelegatorRight, hasRight, deployPoolRight } from './Multisig.js';
+import { Multisig, MultisigSigner, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner, updateSignerRight, updateProtocolRight, updateDelegatorRight, hasRight, deployPoolRight } from './Multisig.js';
 
 /**
  * Current verification key of pool contract
@@ -36,8 +36,7 @@ export interface PoolDeployProps extends Exclude<DeployArgs, undefined> {
     protocol: PublicKey;
     delegator: PublicKey;
     approvedSigner: Field;
-    signatures: SignatureInfo[];
-    multisigInfo: MultisigInfo;
+    multisig: Multisig;
 }
 
 
@@ -144,12 +143,12 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         args.approvedSigner.equals(Field.empty()).assertFalse("Approved signer is empty");
         args.approvedSigner.equals(defaultRoot).assertFalse("Approved signer is empty");
 
-        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, args.multisigInfo.deadlineSlot);
+        this.network.globalSlotSinceGenesis.requireBetween(UInt32.zero, args.multisig.info.deadlineSlot);
 
-        const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.multisigInfo.deadlineSlot });
+        const updateSignerData = new UpdateSignerData({ oldRoot: Field.empty(), newRoot: args.approvedSigner, deadlineSlot: args.multisig.info.deadlineSlot });
         // we need 2 signatures to update signer, prevent to deadlock contract update
         const right = updateSignerRight;
-        verifySignature(args.signatures, args.multisigInfo.deadlineSlot, updateSigner, args.multisigInfo, args.multisigInfo.approvedUpgrader, updateSignerData.toFields(), right);
+        verifySignature(args.multisig.signatures, args.multisig.info.deadlineSlot, updateSigner, args.multisig.info, args.multisig.info.approvedUpgrader, updateSignerData.toFields(), right);
 
         this.account.zkappUri.set(args.src);
         this.account.tokenSymbol.set(args.symbol);

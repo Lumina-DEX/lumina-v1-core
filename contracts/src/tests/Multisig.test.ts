@@ -182,8 +182,7 @@ describe('Pool data', () => {
                 protocol: aliceAccount,
                 delegator: dylanAccount,
                 approvedSigner: root,
-                signatures: signatures,
-                multisigInfo: multi
+                multisig: new Multisig({ info: multi, signatures })
             });
         });
         await txn.prove();
@@ -362,7 +361,7 @@ describe('Pool data', () => {
         const multi = new MultisigInfo({ approvedUpgrader: merkle.getRoot(), messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
         const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: updateProtocolRight })
         const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: updateProtocolRight })
-        const array = [infoBob, infoAlice,];
+        const array = [infoBob, infoAlice];
 
         const proof = new Multisig({ info: multi, signatures: array });
         const txn = await Mina.transaction(deployerAccount, async () => {

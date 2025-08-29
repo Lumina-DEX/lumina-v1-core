@@ -8,7 +8,7 @@ import { claimerNumber, FarmReward, FarmMerkleWitness, minTimeUnlockFarmReward }
 import { FarmRewardTokenHolder } from '../farming/FarmRewardTokenHolder';
 import { generateRewardMerkle } from './Farm.Token.test';
 import { FarmUpgradeTest } from './FarmUpgradeTest';
-import { allRight, deployPoolRight, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
+import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -156,13 +156,11 @@ describe('Farming pool mina', () => {
 
     const signBob = Signature.create(bobKey, info.toFields());
     const signAlice = Signature.create(aliceKey, info.toFields());
-    const signDylan = Signature.create(senderAccount.key, info.toFields());
 
     const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
     const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
     const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
-    const infoDylan = new SignatureInfo({ user: senderPublic, witness: merkle.getWitness(Poseidon.hash(senderPublic.toFields())), signature: signDylan, right: allRight })
-    const array = [infoBob, infoAlice, infoDylan];
+    const array = [infoBob, infoAlice];
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
@@ -170,8 +168,7 @@ describe('Farming pool mina', () => {
         symbol: "FAC", src: "https://luminadex.com/",
         protocol: aliceAccount, delegator: dylanAccount,
         approvedSigner: root,
-        signatures: array,
-        multisigInfo: multi
+        multisig: new Multisig({ info: multi, signatures: array })
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

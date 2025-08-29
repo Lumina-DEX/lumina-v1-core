@@ -5,15 +5,13 @@ export const updateSigner = "UpdateSigner";
 export const updateFactory = "UpdateFactory";
 export const updateDelegator = "UpdateDelegator";
 export const updateProtocol = "UpdateProtocol";
-export const updatePool = "UpdatePool";
 
 export const deployPoolRight = Field(1);
-export const updatePoolRight = Field(2);
-export const updateSignerRight = Field(4);
-export const updateProtocolRight = Field(8);
-export const updateDelegatorRight = Field(16);
-export const updateFactoryRight = Field(32);
-export const allRight = Field(63); // 1+2+4+8+16+32
+export const updateSignerRight = Field(2);
+export const updateProtocolRight = Field(4);
+export const updateDelegatorRight = Field(8);
+export const updateFactoryRight = Field(16);
+export const allRight = Field(31); // 1+2+4+8+16
 
 export function hasRight(userRight: Field, right: Field): Bool {
     return Gadgets.and(userRight, right, 32).equals(right);
@@ -49,41 +47,6 @@ export class UpdateFactoryInfo extends Struct({
 
     hash(): Field {
         return Poseidon.hashWithPrefix(updateFactory, this.toFields());
-    }
-}
-
-/**
- * Information needed to update the pool verification key
- */
-export class UpgradeInfo extends Struct({
-    // contract to upgrade
-    contractAddress: PublicKey,
-    // subaccount to upgrade
-    tokenId: Field,
-    // new verification key hash to submit
-    newVkHash: Field,
-    // deadline to use this signature
-    deadlineSlot: UInt32
-}) {
-    constructor(value: {
-        contractAddress: PublicKey,
-        tokenId: Field,
-        newVkHash: Field,
-        deadlineSlot: UInt32
-    }) {
-        super(value);
-    }
-
-    /**
-     * Data use to create the signature
-     * @returns array of field of all parameters
-     */
-    toFields(): Field[] {
-        return UpgradeInfo.toFields(this);
-    }
-
-    hash(): Field {
-        return Poseidon.hashWithPrefix(updatePool, this.toFields());
     }
 }
 
@@ -238,11 +201,14 @@ export class Multisig extends Struct({
         info: MultisigInfo,
         signatures: SignatureInfo[]
     }) {
+        if (value.signatures.length !== 2) {
+            throw new Error("Need 2 signatures");
+        }
         super(value);
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateFactory(updateInfo: UpdateFactoryInfo) {
@@ -251,7 +217,7 @@ export class Multisig extends Struct({
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateDelegator(updateInfo: UpdateAccountInfo) {
@@ -260,7 +226,7 @@ export class Multisig extends Struct({
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateProtocol(updateInfo: UpdateAccountInfo) {
@@ -282,15 +248,22 @@ export class MultisigSigner extends Struct({
         signatures: SignatureInfo[],
         newSignatures: SignatureInfo[]
     }) {
+        if (value.signatures.length !== 2) {
+            throw new Error("Need 2 signatures");
+        }
+        if (value.newSignatures.length !== 2) {
+            throw new Error("Need 2 new signatures");
+        }
         super(value);
     }
 
     /**
-     * Check if the signature match the current user and data subbit
+     * Check if the signature match the current user and data submit
      * @param data needed to verify the signature
      */
     verifyUpdateSigner(upgradeInfo: UpdateSignerData) {
         const right = updateSignerRight;
+        upgradeInfo.oldRoot.equals(this.info.approvedUpgrader).assertTrue("Merkle root doesn't match");
         upgradeInfo.oldRoot.equals(upgradeInfo.newRoot).assertFalse("Can't reuse same merkle");
         verifySignature(this.signatures, upgradeInfo.deadlineSlot, updateSigner, this.info, this.info.approvedUpgrader, upgradeInfo.toFields(), right);
         verifySignature(this.newSignatures, upgradeInfo.deadlineSlot, updateSigner, this.info, upgradeInfo.newRoot, upgradeInfo.toFields(), right);

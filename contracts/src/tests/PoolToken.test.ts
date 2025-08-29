@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, Pr
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, getAmountLiquidityOutUint } from '../index';
-import { allRight, deployPoolRight, MultisigInfo, SignatureInfo, UpdateSignerData, updateSignerRight } from '../pool/Multisig';
+import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData, updateSignerRight } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -129,13 +129,11 @@ describe('Pool Factory Token', () => {
 
     const signBob = Signature.create(bobKey, info.toFields());
     const signAlice = Signature.create(aliceKey, info.toFields());
-    const signDylan = Signature.create(dylanAccount.key, info.toFields());
 
     const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(time) })
     const infoBob = new SignatureInfo({ user: bobPublic, witness: merkle.getWitness(Poseidon.hash(bobPublic.toFields())), signature: signBob, right: allRight })
     const infoAlice = new SignatureInfo({ user: alicePublic, witness: merkle.getWitness(Poseidon.hash(alicePublic.toFields())), signature: signAlice, right: allRight })
-    const infoDylan = new SignatureInfo({ user: dylanPublic, witness: merkle.getWitness(Poseidon.hash(dylanPublic.toFields())), signature: signDylan, right: allRight })
-    const array = [infoBob, infoAlice, infoDylan];
+    const array = [infoBob, infoAlice];
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
@@ -144,8 +142,7 @@ describe('Pool Factory Token', () => {
         protocol: aliceAccount,
         delegator: dylanAccount,
         approvedSigner: root,
-        signatures: array,
-        multisigInfo: multi
+        multisig: new Multisig({ info: multi, signatures: array })
       });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,

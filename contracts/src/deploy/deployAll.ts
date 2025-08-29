@@ -15,7 +15,7 @@
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { allRight, deployPoolRight, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig.js';
+import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -352,8 +352,7 @@ async function deployFactory() {
                     delegator: delegatorKey.toPublicKey(),
                     protocol: protocolKey.toPublicKey(),
                     approvedSigner: root,
-                    signatures: array,
-                    multisigInfo: multi
+                    multisig: new Multisig({ info: multi, signatures: array })
                 });
             }
         );
