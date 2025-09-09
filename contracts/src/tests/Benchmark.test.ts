@@ -2,7 +2,7 @@ import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Posei
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool } from '../index';
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig';
+import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
 
 let proofsEnabled = false;
 
@@ -22,8 +22,6 @@ describe('Benchmark', () => {
     dylanPublic: PublicKey,
     senderPublic: PublicKey,
     deployerPublic: PublicKey,
-    allRight: SignatureRight,
-    deployRight: SignatureRight,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: PoolFactory,
@@ -76,8 +74,7 @@ describe('Benchmark', () => {
     dylanPublic = dylanAccount.key.toPublicKey();
     deployerPublic = deployerKey.toPublicKey();
 
-    allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true));
-    deployRight = SignatureRight.canDeployPool();
+    const allRightHash = Poseidon.hash(allRight.toFields());
 
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
@@ -98,10 +95,10 @@ describe('Benchmark', () => {
     tokenHolder = new PoolTokenHolder(zkPoolAddress, zkToken.deriveTokenId());
 
     merkle = new MerkleMap();
-    merkle.set(Poseidon.hash(bobPublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(alicePublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(senderPublic.toFields()), allRight.hash());
-    merkle.set(Poseidon.hash(deployerPublic.toFields()), deployRight.hash());
+    merkle.set(Poseidon.hash(bobPublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(alicePublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(senderPublic.toFields()), allRightHash);
+    merkle.set(Poseidon.hash(deployerPublic.toFields()), Poseidon.hash(deployPoolRight.toFields()));
 
     const root = merkle.getRoot();
 
@@ -122,7 +119,7 @@ describe('Benchmark', () => {
 
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount, 4);
-      await zkApp.deploy({ symbol: "FAC", signatures: array, multisigInfo: multi, src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root });
+      await zkApp.deploy({ symbol: "FAC", multisig: new Multisig({ info: multi, signatures: array }), src: "https://luminadex.com/", protocol: aliceAccount, delegator: dylanAccount, approvedSigner: root });
       await zkTokenAdmin.deploy({
         adminPublicKey: deployerAccount,
       });
