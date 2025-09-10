@@ -16,6 +16,8 @@ import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Posei
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
 import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig.js';
+import { PoolFactoryOld } from '../pool/PoolFactoryOld.js';
+import { MultisigOld, UpdateFactoryInfo, SignatureInfo as SignatureInfoOld, SignatureRight as SignatureRightOld } from '../pool/MultisigOld.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -132,6 +134,7 @@ await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
+await PoolFactoryOld.compile({ cache });
 await Faucet.compile({ cache });
 
 async function ask() {
@@ -155,6 +158,7 @@ async function ask() {
             15 update signer
             16 create token account
             17 supply second liquidity
+            18 update factory
             `);
         switch (result) {
             case "1":
@@ -207,6 +211,9 @@ async function ask() {
                 break;
             case "17":
                 await addSecondLiquidity();
+                break;
+            case "18":
+                await updateFactory();
                 break;
             default:
                 await ask();
@@ -724,6 +731,50 @@ async function updateSigner() {
 }
 
 
+
+async function updateFactory() {
+    try {
+        console.log("update signer");
+        const root = merkle.getRoot();
+
+        const limit = new Date(2030, 1, 1);
+        const date = limit.getTime();
+
+        //const time = today.getTime();
+        const timeSlot = getSlotFromTimestamp(date);
+        const info = new UpdateFactoryInfo({ newVkHash: factoryKey.verificationKey.hash, deadlineSlot: UInt32.from(timeSlot) });
+
+        const signBob = Signature.create(signer1Key, info.toFields());
+        const signAlice = Signature.create(signer2Key, info.toFields());
+
+        const allRight = new SignatureRightOld(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true))
+
+        const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(timeSlot) })
+        const infoBob = new SignatureInfoOld({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
+        const infoAlice = new SignatureInfoOld({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
+        const array = [infoBob, infoAlice];
+        const proof = new MultisigOld({ info: multi, signatures: array });
+
+        const oldFactory = new PoolFactoryOld(zkFactoryAddress)
+        let tx = await Mina.transaction(
+            { sender: feepayerAddress, fee },
+            async () => {
+                fundNewAccount(feepayerAddress, 1);
+                await oldFactory.updateVerificationKey(proof, factoryKey.verificationKey);
+            }
+        );
+
+        console.log("tx", tx.toPretty());
+        await tx.prove();
+        let sentTx = await tx.sign([feepayerKey, zkFactoryKey]).send();
+        if (sentTx.status === 'pending') {
+            console.log("hash", sentTx.hash);
+        }
+
+    } catch (err) {
+        console.log(err);
+    }
+}
 
 async function getEvent() {
     try {
