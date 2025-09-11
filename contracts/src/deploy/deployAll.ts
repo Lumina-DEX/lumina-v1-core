@@ -12,7 +12,7 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8, VerificationKey } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
 import { Multisig, MultisigInfo, SignatureInfo, SignatureRight, UpdateFactoryInfo, UpdateSignerData } from '../pool/Multisig.js';
@@ -136,6 +136,9 @@ const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
 const intermediary = await FactoryIntermediary.compile();
+
+const hashContract = Field(27167892114307946311220801481226808399786469908061512252307744174796385756329n);
+const keyContract = "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";
 
 async function ask() {
     try {
@@ -820,12 +823,22 @@ async function updateFactory() {
         const proof = new Multisig({ info: multi, signatures: array });
 
         const oldFactory = new PoolFactory(zkFactoryAddress)
+        // let tx = await Mina.transaction(
+        //     { sender: feepayerAddress, fee },
+        //     async () => {
+        //         await oldFactory.updateVerificationKey(proof, intermediary.verificationKey);
+        //     }
+        // );
+
+        const intFactory = new FactoryIntermediary(zkFactoryAddress);
+
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                await oldFactory.updateVerificationKey(proof, intermediary.verificationKey);
+                await intFactory.updateVerificationKey(new VerificationKey({ data: keyContract, hash: hashContract }));
             }
         );
+
 
         console.log("tx", tx.toPretty());
         await tx.prove();
