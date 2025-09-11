@@ -15,7 +15,8 @@
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { MultisigInfo, SignatureInfo, SignatureRight, UpdateSignerData } from '../pool/Multisig.js';
+import { Multisig, MultisigInfo, SignatureInfo, SignatureRight, UpdateFactoryInfo, UpdateSignerData } from '../pool/Multisig.js';
+import { FactoryIntermediary } from '../pool/FactoryIntermediate.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -134,6 +135,7 @@ await FungibleTokenAdmin.compile({ cache });
 const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
 await Faucet.compile({ cache });
+const intermediary = await FactoryIntermediary.compile();
 
 async function ask() {
     try {
@@ -156,6 +158,7 @@ async function ask() {
             15 update signer
             16 create token account
             17 supply second liquidity
+            18 update factory
             `);
         switch (result) {
             case "1":
@@ -208,6 +211,9 @@ async function ask() {
                 break;
             case "17":
                 await addSecondLiquidity();
+                break;
+            case "18":
+                await updateFactory();
                 break;
             default:
                 await ask();
@@ -782,4 +788,47 @@ function getTxnUrl(graphQlUrl: string, txnHash: string | undefined) {
         return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
     }
     return `Transaction hash: ${txnHash}`;
+}
+
+async function updateFactory() {
+    try {
+        console.log("update signer");
+        const root = merkle.getRoot();
+
+        const limit = new Date(2030, 1, 1);
+        const date = limit.getTime();
+
+        //const time = today.getTime();
+        const timeSlot = getSlotFromTimestamp(date);
+        const info = new UpdateFactoryInfo({ newVkHash: intermediary.verificationKey.hash, deadlineSlot: UInt32.from(timeSlot) });
+
+        const signBob = Signature.create(signer1Key, info.toFields());
+        const signAlice = Signature.create(signer2Key, info.toFields());
+
+        const allRight = new SignatureRight(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true))
+
+        const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(timeSlot) })
+        const infoBob = new SignatureInfo({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
+        const infoAlice = new SignatureInfo({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
+        const array = [infoBob, infoAlice];
+        const proof = new Multisig({ info: multi, signatures: array });
+
+        const oldFactory = new PoolFactory(zkFactoryAddress)
+        let tx = await Mina.transaction(
+            { sender: feepayerAddress, fee },
+            async () => {
+                await oldFactory.updateVerificationKey(proof, intermediary.verificationKey);
+            }
+        );
+
+        console.log("tx", tx.toPretty());
+        await tx.prove();
+        let sentTx = await tx.sign([feepayerKey, zkFactoryKey]).send();
+        if (sentTx.status === 'pending') {
+            console.log("hash", sentTx.hash);
+        }
+
+    } catch (err) {
+        console.log(err);
+    }
 }
