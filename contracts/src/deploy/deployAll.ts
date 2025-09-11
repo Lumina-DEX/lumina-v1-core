@@ -716,21 +716,27 @@ async function mintTokenB() {
 async function updateSigner() {
     try {
         console.log("update signer");
-        // const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
-        // let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-        //     await zkFactory.updateApprovedSigner(root);
-        // });
-        // await tx.prove();
-        // let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
-        // if (sentTx.status === 'pending') {
-        //     console.log("hash", sentTx.hash);
-        // }
+
+        const oldFactory = new FactoryIntermediary(zkFactoryAddress)
+        let tx = await Mina.transaction(
+            { sender: feepayerAddress, fee },
+            async () => {
+                // signer base on Field number on not signaruteright bool
+                await oldFactory.updateApprovedSigner(Field(26964741462010086559092012883954465197512418645285812446994120990540838818419n));
+            }
+        );
+
+        console.log("tx", tx.toPretty());
+        await tx.prove();
+        let sentTx = await tx.sign([feepayerKey, zkFactoryKey]).send();
+        if (sentTx.status === 'pending') {
+            console.log("hash", sentTx.hash);
+        }
 
     } catch (err) {
         console.log(err);
     }
 }
-
 
 
 async function getEvent() {
@@ -832,3 +838,4 @@ async function updateFactory() {
         console.log(err);
     }
 }
+
