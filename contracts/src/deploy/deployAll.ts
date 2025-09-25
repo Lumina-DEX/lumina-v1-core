@@ -134,6 +134,7 @@ await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
+Provable.log("factory vk hash", factoryKey.verificationKey.hash);
 await PoolFactoryOld.compile({ cache });
 await Faucet.compile({ cache });
 

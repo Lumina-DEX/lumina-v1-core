@@ -41,4 +41,6 @@ npm run coverage
 
 ## License
 
-[Apache-2.0](LICENSE)
+Modified RPL Licence
+
+Licensor: Lumina Labs
