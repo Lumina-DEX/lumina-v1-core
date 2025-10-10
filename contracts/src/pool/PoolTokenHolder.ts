@@ -174,7 +174,7 @@ export class PoolTokenHolder extends SmartContract implements IPool {
 
         let poolTokenZ = new PoolTokenHolder(this.address, fungibleToken1.deriveTokenId());
 
-        const amountToken1 = await poolTokenZ.subWithdrawLiquidity(sender, liquidityAmount, amountToken, reserveToken1Min, supplyMax);
+        const amountToken1 = await poolTokenZ.subWithdrawLiquidity(sender, liquidityAmount, amountToken1Min, reserveToken1Min, supplyMax);
         await fungibleToken1.approveAccountUpdate(poolTokenZ.self);
         this.emitEvent("withdrawLiquidity", new WithdrawLiquidityEvent({ sender, amountToken0Out: amountToken, amountToken1Out: amountToken1, amountLiquidityIn: liquidityAmount }));
     }
