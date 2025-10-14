@@ -15,9 +15,8 @@
 import { AccountUpdate, Bool, Cache, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, SmartContract, UInt32, UInt64, UInt8 } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, mulDiv, Faucet, PoolFactory, Pool, getAmountLiquidityOutUint } from '../index.js';
 import readline from "readline/promises";
-import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig.js';
+import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateFactoryInfo, UpdateSignerData } from '../pool/Multisig.js';
 import { PoolFactoryOld } from '../pool/PoolFactoryOld.js';
-import { MultisigOld, UpdateFactoryInfo, SignatureInfo as SignatureInfoOld, SignatureRight as SignatureRightOld } from '../pool/MultisigOld.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -135,7 +134,8 @@ await FungibleTokenAdmin.compile({ cache });
 const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
 Provable.log("factory vk hash", factoryKey.verificationKey.hash);
-await PoolFactoryOld.compile({ cache });
+const oldFactoryKey = await PoolFactoryOld.compile({ cache, forceRecompile: true });
+Provable.log("old factory vk hash", oldFactoryKey.verificationKey.hash);
 await Faucet.compile({ cache });
 
 async function ask() {
@@ -748,19 +748,16 @@ async function updateFactory() {
         const signBob = Signature.create(signer1Key, info.toFields());
         const signAlice = Signature.create(signer2Key, info.toFields());
 
-        const allRight = new SignatureRightOld(Bool(true), Bool(true), Bool(true), Bool(true), Bool(true), Bool(true))
-
         const multi = new MultisigInfo({ approvedUpgrader: root, messageHash: info.hash(), deadlineSlot: UInt32.from(timeSlot) })
-        const infoBob = new SignatureInfoOld({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
-        const infoAlice = new SignatureInfoOld({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
+        const infoBob = new SignatureInfo({ user: signer1Public, witness: merkle.getWitness(Poseidon.hash(signer1Public.toFields())), signature: signBob, right: allRight })
+        const infoAlice = new SignatureInfo({ user: signer2Public, witness: merkle.getWitness(Poseidon.hash(signer2Public.toFields())), signature: signAlice, right: allRight })
         const array = [infoBob, infoAlice];
-        const proof = new MultisigOld({ info: multi, signatures: array });
+        const proof = new Multisig({ info: multi, signatures: array });
 
         const oldFactory = new PoolFactoryOld(zkFactoryAddress)
         let tx = await Mina.transaction(
             { sender: feepayerAddress, fee },
             async () => {
-                fundNewAccount(feepayerAddress, 1);
                 await oldFactory.updateVerificationKey(proof, factoryKey.verificationKey);
             }
         );
