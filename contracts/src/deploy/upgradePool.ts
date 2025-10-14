@@ -15,6 +15,7 @@
 import { Cache, fetchAccount, Mina, PrivateKey, PublicKey } from 'o1js';
 import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, PoolFactory, Pool } from '../index.js';
 import readline from "readline/promises";
+import { PoolTokenHolderOld } from '../pool/PoolTokenHolderOld.js';
 
 const prompt = async (message: string) => {
     const rl = readline.createInterface({
@@ -57,7 +58,7 @@ let feepayerAddress = feepayerKey.toPublicKey();
 let zkFactoryAddress = zkFactoryKey.toPublicKey();
 let zkFactory = new PoolFactory(zkFactoryAddress);
 
-console.log("factory", zkFactoryKey.toBase58());
+console.log("factory", zkFactoryAddress.toBase58());
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
@@ -67,6 +68,7 @@ const keyPoolLatest = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
 const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
+await PoolTokenHolderOld.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
 // await PoolV1.compile({ cache });
 // await PoolV2.compile({ cache });
@@ -74,7 +76,7 @@ const factoryKey = await PoolFactory.compile({ cache });
 
 async function ask() {
     try {
-        const result = await prompt(`Set pool address to upgrade`);
+        const result = await prompt(`Set pool address to upgrade `);
         await upgradePool(result);
 
     } catch (error) {
@@ -90,29 +92,36 @@ await ask();
 
 async function upgradePool(poolAddressStr: string) {
     try {
-        console.log("upgrade pool");
-        const ownerKey = PrivateKey.fromBase58(process.env.OWNER!);
-        await fetchAccount({ publicKey: ownerKey.toPublicKey() })
-        const poolAddress = PublicKey.fromBase58(poolAddressStr);
+        console.log("upgrade pool", poolAddressStr);
+        await fetchAccount({ publicKey: feepayerKey.toPublicKey() })
+        const poolAddress = PublicKey.fromBase58(poolAddressStr.trim());
         // new version
         const zkPool = new Pool(poolAddress);
+        const tokenAddress0 = await zkPool.token0.fetch();
         const tokenAddress = await zkPool.token1.fetch();
         const zkToken = new FungibleToken(tokenAddress!);
+        const zkToken0 = new FungibleToken(tokenAddress0!);
         // new version
-        const zkHolder = new PoolTokenHolder(poolAddress, zkToken.deriveTokenId())
-        /*
-                let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-                    await zkPool.updateVerificationKey(keyPoolLatest.verificationKey)
-                    await zkHolder.updateVerificationKey(keyPoolHolderLatest.verificationKey)
-                    await zkToken.approveAccountUpdate(zkHolder.self);
-                });
-                console.log("upgrade  proof", tx.toPretty());
-                await tx.prove();
-                let sentTx = await tx.sign([feepayerKey, ownerKey]).send();
-                if (sentTx.status === 'pending') {
-                    console.log("hash", sentTx.hash);
-                }
-        */
+        const zkHolder0 = new PoolTokenHolderOld(poolAddress, zkToken0.deriveTokenId())
+        const zkHolder = new PoolTokenHolderOld(poolAddress, zkToken.deriveTokenId())
+
+        let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
+            await zkPool.updateVerificationKey()
+            await zkHolder.updateVerificationKey()
+            await zkToken.approveAccountUpdate(zkHolder.self);
+            if (tokenAddress?.toBase58() !== PublicKey.empty().toBase58()) {
+                // case of pool token / token
+                await zkHolder0.updateVerificationKey()
+                await zkToken0.approveAccountUpdate(zkHolder0.self);
+            }
+        });
+        console.log("upgrade  proof", tx.toPretty());
+        await tx.prove();
+        let sentTx = await tx.sign([feepayerKey]).send();
+        if (sentTx.status === 'pending') {
+            console.log("hash", sentTx.hash);
+        }
+
     } catch (err) {
         console.log(err);
     }

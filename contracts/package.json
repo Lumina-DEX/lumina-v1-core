@@ -32,6 +32,7 @@
     "test:network": "node --experimental-vm-modules node_modules/jest/bin/jest.js network.test",
     "test:benchmark": "node --experimental-vm-modules node_modules/jest/bin/jest.js benchmark.test",
     "test:swap": "node --experimental-vm-modules node_modules/jest/bin/jest.js swap.test",
+    "upgrade": "node --env-file=.env build/src/deploy/upgradePool.js",
     "lint": "npx eslint src/**/*.ts --fix",
     "patch": "node patch.js",
     "doc": "npx typedoc src/indexpool.ts --out ../docs"
