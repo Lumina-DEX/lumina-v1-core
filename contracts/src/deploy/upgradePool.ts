@@ -77,7 +77,7 @@ const factoryKey = await PoolFactory.compile({ cache });
 
 async function ask() {
     try {
-        const URL = 'https://cdn.luminadex.com/api/zeko:testnet/pools';
+        const URL = 'https://cdn.luminadex.com/api/mina:devnet/pools';
         const res = await fetch(URL);
         if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
         const pools = await res.json();
@@ -92,11 +92,14 @@ async function ask() {
 
 await ask();
 
+function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 async function upgradePool(poolAddressStr: string) {
     try {
         console.log("upgrade pool", poolAddressStr);
-        await fetchAccount({ publicKey: feepayerKey.toPublicKey() })
         const poolAddress = PublicKey.fromBase58(poolAddressStr.trim());
         // new version
         const zkPool = new Pool(poolAddress);
@@ -104,6 +107,7 @@ async function upgradePool(poolAddressStr: string) {
         const tokenAddress = await zkPool.token1.fetch();
         const zkToken = new FungibleToken(tokenAddress!);
 
+        // get current vk hash
         const query = `
   query {
     account(publicKey: "${poolAddress!.toBase58()}", token: "${TokenId.toBase58(zkToken.deriveTokenId())}") {
@@ -129,6 +133,7 @@ async function upgradePool(poolAddressStr: string) {
         const zkHolder0 = new PoolTokenHolderOld(poolAddress, zkToken0.deriveTokenId())
         const zkHolder = new PoolTokenHolderOld(poolAddress, zkToken.deriveTokenId())
 
+        await fetchAccount({ publicKey: feepayerKey.toPublicKey() })
         let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
             await zkPool.updateVerificationKey()
             await zkHolder.updateVerificationKey()
@@ -139,11 +144,11 @@ async function upgradePool(poolAddressStr: string) {
                 await zkToken0.approveAccountUpdate(zkHolder0.self);
             }
         });
-        console.log("upgrade  proof", tx.toPretty());
         await tx.prove();
         let sentTx = await tx.sign([feepayerKey]).send();
         if (sentTx.status === 'pending') {
             console.log("hash", sentTx.hash);
+            await sentTx.wait();
         }
 
     } catch (err) {
