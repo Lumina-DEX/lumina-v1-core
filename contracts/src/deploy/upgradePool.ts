@@ -12,8 +12,8 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { Cache, fetchAccount, Mina, PrivateKey, PublicKey } from 'o1js';
-import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, PoolFactory, Pool } from '../index.js';
+import { Cache, fetchAccount, Mina, PrivateKey, Provable, PublicKey, TokenId } from 'o1js';
+import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, PoolFactory, Pool, contractHolderHash } from '../index.js';
 import readline from "readline/promises";
 import { PoolTokenHolderOld } from '../pool/PoolTokenHolderOld.js';
 
@@ -49,6 +49,7 @@ const Network = Mina.Network({
     networkId: "testnet",
     mina: process.env.GRAPHQL!,
     archive: process.env.ARCHIVE!,
+    bypassTransactionLimits: true
 });
 console.log("network", process.env.GRAPHQL);
 // const Network = Mina.Network(config.url);
@@ -67,7 +68,7 @@ const cache: Cache = Cache.FileSystem('./cache');
 const keyPoolLatest = await Pool.compile({ cache });
 await FungibleToken.compile({ cache });
 await FungibleTokenAdmin.compile({ cache });
-const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
+//const keyPoolHolderLatest = await PoolTokenHolder.compile({ cache });
 await PoolTokenHolderOld.compile({ cache });
 const factoryKey = await PoolFactory.compile({ cache });
 // await PoolV1.compile({ cache });
@@ -76,14 +77,16 @@ const factoryKey = await PoolFactory.compile({ cache });
 
 async function ask() {
     try {
-        const result = await prompt(`Set pool address to upgrade `);
-        await upgradePool(result);
+        const URL = 'https://cdn.luminadex.com/api/zeko:testnet/pools';
+        const res = await fetch(URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        const pools = await res.json();
+        for (const pool of pools) {
+            await upgradePool(pool.address);
+        }
 
     } catch (error) {
-        await ask();
-    }
-    finally {
-        await ask();
+        console.error('Error fetching pools:', error);
     }
 }
 
@@ -100,6 +103,27 @@ async function upgradePool(poolAddressStr: string) {
         const tokenAddress0 = await zkPool.token0.fetch();
         const tokenAddress = await zkPool.token1.fetch();
         const zkToken = new FungibleToken(tokenAddress!);
+
+        const query = `
+  query {
+    account(publicKey: "${poolAddress!.toBase58()}", token: "${TokenId.toBase58(zkToken.deriveTokenId())}") {
+      verificationKey { hash }
+    }
+  }
+`;
+        const res = await fetch(process.env.GRAPHQL!, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+        });
+        const data = await res.json();
+
+        console.log('vkHash:', data.data.account.verificationKey.hash);
+
+        if (data.data.account.verificationKey.hash === contractHolderHash.toString()) {
+            console.log("pool already upgraded");
+            return;
+        }
         const zkToken0 = new FungibleToken(tokenAddress0!);
         // new version
         const zkHolder0 = new PoolTokenHolderOld(poolAddress, zkToken0.deriveTokenId())
@@ -109,7 +133,7 @@ async function upgradePool(poolAddressStr: string) {
             await zkPool.updateVerificationKey()
             await zkHolder.updateVerificationKey()
             await zkToken.approveAccountUpdate(zkHolder.self);
-            if (tokenAddress?.toBase58() !== PublicKey.empty().toBase58()) {
+            if (tokenAddress0?.toBase58() !== PublicKey.empty().toBase58()) {
                 // case of pool token / token
                 await zkHolder0.updateVerificationKey()
                 await zkToken0.approveAccountUpdate(zkHolder0.self);
