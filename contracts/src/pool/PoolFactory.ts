@@ -1,7 +1,7 @@
-import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Permissions, Poseidon, PublicKey, Signature, SmartContract, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
+import { AccountUpdate, AccountUpdateForest, Bool, DeployArgs, Field, MerkleMap, MerkleMapWitness, method, Mina, Permissions, Poseidon, PublicKey, Signature, SmartContract, state, State, Struct, TokenContract, TokenId, UInt32, UInt64, VerificationKey } from 'o1js';
 import { FungibleToken } from '../indexpool.js';
 import { Multisig, MultisigSigner, UpdateAccountInfo, UpdateFactoryInfo, UpdateSignerData, verifySignature, updateSigner, updateSignerRight, updateProtocolRight, updateDelegatorRight, hasRight, deployPoolRight } from './Multisig.js';
-import { poolDataTestnet, poolHashTestnet, poolTokenHolderDataTestnet, poolTokenHolderHashTestnet } from './VerificationKey.js';
+import { poolDataMainnet, poolDataTestnet, poolHashMainnet, poolHashTestnet, poolTokenHolderDataMainnet, poolTokenHolderDataTestnet, poolTokenHolderHashMainnet, poolTokenHolderHashTestnet } from './VerificationKey.js';
 
 
 export type PoolFactoryBase = SmartContract & {
@@ -93,11 +93,11 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
     /**
      * Current verification key of pool contract, can differ between networks
      */
-    static vkPool: VerificationKey = new VerificationKey({ data: poolDataTestnet, hash: poolHashTestnet });
+    vkPool: VerificationKey = Mina.getNetworkId() === 'mainnet' ? new VerificationKey({ data: poolDataMainnet, hash: poolHashMainnet }) : new VerificationKey({ data: poolDataTestnet, hash: poolHashTestnet });
     /**
      * Current verification key of pool token holder contract, can differ between networks
      */
-    static vkPoolTokenHolder: VerificationKey = new VerificationKey({ data: poolTokenHolderDataTestnet, hash: poolTokenHolderHashTestnet });
+    vkPoolTokenHolder: VerificationKey = Mina.getNetworkId() === 'mainnet' ? new VerificationKey({ data: poolTokenHolderDataMainnet, hash: poolTokenHolderHashMainnet }) : new VerificationKey({ data: poolTokenHolderDataTestnet, hash: poolTokenHolderHashTestnet });
 
     /**
      * List of signer approved to deploy a new pool
@@ -268,7 +268,10 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
      * @returns the verification key of the pool contract
      */
     @method.returns(VerificationKey) async getPoolVK() {
-        return PoolFactory.vkPool;
+        if (this.vkPool === undefined) {
+            this.vkPool = new VerificationKey({ data: poolDataTestnet, hash: poolHashTestnet });
+        }
+        return this.vkPool;
     }
 
     /**
@@ -276,7 +279,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
      * @returns the verification key of the pool token holder contract
      */
     @method.returns(VerificationKey) async getPoolTokenHolderVK() {
-        return PoolFactory.vkPoolTokenHolder;
+        return this.vkPoolTokenHolder;
     }
 
     /**
@@ -345,7 +348,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         poolAccount.account.isNew.requireEquals(Bool(true));
 
         // set pool account vk and permission
-        poolAccount.body.update.verificationKey = { isSome: Bool(true), value: PoolFactory.vkPool };
+        poolAccount.body.update.verificationKey = { isSome: Bool(true), value: this.vkPool };
         poolAccount.body.update.permissions = {
             isSome: Bool(true),
             value: {
@@ -425,7 +428,7 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
         poolHolderAccount.account.isNew.requireEquals(Bool(true));
 
         // set pool token holder account vk and permission
-        poolHolderAccount.body.update.verificationKey = { isSome: Bool(true), value: PoolFactory.vkPoolTokenHolder };
+        poolHolderAccount.body.update.verificationKey = { isSome: Bool(true), value: this.vkPoolTokenHolder };
         poolHolderAccount.body.update.permissions = {
             isSome: Bool(true),
             value: {

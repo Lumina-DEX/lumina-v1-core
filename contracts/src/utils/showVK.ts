@@ -64,14 +64,6 @@ async function compileAndPrintAllVKeysForAllNetworks() {
             });
         }
 
-        if (networkId === 'mainnet') {
-            PoolFactory.vkPool = new VerificationKey({ data: poolDataMainnet, hash: poolHashMainnet });
-            PoolFactory.vkPoolTokenHolder = new VerificationKey({ data: poolTokenHolderDataMainnet, hash: poolTokenHolderHashMainnet });
-        } else {
-            PoolFactory.vkPool = new VerificationKey({ data: poolDataTestnet, hash: poolHashTestnet });
-            PoolFactory.vkPoolTokenHolder = new VerificationKey({ data: poolTokenHolderDataTestnet, hash: poolTokenHolderHashTestnet });
-        }
-
         Mina.setActiveInstance(Network);
         console.log(`VKey Hashes for network ${idString}:`);
         await compileAndPrintAllVKeys();
