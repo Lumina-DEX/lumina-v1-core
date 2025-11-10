@@ -12,8 +12,8 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/deploy.js`.
  */
-import { Cache, fetchAccount, Mina, PrivateKey, Provable, PublicKey, TokenId } from 'o1js';
-import { PoolTokenHolder, FungibleToken, FungibleTokenAdmin, PoolFactory, Pool, contractHolderHash } from '../index.js';
+import { Cache, fetchAccount, Mina, PrivateKey, PublicKey, TokenId } from 'o1js';
+import { FungibleToken, FungibleTokenAdmin, PoolFactory, Pool, poolHashTestnet } from '../index.js';
 import readline from "readline/promises";
 import { PoolTokenHolderOld } from '../pool/PoolTokenHolderOld.js';
 
@@ -124,7 +124,7 @@ async function upgradePool(poolAddressStr: string) {
 
         console.log('vkHash:', data.data.account.verificationKey.hash);
 
-        if (data.data.account.verificationKey.hash === contractHolderHash.toString()) {
+        if (data.data.account.verificationKey.hash === poolHashTestnet.toString()) {
             console.log("pool already upgraded");
             return;
         }

@@ -1,7 +1,7 @@
 import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
-import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder, getAmountLiquidityOutUint } from '../index';
+import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, Pool, PoolTokenHolder } from '../index';
 import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData, updateSignerRight } from '../pool/Multisig';
 
 let proofsEnabled = false;
@@ -199,129 +199,6 @@ describe('Pool Factory Token', () => {
 
   });
 
-  it('add first liquidity', async () => {
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
-    });
-    console.log("supplyFirstLiquidities", txn.toPretty());
-    console.log("supplyFirstLiquidities au", txn.transaction.accountUpdates.length);
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-
-    /* const liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-     const expected = amt.value.add(amtToken.value).sub(PoolMina.minimunLiquidity.value);
-     console.log("liquidity user", liquidityUser.toString());
-     expect(liquidityUser.value).toEqual(expected);*/
-
-    const balanceToken = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    expect(balanceToken.value).toEqual(amt.value);
-
-    const balanceMina = Mina.getBalance(zkPoolAddress, zkToken1.deriveTokenId());
-    expect(balanceMina.value).toEqual(amtToken.value);
-
-  });
-
-  it('generate different key', async () => {
-    const newKey = PrivateKey.randomKeypair();
-
-    const fields = zkTokenAddress0.toFields().concat(zkTokenAddress1.toFields())
-    const hash = Poseidon.hashToGroup(fields);
-    const publicKey = PublicKey.fromGroup(hash);
-    console.log('publickey', publicKey.toBase58());
-    const fields2 = zkTokenAddress0.toFields().concat(newKey.publicKey.toFields())
-    const hash2 = Poseidon.hashToGroup(fields2);
-    const publicKey2 = PublicKey.fromGroup(hash2);
-    console.log('publicKey2', publicKey2.toBase58());
-    const fields3 = newKey.publicKey.toFields().concat(zkTokenAddress1.toFields())
-    const hash3 = Poseidon.hashToGroup(fields3);
-    const publicKey3 = PublicKey.fromGroup(hash3);
-    console.log('publicKey3', publicKey3.toBase58());
-
-    expect(publicKey.toBase58()).not.toEqual(publicKey2);
-    expect(publicKey2.toBase58()).not.toEqual(publicKey3);
-  });
-
-  it('Transfer liquidity', async () => {
-
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
-    });
-    //console.log("supplyFirstLiquidities", txn.toPretty());
-    console.log("supplyFirstLiquidities au", txn.transaction.accountUpdates.length);
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-
-    const liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(Pool.minimumLiquidity.value);
-    expect(liquidityUser.value).toEqual(expected);
-
-    txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.transfer(senderAccount, bobAccount, UInt64.from(1000));
-    });
-    //console.log("supplyFirstLiquidities", txn.toPretty());
-    console.log("supplyFirstLiquidities au", txn.transaction.accountUpdates.length);
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-    const liquidityBob = Mina.getBalance(bobAccount, zkPool.deriveTokenId());
-    expect(liquidityBob.value).toEqual(UInt64.from(1000).value);
-  });
-
-  it('withdraw liquidity', async () => {
-
-    const minaUser = Mina.getBalance(senderAccount);
-    console.log("mina before", minaUser.toBigInt());
-    let amt = UInt64.from(50 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
-    });
-    console.log("supplyFirstLiquidities", txn.toPretty());
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-    const minaUserAfterDeposit = Mina.getBalance(senderAccount);
-    const expectedMina = minaUser.sub(amt);
-    //expect(minaUserAfterDeposit.value).toEqual(expectedMina.value);
-    console.log("mina after deposit", minaUserAfterDeposit.toBigInt());
-
-    const liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-    // const expected = amt.value.add(amtToken.value).sub(MINIMUM_LIQUIDITY.value);
-
-    const supply = await Mina.getBalance(zkPoolAddress, zkPool.deriveTokenId());
-
-    const balPool0 = await Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    console.log("bal pool 0", balPool0.toBigInt());
-
-    const liquityOut = UInt64.from(1 * 10 ** 9);
-    const amountMinaOut = mulDiv(liquityOut, amt, supply);
-    const amountTokenOut = mulDiv(liquityOut, amtToken, supply);
-    txn = await Mina.transaction(senderAccount, async () => {
-      await tokenHolder.withdrawLiquidityToken(liquityOut, amountMinaOut, amountTokenOut, amt, amtToken, supply);
-      await zkToken0.approveAccountUpdate(tokenHolder.self);
-      //await zkToken1.approveAccountUpdate(tokenHolder.self);
-    });
-    console.log("Withdraw liquidity", txn.toPretty());
-    console.log("Withdraw liquidity au", txn.transaction.accountUpdates.length);
-
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-
-    const minaUserAfter = Mina.getBalance(senderAccount);
-    console.log("mina after", minaUserAfter.toBigInt());
-
-  });
 
   it('withdraw liquidity after swap', async () => {
 
@@ -428,75 +305,6 @@ describe('Pool Factory Token', () => {
 
   });
 
-  it('add second liquidity', async () => {
-
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
-    });
-    console.log("createPool au", txn.transaction.accountUpdates.length);
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-    let liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(Pool.minimumLiquidity.value);
-    const totalLiquidity = Mina.getBalance(zkPoolAddress, zkPool.deriveTokenId());
-    console.log("liquidity user", liquidityUser.toString());
-    expect(liquidityUser.value).toEqual(expected);
-
-
-    let amtMina = UInt64.from(1 * 10 ** 9);
-    let amtToken2 = UInt64.from(5 * 10 ** 9);
-    txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkPool.supplyLiquidityToken(amtMina, amtToken2, amt, amtToken, totalLiquidity);
-    });
-    console.log("add liquidity from mina", txn.toPretty());
-    console.log("add liquidity from mina au", txn.transaction.accountUpdates.length);
-    await txn.prove();
-    await txn.sign([deployerKey]).send();
-    const liquidityOut = mulDiv(amtMina, totalLiquidity, amt);
-    liquidityUser = Mina.getBalance(deployerAccount, zkPool.deriveTokenId());
-    expect(liquidityUser.value).toEqual(liquidityOut.value);
-    console.log("liquidity deployer", liquidityUser.toString());
-  });
-
-  it('add second liquidity slippage', async () => {
-
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
-    });
-    console.log("createPool au", txn.transaction.accountUpdates.length);
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-    let liquidityUser = Mina.getBalance(senderAccount, zkPool.deriveTokenId());
-    const expected = amt.value.add(amtToken.value).sub(Pool.minimumLiquidity.value);
-    const totalLiquidity = Mina.getBalance(zkPoolAddress, zkPool.deriveTokenId());
-    console.log("liquidity user", liquidityUser.toString());
-    expect(liquidityUser.value).toEqual(expected);
-
-
-    let amtToken0 = UInt64.from(1 * 10 ** 9);
-    const reserve = await getReserves(zkPoolAddress);
-    const out = getAmountLiquidityOutUint(amtToken0, reserve.amountMina, reserve.amountToken, reserve.liquidity, UInt64.one);
-    txn = await Mina.transaction(deployerAccount, async () => {
-      AccountUpdate.fundNewAccount(deployerAccount, 1);
-      await zkPool.supplyLiquidityToken(out.amountAIn, out.amountBIn, out.balanceAMax, out.balanceBMax, out.supplyMin);
-    });
-    console.log("add liquidity from mina", txn.toPretty());
-    console.log("add liquidity from mina au", txn.transaction.accountUpdates.length);
-    await txn.prove();
-    await txn.sign([deployerKey]).send();
-    liquidityUser = Mina.getBalance(deployerAccount, zkPool.deriveTokenId());
-    expect(liquidityUser.value).toEqual(out.liquidity.value);
-    console.log("liquidity deployer", liquidityUser.toString());
-  });
 
   async function getReserves(poolAddress: PublicKey) {
     const acc = await fetchAccount({ publicKey: poolAddress });
@@ -515,65 +323,6 @@ describe('Pool Factory Token', () => {
     };
   }
 
-
-  it('swap from token', async () => {
-    let amt = UInt64.from(10 * 10 ** 9);
-    let amtToken = UInt64.from(50 * 10 ** 9);
-    let txn = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await zkPool.supplyFirstLiquiditiesToken(amt, amtToken);
-    });
-    await txn.prove();
-    await txn.sign([senderKey]).send();
-
-    const reserveIn = Mina.getBalance(zkPoolAddress, zkToken1.deriveTokenId());
-    const reserveOut = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    let amountIn = UInt64.from(1.3 * 10 ** 9);
-
-    console.log("current bal in", reserveIn.toBigInt());
-
-    const balanceMin = reserveOut.sub(reserveOut.div(100));
-    const balanceMax = reserveIn.add(reserveIn.div(100));
-
-    const expectedOut = mulDiv(balanceMin, amountIn, balanceMax.add(amountIn));
-    const optimalOut = mulDiv(reserveOut, amountIn, reserveIn.add(amountIn));
-
-    const minOut = optimalOut.sub(optimalOut.div(50)); // 2 % dif 
-
-    const balBefore = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
-
-    const userMinaBalBefore = Mina.getBalance(senderAccount);
-
-    const protocol = await zkApp.getProtocol();
-
-    const txn2 = await Mina.transaction(senderAccount, async () => {
-      AccountUpdate.fundNewAccount(senderAccount, 1);
-      await tokenHolder.swapFromTokenToToken(protocol, UInt64.from(5), amountIn, UInt64.from(1), balanceMax, balanceMin);
-      await zkToken0.approveAccountUpdate(tokenHolder.self);
-    });
-    console.log("swap from token", txn2.toPretty());
-    console.log("swap from token au", txn2.transaction.accountUpdates.length);
-    await txn2.prove();
-    await txn2.sign([senderKey]).send();
-
-    /* const userMinaBalAfter = Mina.getBalance(senderAccount);
- 
-     console.log('optimal out', optimalOut.toBigInt());
-     console.log('minimal out', minOut.toBigInt());
-     console.log('expected out', expectedOut.toBigInt());
-     console.log('received', userMinaBalAfter.sub(userMinaBalBefore).toBigInt());*/
-
-    // const resIN = reserveIn.add(amountIn);
-    // const resOut = reserveOut.sub(expectedOut);
-
-    // const reserveIn2 = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    // const reserveOut2 = Mina.getBalance(zkPoolAddress, zkToken0.deriveTokenId());
-    // expect(reserveIn2.value).toEqual(resIN.value);
-    // expect(reserveOut2.value).toEqual(resOut.value);
-
-    //const balAfter = Mina.getBalance(senderAccount, zkToken0.deriveTokenId());
-    //expect(balAfter.value).toEqual(balBefore.sub(amountIn).value);
-  });
   async function mintToken(user: PublicKey) {
     // token are minted to original deployer, so just transfer it for test
     let txn = await Mina.transaction(deployerAccount, async () => {

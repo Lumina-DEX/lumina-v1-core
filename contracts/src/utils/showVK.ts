@@ -1,5 +1,5 @@
-import { Mina, NetworkId, Provable, SmartContract } from 'o1js';
-import { PoolFactory, Pool, PoolTokenHolder } from '../index.js';
+import { Mina, NetworkId, Provable, SmartContract, VerificationKey } from 'o1js';
+import { PoolFactory, Pool, PoolTokenHolder, poolDataMainnet, poolHashMainnet, poolTokenHolderDataMainnet, poolDataTestnet, poolHashTestnet, poolTokenHolderDataTestnet, poolTokenHolderHashMainnet, poolTokenHolderHashTestnet } from '../index.js';
 
 // node build/src/utils/showVK.js
 
@@ -8,6 +8,7 @@ async function compileAndPrintVKey<T extends typeof SmartContract>(contract: T) 
     const maxNameLength = 24; // 'FarmRewardTokenHolder'.length
     const paddedName = contract.name.padEnd(maxNameLength, ' ');
     Provable.log(`${paddedName}:`, verificationKey.hash);
+    //Provable.log(`${paddedName}:`, verificationKey.data);
 }
 
 async function compileAndPrintAllVKeys() {
@@ -61,6 +62,14 @@ async function compileAndPrintAllVKeysForAllNetworks() {
                 networkId,
                 mina: graphqlUrl,
             });
+        }
+
+        if (networkId === 'mainnet') {
+            PoolFactory.vkPool = new VerificationKey({ data: poolDataMainnet, hash: poolHashMainnet });
+            PoolFactory.vkPoolTokenHolder = new VerificationKey({ data: poolTokenHolderDataMainnet, hash: poolTokenHolderHashMainnet });
+        } else {
+            PoolFactory.vkPool = new VerificationKey({ data: poolDataTestnet, hash: poolHashTestnet });
+            PoolFactory.vkPoolTokenHolder = new VerificationKey({ data: poolTokenHolderDataTestnet, hash: poolTokenHolderHashTestnet });
         }
 
         Mina.setActiveInstance(Network);
