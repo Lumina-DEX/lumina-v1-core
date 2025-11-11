@@ -93,11 +93,36 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
     /**
      * Current verification key of pool contract, can differ between networks
      */
-    vkPool: VerificationKey = Mina.getNetworkId() === 'mainnet' ? new VerificationKey({ data: poolDataMainnet, hash: poolHashMainnet }) : new VerificationKey({ data: poolDataTestnet, hash: poolHashTestnet });
+    get vkPool(): VerificationKey {
+        if (Mina.getNetworkId() === 'mainnet') {
+            return new VerificationKey({
+                data: poolDataMainnet,
+                hash: poolHashMainnet,
+            });
+        } else {
+            return new VerificationKey({
+                data: poolDataTestnet,
+                hash: poolHashTestnet,
+            });
+        }
+    }
+
     /**
      * Current verification key of pool token holder contract, can differ between networks
      */
-    vkPoolTokenHolder: VerificationKey = Mina.getNetworkId() === 'mainnet' ? new VerificationKey({ data: poolTokenHolderDataMainnet, hash: poolTokenHolderHashMainnet }) : new VerificationKey({ data: poolTokenHolderDataTestnet, hash: poolTokenHolderHashTestnet });
+    get vkPoolTokenHolder(): VerificationKey {
+        if (Mina.getNetworkId() === 'mainnet') {
+            return new VerificationKey({
+                data: poolTokenHolderDataMainnet,
+                hash: poolTokenHolderHashMainnet,
+            });
+        } else {
+            return new VerificationKey({
+                data: poolTokenHolderDataTestnet,
+                hash: poolTokenHolderHashTestnet,
+            });
+        }
+    }
 
     /**
      * List of signer approved to deploy a new pool
@@ -268,9 +293,6 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
      * @returns the verification key of the pool contract
      */
     @method.returns(VerificationKey) async getPoolVK() {
-        if (this.vkPool === undefined) {
-            this.vkPool = new VerificationKey({ data: poolDataTestnet, hash: poolHashTestnet });
-        }
         return this.vkPool;
     }
 
