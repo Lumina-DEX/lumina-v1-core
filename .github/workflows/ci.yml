@@ -5,9 +5,13 @@ on:
   workflow_dispatch: {}
 jobs:
   test:
-    timeout-minutes: 30
-    runs-on:
-      labels: ubuntu-20.04-16core
+    timeout-minutes: 60
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        node: [20]
+        os: [ubuntu-latest]
     steps:
       - name: Set up NodeJS
         uses: actions/setup-node@v4
