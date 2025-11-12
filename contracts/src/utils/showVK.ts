@@ -8,6 +8,7 @@ async function compileAndPrintVKey<T extends typeof SmartContract>(contract: T) 
     const maxNameLength = 24; // 'FarmRewardTokenHolder'.length
     const paddedName = contract.name.padEnd(maxNameLength, ' ');
     Provable.log(`${paddedName}:`, verificationKey.hash);
+    //Provable.log(`${paddedName}:`, verificationKey.data);
 }
 
 async function compileAndPrintAllVKeys() {
