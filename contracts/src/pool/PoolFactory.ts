@@ -99,11 +99,13 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
                 data: poolDataMainnet,
                 hash: poolHashMainnet,
             });
-        } else {
+        } else if (Mina.getNetworkId() === 'devnet' || Mina.getNetworkId() === 'testnet') {
             return new VerificationKey({
                 data: poolDataTestnet,
                 hash: poolHashTestnet,
             });
+        } else {
+            throw new Error(`Network ${Mina.getNetworkId()} not supported`);
         }
     }
 
@@ -116,11 +118,14 @@ export class PoolFactory extends TokenContract implements PoolFactoryBase {
                 data: poolTokenHolderDataMainnet,
                 hash: poolTokenHolderHashMainnet,
             });
-        } else {
+        } else if (Mina.getNetworkId() === 'devnet' || Mina.getNetworkId() === 'testnet') {
             return new VerificationKey({
                 data: poolTokenHolderDataTestnet,
                 hash: poolTokenHolderHashTestnet,
             });
+        }
+        else {
+            throw new Error(`Network ${Mina.getNetworkId()} not supported`);
         }
     }
 
