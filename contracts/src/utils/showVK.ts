@@ -1,5 +1,5 @@
-import { Mina, NetworkId, Provable, SmartContract, VerificationKey } from 'o1js';
-import { PoolFactory, Pool, PoolTokenHolder, poolDataMainnet, poolHashMainnet, poolTokenHolderDataMainnet, poolDataTestnet, poolHashTestnet, poolTokenHolderDataTestnet, poolTokenHolderHashMainnet, poolTokenHolderHashTestnet } from '../index.js';
+import { Mina, NetworkId, Provable, SmartContract } from 'o1js';
+import { PoolFactory, Pool, PoolTokenHolder } from '../index.js';
 
 // node build/src/utils/showVK.js
 

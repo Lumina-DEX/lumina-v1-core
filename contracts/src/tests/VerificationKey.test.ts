@@ -1,7 +1,5 @@
-import { Cache, Mina } from "o1js"
+import { Mina } from "o1js"
 import {
-  FungibleToken,
-  FungibleTokenAdmin,
   Pool,
   PoolFactory,
   PoolTokenHolder,
