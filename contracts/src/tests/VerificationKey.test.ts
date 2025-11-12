@@ -1,4 +1,4 @@
-import { Mina } from "o1js"
+import { Field, Mina } from "o1js"
 import {
   Pool,
   PoolFactory,
@@ -17,13 +17,13 @@ describe("Check verification key", () => {
     Mina.setActiveInstance(network)
 
     const vkFactory = await PoolFactory.compile()
-    expect(vkFactory.verificationKey.hash.toBigInt()).toEqual(
-      21155315920244513361696679354690742153476743044380974966337181307650568441726n
+    expect(vkFactory.verificationKey.hash).toEqual(
+      Field(21155315920244513361696679354690742153476743044380974966337181307650568441726n)
     )
     const vkPool = await Pool.compile()
-    expect(vkPool.verificationKey.hash.toBigInt()).toEqual(poolHashTestnet.toBigInt())
+    expect(vkPool.verificationKey.hash).toEqual(poolHashTestnet)
     const vkPoolHolder = await PoolTokenHolder.compile()
-    expect(vkPoolHolder.verificationKey.hash.toBigInt()).toEqual(poolTokenHolderHashTestnet.toBigInt())
+    expect(vkPoolHolder.verificationKey.hash).toEqual(poolTokenHolderHashTestnet)
   }, 600000)
 
   it("has a valid verification key", async () => {
@@ -34,12 +34,12 @@ describe("Check verification key", () => {
     Mina.setActiveInstance(network)
 
     const vkFactory = await PoolFactory.compile()
-    expect(vkFactory.verificationKey.hash.toBigInt()).toEqual(
-      21955258744905199326476551523512075073823567754306600871892901345442326387142n
+    expect(vkFactory.verificationKey.hash).toEqual(
+      Field(21955258744905199326476551523512075073823567754306600871892901345442326387142n)
     )
     const vkPool = await Pool.compile()
-    expect(vkPool.verificationKey.hash.toBigInt()).toEqual(poolHashMainnet.toBigInt())
+    expect(vkPool.verificationKey.hash).toEqual(poolHashMainnet)
     const vkPoolHolder = await PoolTokenHolder.compile()
-    expect(vkPoolHolder.verificationKey.hash.toBigInt()).toEqual(poolTokenHolderHashMainnet.toBigInt())
+    expect(vkPoolHolder.verificationKey.hash).toEqual(poolTokenHolderHashMainnet)
   }, 600000)
 })
