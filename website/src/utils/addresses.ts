@@ -43,7 +43,7 @@ export class Addresses {
             const devnet = Mina.Network(
                 {
                     networkId: "testnet",
-                    mina: window.location.origin + "/api/proxy",
+                    mina: "https://api.minascan.io/node/devnet/v1/graphql",
                     archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
                 }
             );
