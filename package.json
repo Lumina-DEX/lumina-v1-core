@@ -9,5 +9,5 @@
     "lint": "cd ./contracts && npm run lint"
   },
   "author": "eddy",
-  "license": "BSL"
+  "license": "Apache-2.0"
 }
