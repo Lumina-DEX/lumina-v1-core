@@ -12,7 +12,7 @@ These actions can be performed concurrently with other users.
 
 ## Licensing
 
-Business Source License 1.1
+[Apache License 2.0](License.md)
 
 Licensor: Lumina Labs
 
